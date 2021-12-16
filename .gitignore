@@ -8,6 +8,12 @@
 .Rdata
 .Rproj.user
 
+# any error report from data server
+errorReportSql.txt
+
+# the Mac local thing
+.DS_Store
+
 Documents/*.html
 Documents/*.pdf
 Documents/*.tex

@@ -3,16 +3,6 @@ title: "| RESEARCH PROTOCOL\n| \n| EUMAEUS: Evaluating Use of Methods for Advers
 fontsize: 12pt
 geometry: margin=1in
 output:
-  bookdown::pdf_document2:
-    keep_tex: yes
-    latex_engine: xelatex
-    md_extensions: +raw_attribute
-    number_sections: yes
-    # citation_package: natbib
-    includes:
-      before_body: title.tex
-  bookdown::word_document2:
-    toc: yes
   bookdown::html_document2:
     df_print: paged
     toc: yes
@@ -21,6 +11,16 @@ output:
     number_sections: yes
     number_tables: yes
     css: "style.css"
+  bookdown::word_document2:
+    toc: yes
+  bookdown::pdf_document2:
+    keep_tex: yes
+    latex_engine: xelatex
+    md_extensions: +raw_attribute
+    number_sections: yes
+    # citation_package: natbib
+    includes:
+      before_body: title.tex
 header-includes:
 - \usepackage[numbers,sort&compress]{natbib}
 - \usepackage{booktabs}
