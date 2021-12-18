@@ -28,7 +28,7 @@ analysisTable <- DatabaseConnector::querySql(connection = connection,
                                               sql = sql)
 
 
-sql <- "SELECT TOP 10 * FROM eumaeus.ANALYSIS"
+sql <- "SELECT TOP 10 * FROM eumaeus.LIKELIHOOD_PROFILE"
 sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
 likTable <- DatabaseConnector::querySql(connection = connection,
                                         sql = sql)
