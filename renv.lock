@@ -25,16 +25,16 @@
     },
     "CaseControl": {
       "Package": "CaseControl",
-      "Version": "3.1.0",
+      "Version": "3.2.0",
       "Source": "GitHub",
       "Remotes": "ohdsi/FeatureExtraction",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "CaseControl",
       "RemoteUsername": "OHDSI",
-      "RemoteRef": "HEAD",
-      "RemoteSha": "6d73ef208465c5253113e8906902809ee6c6f0e5",
-      "Hash": "7ed524dd877c9d8f4af65d78549298af"
+      "RemoteRef": "develop",
+      "RemoteSha": "5a43a7bb5001709f22da20befc97f108481d6d53",
+      "Hash": "09c08087b522e2320f508e2df808317b"
     },
     "CirceR": {
       "Package": "CirceR",
@@ -77,9 +77,14 @@
     "Cyclops": {
       "Package": "Cyclops",
       "Version": "3.1.2",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "2bc88b32343150d9c4a4b943f007d034"
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "cyclops",
+      "RemoteUsername": "OHDSI",
+      "RemoteRef": "develop",
+      "RemoteSha": "70ef8424fa9c6b226cfd0aa15cbb1225f97dd233",
+      "Hash": "b07906e4b97bedb1de4968207efee743"
     },
     "DBI": {
       "Package": "DBI",
@@ -97,10 +102,15 @@
     },
     "EmpiricalCalibration": {
       "Package": "EmpiricalCalibration",
-      "Version": "3.0.0",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "fadc86ec05d4daa71793b364ed41e4aa"
+      "Version": "3.0.1",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "EmpiricalCalibration",
+      "RemoteUsername": "OHDSI",
+      "RemoteRef": "develop",
+      "RemoteSha": "9f5d14600593ef0cf0a2f5f4a8c9eebf79b26725",
+      "Hash": "d52dedb694a61245f15af74e5adad242"
     },
     "FeatureExtraction": {
       "Package": "FeatureExtraction",
@@ -217,15 +227,16 @@
     },
     "SelfControlledCaseSeries": {
       "Package": "SelfControlledCaseSeries",
-      "Version": "3.1.0",
+      "Version": "3.2.0",
       "Source": "GitHub",
+      "Remotes": "ohdsi/Eunomia, ohdsi/SqlRender@develop",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "SelfControlledCaseSeries",
       "RemoteUsername": "OHDSI",
-      "RemoteRef": "HEAD",
-      "RemoteSha": "f05d124436963082b61c158d7af00165f906ee8f",
-      "Hash": "5510ecdff75d97e02f6587e81a24e1a9"
+      "RemoteRef": "develop",
+      "RemoteSha": "1901cb7c13612a4d2aefeb04306aebf13228c361",
+      "Hash": "26a82262dbfe9a07da92a7290dcc4a60"
     },
     "Sequential": {
       "Package": "Sequential",
@@ -318,6 +329,13 @@
       "Repository": "CRAN",
       "Hash": "ddf8bc55ea050f984835dd2d23cd6828"
     },
+    "bslib": {
+      "Package": "bslib",
+      "Version": "0.3.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "56ae7e1987b340186a8a5a157c2ec358"
+    },
     "cachem": {
       "Package": "cachem",
       "Version": "1.0.6",
@@ -373,6 +391,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "6baccb763ee83c0bd313460fdb8b8a84"
+    },
+    "commonmark": {
+      "Package": "commonmark",
+      "Version": "1.7",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "0f22be39ec1d141fd03683c06f3a6e67"
     },
     "cpp11": {
       "Package": "cpp11",
@@ -486,6 +511,13 @@
       "Repository": "CRAN",
       "Hash": "38ec653c2613bed60052ba3787bd8a2c"
     },
+    "fontawesome": {
+      "Package": "fontawesome",
+      "Version": "0.2.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "55624ed409e46c5f358b2c060be87f67"
+    },
     "forcats": {
       "Package": "forcats",
       "Version": "0.5.1",
@@ -584,6 +616,13 @@
       "Repository": "CRAN",
       "Hash": "526c484233f42522278ab06fb185cb26"
     },
+    "httpuv": {
+      "Package": "httpuv",
+      "Version": "1.6.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "3955f7fdf9ffcfd33627d351e69eae0f"
+    },
     "httr": {
       "Package": "httr",
       "Version": "1.4.2",
@@ -646,6 +685,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "3d5108641f47470611a32d0bdf357a72"
+    },
+    "later": {
+      "Package": "later",
+      "Version": "1.3.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "7e7b457d7766bc47f2a5f21cc2984f8e"
     },
     "lattice": {
       "Package": "lattice",
@@ -808,6 +854,13 @@
       "Repository": "CRAN",
       "Hash": "14dc9f7a3c91ebb14ec5bb9208a07061"
     },
+    "promises": {
+      "Package": "promises",
+      "Version": "1.2.0.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "4ab2c43adb4d4699cf3690acd378d75d"
+    },
     "ps": {
       "Package": "ps",
       "Version": "1.6.0",
@@ -913,6 +966,13 @@
       "Repository": "CRAN",
       "Hash": "bb099886deffecd6f9b298b7d4492943"
     },
+    "sass": {
+      "Package": "sass",
+      "Version": "0.4.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "50cf822feb64bb3977bda0b7091be623"
+    },
     "scales": {
       "Package": "scales",
       "Version": "1.1.1",
@@ -927,6 +987,13 @@
       "Repository": "CRAN",
       "Hash": "3838071b66e0c566d55cc26bd6e27bf4"
     },
+    "shiny": {
+      "Package": "shiny",
+      "Version": "1.7.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "00344c227c7bd0ab5d78052c5d736c44"
+    },
     "snow": {
       "Package": "snow",
       "Version": "0.4-4",
@@ -940,6 +1007,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "07060494360a48fc8a2e282f0dc8f2cf"
+    },
+    "sourcetools": {
+      "Package": "sourcetools",
+      "Version": "0.1.7",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "947e4e02a79effa5d512473e10f41797"
     },
     "stringi": {
       "Package": "stringi",
@@ -1115,6 +1189,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "40682ed6a969ea5abfd351eb67833adc"
+    },
+    "xtable": {
+      "Package": "xtable",
+      "Version": "1.8-4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "b8acdf8af494d9ec19ccb2481a9b11c2"
     },
     "yaml": {
       "Package": "yaml",

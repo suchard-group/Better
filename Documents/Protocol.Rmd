@@ -1,5 +1,5 @@
 ---
-title: "| RESEARCH PROTOCOL\n| \n| EUMAEUS: Evaluating Use of Methods for Adverse Event Under Surveillance (for vaccines)\n"
+title: "| RESEARCH PROTOCOL\n| \n| BETTER: Bayesian Evaluation of Time-To-Event and Reliability (for vaccine surveillance)\n"
 fontsize: 12pt
 geometry: margin=1in
 output:
@@ -58,7 +58,7 @@ csl: jamia.csl
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 options(kableExtra.latex.load_packages = FALSE)
 library(kableExtra)
 #knitr::knit_hooks$set(document = function(x) {sub('\\usepackage[]{color}', '\\usepackage[table]{xcolor}', x, fixed = TRUE)})
@@ -112,6 +112,7 @@ abbreviations <- readr::read_delim(col_names = FALSE, delim = ";", trim_ws = TRU
   MSE; Mean Squared Error
   OHDSI; Observational Health Data Science and Informatics
   OMOP; Observational Medical Outcomes Partnership
+  MAP; Maximum A Posteriori
   MaxSPRT; MAXimized Sequential Probability Ratio Test 
   PS; Propensity score
   RCT; Randomized controlled trial
@@ -173,28 +174,37 @@ As recently approved COVID-19 vaccines are rolled out globally, it is likely tha
 
 **Study Aims**
 
-To study the comparative performance (bias, precision, and timeliness) of different analytical methods for the study of comparative vaccine safety.
+To compare the performance (precision, bias, testing errors, and timeliness) of
+Bayesian and frequentist sequential analysis 
+methods for the study of comparative vaccine safety.
 
 **Study Description**
 
-* Design: Cohort, self-controlled, and case-control studies 
+* Design: Self-controlled studies
 * Exposures: previous viral vaccines including 2017-2018 flu, H1N1pdm flu, Human Papillomavirus (HPV), and Varicella-Zoster.
 * Outcomes: selected adverse events of special interest; negative control outcomes; imputed positive control outcomes
 * Analyses: 
-    1) Historical rate comparisons. 
-    2) Cohort analyses using a contemporary non-user comparator, with large-scale propensity score matching
-    3) Self-controlled case series with variations
-    4) Case-control analyses
+    1) Self-controlled case series with variations (frequentist)
+    2) Self-controlled case series with variations (Bayesian)
+* Decision rules:
+    - Frequentist method: reject null at $\alpha = 0.05$ level, using the MaxSPRT adjustment 
+    - Bayesian method:
+        + Posterior probability of signal, $P_1 = P(H_1 \text{ true } \mid \text{data})$; reject null (claim signal) when $P_1 > \delta_1$, with $\delta_1 = 0.80, 0.90, 0.95$;
+        + Posterior probability of futility, $P_0 = P(H_0 \text{ true } \mid \text{data})$; accept null (claim safety) when $P_0 > \delta_0$, with $\delta_1 = 0.90, 0.95, 0.99$.
 * Metrics:
     - Area Under the receiver-operator Curve (AUC). The ability to discriminate between positive controls and negative controls based on the point estimate of the effect size. Will be stratified by true effect size of the positive controls.
-    - Coverage. How often the true effect size is within the 95% confidence interval.
-    - Mean precision, computed as 1 / (standard error)2
-    - Mean squared error (MSE). Mean squared error between the log of the effect size point-estimate and the log of the true effect size.
-    - Type 1 error. For negative controls, how often was the null rejected (at alpha = 0.05). This is equivalent to the false positive rate and 1 - specificity.
-    - Type 2 error. For positive controls, how often was the null not rejected (at alpha = 0.05). This is equivalent to the false negative rate and 1 - sensitivity. Will be stratified by true effect size of the positive controls.
+    - Coverage. How often the true effect size is within the 95% confidence (or credible) interval.
+    - Mean precision, computed as $1 / (\text{standard error})^2$ (for the Bayesian method, ``standard error'' is taken as the square root of the posterior distribution variance)
+    - Mean squared error (MSE). Mean squared error between the log of the effect size point-estimate (MAP estimate for Bayesian method) and the log of the true effect size.
+    - Type 1 error. For negative controls, how often was the null rejected using the various decision rules. This is equivalent to the false positive rate and 1 - specificity.
+    - Type 2 error. For positive controls, how often was the null **not** rejected using the various decision rules. This is equivalent to the false negative rate and 1 - sensitivity. Will be stratified by true effect size of the positive controls.
+    - Posterior probability of futility ($H_0$ true) at final analysis; only reported for Bayesian methods. 
+    - Sensitivity and specificity based on the various decision rules
+    - Detection time: the number of analyses (months) until signals are claimed for 80% of positive controls. Will be stratified by true effect size of the positive controls.
+    - Rate of contradictory early decisions. For all controls, how often did an earlier signal/futility decision contradict the decision based on full analysis of all data. This is a proxy measure of the ``quality'' of early signal detection methods. 
     - Non-estimable. Measure for how many of the controls was the method unable to produce an estimate
-    - Sensitivity and specificity based on the MaxSPRT decision rule
-    - Detection time: the number of months until 80% of positive controls exceeds the critical value. Will be stratified by true effect size of the positive controls.
+    
+    
 
 # Amendments and Updates
 
