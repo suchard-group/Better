@@ -50,8 +50,8 @@ longtable: yes
 mainfont: Arial
 bibliography: Protocol.bib
 params:
-  date: '2021-04-09'
-  version: 1.2.0
+  date: '2021-12-20'
+  version: 1.0.0
 subtitle: 'Version: `r params$version`'
 link-citations: true
 csl: jamia.csl
@@ -272,11 +272,12 @@ The results of this evaluation will help us understand how these methods will pe
 
 # Study Objectives
 
-The overarching aim is to identify the best methods for the generation of evidence of vaccine safety in observational, real-world data.
+The overarching aim is to compare the performance of Frequentist and Bayesian sequential analysis methods for the generation of evidence of vaccine safety in observational, real-world data.
 Specific aims:
 
-- To estimate the bias and precision associated with the use of different methods (historic rate, cohort, self-controlled, and case-control) for the study of vaccine safety compared
+- To estimate the bias and precision associated with the use of Frequentist and Bayesian methods with self-controlled designs for the study of vaccine safety
 - To compare the 'timeliness' of these methods for the identification of vaccine safety signals
+- To gain a deeper understanding of the behavior of Bayesian sequential methods; specifically, the relationship between threshold choices, Type I and II errors, and time-to-signal 
 
 # Research Methods
 
