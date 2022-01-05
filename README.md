@@ -1,4 +1,4 @@
-Evaluating Use of Methods for Adverse Event Under Surveillance (for vaccines)
+BETTER: Bayesian Evaluation of Time-To-Event and Reliability (for vaccine surveillance)
 =============================================================================
 
 <img src="https://img.shields.io/badge/Study%20Status-Results%20Available-yellow.svg" alt="Study Status: Results Available">
@@ -6,12 +6,12 @@ Evaluating Use of Methods for Adverse Event Under Surveillance (for vaccines)
 - Analytics use case(s): **Population-Level Estimation**
 - Study type: **Methods Research**
 - Tags: **-**
-- Study lead: **Martijn Schuemie**
-- Study lead forums tag: **[schuemie](https://forums.ohdsi.org/u/schuemie)**
-- Study start date: **January 12, 2021**
+- Study lead: **Fan Bu**
+- Study lead forums tag: **-**
+- Study start date: **January ???, 2022**
 - Study end date: **-**
-- Protocol: **[HTML document](https://ohdsi-studies.github.io/Eumaeus/Protocol.html)**, **[ENCEPP registration](http://www.encepp.eu/encepp/viewResource.htm?id=40341)**
+- Protocol: **-**
 - Publications: **-**
-- Results explorer: **[Shiny app](https://data.ohdsi.org/Eumaeus/)**
+- Results explorer: **-**
 
-Similar to our [previous research on the evaluation of causal effect estimation methods](https://doi.org/10.1162/99608f92.147cc28e), this study aims to systematically evaluate methods for (safety) surveillance of vaccines.
+This study aims to comparing the performance of Bayesian and frequentist sequential testing methods for vaccine safety surveillance in real-world data. 
