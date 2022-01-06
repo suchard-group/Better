@@ -4,12 +4,6 @@
 
 library(tidyverse)
 
-# EUMAEUS results credentials
-keyring::key_set_with_value("eumaeusUser", password = "eumaeus_readonly")
-keyring::key_set_with_value("eumaeusPassword", password = "9BA3DFEE23C176")
-keyring::key_set_with_value("eumaeusServer", password = "shinydb.cqnqzwtn5s1q.us-east-1.rds.amazonaws.com")
-keyring::key_set_with_value("eumaeusDatabase", password = "shinydb")
-
 # connection details
 ConnectionDetails <- DatabaseConnector::createConnectionDetails(
   dbms = "postgresql",
@@ -23,15 +17,57 @@ ConnectionDetails <- DatabaseConnector::createConnectionDetails(
 connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
 
 # try getting something from EUMAEUS database
+## analysis table
 sql <- "SELECT * from eumaeus.ANALYSIS"
 analysisTable <- DatabaseConnector::querySql(connection = connection,
                                               sql = sql)
+SCCSanalysis <- analysisTable %>% filter(METHOD == 'SCCS')
+# method: "SCCS"; analysis_id ranges from 1 to 15
+
+## database table
+sql <- "SELECT * from eumaeus.DATABASE"
+databaseTable <- DatabaseConnector::querySql(connection = connection,
+                                             sql = sql)
+databaseTable$DATABASE_ID
+# [1] "CCAE"     "IBM_MDCD" "IBM_MDCR" "OptumEhr" "OptumDod"
+
+## exposure table
+sql <- "SELECT * from eumaeus.EXPOSURE"
+exposureTable <- DatabaseConnector::querySql(connection = connection,
+                                             sql = sql)
+exposureTable$EXPOSURE_ID
+# [1]  21184  21185  21214  21215 211981 211982 211983 211831 211832
+# [10] 211833
+
+## negative control outcome table
+sql <- "SELECT * from eumaeus.NEGATIVE_CONTROL_OUTCOME"
+negOutTable <- DatabaseConnector::querySql(connection = connection,
+                                             sql = sql)
+negOutTable$OUTCOME_ID
+# [1]   438945   434455   316211   201612   438730   441258   432513
+
+## time period table
+sql <- "SELECT * from eumaeus.TIME_PERIOD"
+periodTable <- DatabaseConnector::querySql(connection = connection,
+                                           sql = sql)
+periodTable$PERIOD_ID
+# mostly ranges from 1 to 9
 
 
-sql <- "SELECT TOP 10 * FROM eumaeus.LIKELIHOOD_PROFILE"
+# sql <- "SELECT TOP 10 * FROM eumaeus.LIKELIHOOD_PROFILE"
+# sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+# likTable <- DatabaseConnector::querySql(connection = connection,
+#                                         sql = sql)
+
+
+sql <- "SELECT * FROM eumaeus.LIKELIHOOD_PROFILE
+        WHERE database_id = 'IBM_MDCD'
+        AND method = 'SCCS'
+        AND analysis_id = 1
+        AND exposure_id = 21184
+        AND outcome_id = 438945"
 sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
-likTable <- DatabaseConnector::querySql(connection = connection,
-                                        sql = sql)
+likTable <- DatabaseConnector::querySql(connection = connection,sql = sql)
 
 
 # likelihood profile pull function
@@ -42,23 +78,29 @@ likTable <- DatabaseConnector::querySql(connection = connection,
 ## exposure_id
 ## outcome_id
 ## period_id
-pullLikelihood <- function(target_id, comparator_id,
-                           outcome_id, analysis_id, 
+pullLikelihood <- function(database_id, analysis_id, 
+                           exposure_id, outcome_id,
+                           period_id,
+                           method = "'SCCS'", # default to SCCS for our purposes
                            plot=FALSE){
   
-  sql <- "SELECT point, value FROM legendt2dm_class_results.likelihood_profile
-          WHERE target_id = @target_id
-          AND comparator_id = @comparator_id
+  sql <- "SELECT point, value FROM eumaeus.LIKELIHOOD_PROFILE
+          WHERE database_id = @database_id
+          AND method = @method
+          AND analysis_id = @analysis_id
+          AND exposure_id = @exposure_id
           AND outcome_id = @outcome_id
-          AND analysis_id = @analysis_id"
+          AND period_id = @period_id"
   
   ## using the updated "render" & "translate" functions instead
   ## they return chatacter strings directly; no need to extract from a list
   sql <- SqlRender::render(sql, 
-                           target_id = target_id,
-                           comparator_id = comparator_id,
+                           database_id = database_id,
+                           method = method,
+                           analysis_id = analysis_id,
+                           exposure_id = exposure_id,
                            outcome_id = outcome_id,
-                           analysis_id = analysis_id)
+                           period_id = period_id)
   sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
   lik <- DatabaseConnector::querySql(connection, sql)
   
@@ -85,5 +127,49 @@ pullLikelihood <- function(target_id, comparator_id,
 }
 
 
+## try out the function
+lik = pullLikelihood(database_id = "'IBM_MDCD'", analysis_id = 1,
+                     exposure_id = 21184, outcome_id = 438945,
+                     period_id = 3, plot=TRUE)
+### (needs a bit of hacking to really work...)
 
+
+
+#### Okay there is a small issue though......
+### these two lines do NOT work
+sql <- "SELECT point, value FROM eumaeus.LIKELIHOOD_PROFILE
+        WHERE database_id = @database_id
+        AND method = @method
+        AND analysis_id = @analysis_id
+        AND exposure_id = @exposure_id
+        AND outcome_id = @outcome_id
+        AND period_id = @period_id"
+sql <- SqlRender::render(sql, 
+                         database_id = 'IBM_MDCD',
+                         method = 'SCCS',
+                         analysis_id = 1,
+                         exposure_id = 21184,
+                         outcome_id = 438945,
+                         period_id = 3)
+## Hmmmmm need to wrap the chars with additional pair of " " to make it work?!?!
+sql <- SqlRender::render(sql, 
+                         database_id = "'IBM_MDCD'",
+                         method = "'SCCS'",
+                         analysis_id = 1,
+                         exposure_id = 21184,
+                         outcome_id = 438945,
+                         period_id = 3)
+
+
+### BUT this one works!
+sql <- "SELECT point, value FROM eumaeus.LIKELIHOOD_PROFILE
+        WHERE database_id = 'IBM_MDCD'
+        AND method = 'SCCS'
+        AND analysis_id = 1
+        AND exposure_id = 21184
+        AND outcome_id = 438945
+        AND period_id = 3"
+
+sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+lik <- DatabaseConnector::querySql(connection, sql)
 
