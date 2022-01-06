@@ -45,6 +45,26 @@ negOutTable <- DatabaseConnector::querySql(connection = connection,
                                              sql = sql)
 negOutTable$OUTCOME_ID
 # [1]   438945   434455   316211   201612   438730   441258   432513
+# 93 in total
+
+## positive control outcome table
+sql <- "SELECT * from eumaeus.POSITIVE_CONTROL_OUTCOME"
+posOutTable <- DatabaseConnector::querySql(connection = connection,
+                                           sql = sql)
+length(posOutTable$OUTCOME_ID)
+# somehow there are 921 in total
+# positive control created for each exposure-(neg)outcome pair, with 3 RRs for each?
+# BUT only corresponds to 80 negative controls
+# Also only 6 exposure ids (not stratified by dose #)
+
+## imputed positive control outcome table
+sql <- "SELECT * from eumaeus.IMPUTED_POSITIVE_CONTROL_OUTCOME"
+impPosOutTable <- DatabaseConnector::querySql(connection = connection,
+                                           sql = sql)
+length(impPosOutTable$OUTCOME_ID)
+# 2790 in total???
+# this, though, corresponds to all 93 negative controls
+# with all 10 exposure ids (stratified by vaxx dose)
 
 ## time period table
 sql <- "SELECT * from eumaeus.TIME_PERIOD"
@@ -52,6 +72,41 @@ periodTable <- DatabaseConnector::querySql(connection = connection,
                                            sql = sql)
 periodTable$PERIOD_ID
 # mostly ranges from 1 to 9
+
+## look at ESTIMATE v.s. ESTIMATE_IMPUTED_PCS
+sql <- "SELECT outcome_id from eumaeus.ESTIMATE"
+estimateTable <- DatabaseConnector::querySql(connection = connection,
+                                          sql = sql)
+unique(estimateTable$OUTCOME_ID) # 1014 total outcomes exist in the ESTIMATE table
+
+sql <- "SELECT outcome_id from eumaeus.ESTIMATE_IMPUTED_PCS"
+estimateIPCsTable <- DatabaseConnector::querySql(connection = connection,
+                                             sql = sql)
+length(unique(estimateIPCsTable$OUTCOME_ID))
+# 2883 in total (= 2790 imputed pos + 93 neg controls)
+# ALTHOUGH, not all of them exist in the estimate table for each database-method combo
+
+### try to see if ESTIMATE_IMPUTED_PCS table corresponds to the likelihood profiles
+sql <- "SELECT * from eumaeus.ESTIMATE_IMPUTED_PCS
+        WHERE database_id = 'IBM_MDCD'
+        AND method = 'SCCS'
+        AND analysis_id = 1
+        AND exposure_id = 21184
+        AND outcome_id = 438945"
+exEstimateIPCsTable <- DatabaseConnector::querySql(connection = connection,
+                                                   sql = sql)
+# 7 rows in total, which matches the likelihood profile query results
+
+### contrast with ESTIMATE
+sql <- "SELECT * from eumaeus.ESTIMATE
+        WHERE database_id = 'IBM_MDCD'
+        AND method = 'SCCS'
+        AND analysis_id = 1
+        AND exposure_id = 21184
+        AND outcome_id = 438945"
+exEstimateTable <- DatabaseConnector::querySql(connection = connection,
+                                                   sql = sql)
+# hmm also 7 rows in total...
 
 
 # sql <- "SELECT TOP 10 * FROM eumaeus.LIKELIHOOD_PROFILE"
@@ -68,6 +123,11 @@ sql <- "SELECT * FROM eumaeus.LIKELIHOOD_PROFILE
         AND outcome_id = 438945"
 sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
 likTable <- DatabaseConnector::querySql(connection = connection,sql = sql)
+
+
+sql <- "SELECT outcome_id FROM eumaeus.LIKELIHOOD_PROFILE"
+sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+likTableOutcomes <- DatabaseConnector::querySql(connection = connection,sql = sql)
 
 
 # likelihood profile pull function
@@ -173,3 +233,7 @@ sql <- "SELECT point, value FROM eumaeus.LIKELIHOOD_PROFILE
 sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
 lik <- DatabaseConnector::querySql(connection, sql)
 
+
+
+# finally need to disconnect
+disconnect(connection)

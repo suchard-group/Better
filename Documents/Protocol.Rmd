@@ -694,3 +694,13 @@ if (knitr::is_latex_output()) {
   tab
 }
 ```
+
+# Additional investigated outcome cohort
+
+```{r guillainBarre-cohort, echo=FALSE, results="asis", warning=FALSE, message=FALSE}
+baseCohortJson <- SqlRender::readSql(system.file("cohorts", "GBS.json", package = "Eumaeus"))
+baseCohort <- RJSONIO::fromJSON(baseCohortJson)
+baseCohortJson <- RJSONIO::toJSON(baseCohort, digits = 50)
+printCohortDefinitionFromNameAndJson(name = "Adverse Event Outcome - Guillain Barre Syndrome",
+                                     json = baseCohortJson)
+```
