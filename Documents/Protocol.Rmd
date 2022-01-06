@@ -114,7 +114,7 @@ abbreviations <- readr::read_delim(col_names = FALSE, delim = ";", trim_ws = TRU
   MSE; Mean Squared Error
   OHDSI; Observational Health Data Science and Informatics
   OMOP; Observational Medical Outcomes Partnership
-  PS; Propensity score
+  # PS; Propensity score
   RCT; Randomized controlled trial
   SCCS; Self-Controlled Case Series
   SCRI; Self-Controlled Risk Interval
