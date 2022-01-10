@@ -23,6 +23,13 @@
       "Repository": "CRAN",
       "Hash": "4e348572ffcaa2fb1e610e7a941f6f3a"
     },
+    "BeastJar": {
+      "Package": "BeastJar",
+      "Version": "1.10.6",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "5120f12a3f442b5ded29eb6161ef26d4"
+    },
     "CaseControl": {
       "Package": "CaseControl",
       "Version": "3.2.0",
@@ -74,6 +81,13 @@
       "RemoteSha": "fb1e9e854f4a70502c3cfd664b8e05e570a83997",
       "Hash": "04bc2a101d9171855473de6e29e554da"
     },
+    "CompQuadForm": {
+      "Package": "CompQuadForm",
+      "Version": "1.4.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "4594a396b693b8705d8dbb5491aca887"
+    },
     "Cyclops": {
       "Package": "Cyclops",
       "Version": "3.1.2",
@@ -112,6 +126,18 @@
       "RemoteSha": "9f5d14600593ef0cf0a2f5f4a8c9eebf79b26725",
       "Hash": "d52dedb694a61245f15af74e5adad242"
     },
+    "EvidenceSynthesis": {
+      "Package": "EvidenceSynthesis",
+      "Version": "0.2.4",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "EvidenceSynthesis",
+      "RemoteUsername": "OHDSI",
+      "RemoteRef": "develop",
+      "RemoteSha": "e7fe85d521403a8c89de3f539ed61bcf81bd52be",
+      "Hash": "a91ba4fd2e938b354f29f7640db224f2"
+    },
     "FeatureExtraction": {
       "Package": "FeatureExtraction",
       "Version": "3.2.0",
@@ -124,6 +150,13 @@
       "RemoteRef": "HEAD",
       "RemoteSha": "bddb9ca9ce946a540b04e7bfa0a2465344b7b249",
       "Hash": "1114c14eb4ecd70b2e420bb91f938699"
+    },
+    "HDInterval": {
+      "Package": "HDInterval",
+      "Version": "0.2.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "3b986a53325a1d95610b8d86a284dac0"
     },
     "MASS": {
       "Package": "MASS",
@@ -384,6 +417,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "78ecb042cd9558b7ab6230e6243bef87"
+    },
+    "coda": {
+      "Package": "coda",
+      "Version": "0.19-4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "24b6d006b8b2343876cf230687546932"
     },
     "colorspace": {
       "Package": "colorspace",
@@ -707,6 +747,13 @@
       "Repository": "CRAN",
       "Hash": "a6b6d352e3ed897373ab19d8395c98d0"
     },
+    "lme4": {
+      "Package": "lme4",
+      "Version": "1.1-27.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "c995b0405ce0894d6fe52b3e08ea9085"
+    },
     "lubridate": {
       "Package": "lubridate",
       "Version": "1.8.0",
@@ -728,12 +775,33 @@
       "Repository": "CRAN",
       "Hash": "41287f1ac7d28a92f0a286ed507928d3"
     },
+    "mathjaxr": {
+      "Package": "mathjaxr",
+      "Version": "1.4-0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "21ec862477d3845843994019cadc4629"
+    },
     "memoise": {
       "Package": "memoise",
       "Version": "2.0.1",
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "e2817ccf4a065c5d9d7f2cfbe7c1d78c"
+    },
+    "meta": {
+      "Package": "meta",
+      "Version": "5.1-1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "82fa2db3443bc08809c1a0387bc69cf8"
+    },
+    "metafor": {
+      "Package": "metafor",
+      "Version": "3.0-2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "b598da1155b3f86b380c1a32f6f3b224"
     },
     "mgcv": {
       "Package": "mgcv",
@@ -748,6 +816,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "18e9c28c1d3ca1560ce30658b22ce104"
+    },
+    "minqa": {
+      "Package": "minqa",
+      "Version": "1.2.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "eaee7d2a6f3ed4491df868611cb064cc"
     },
     "modelr": {
       "Package": "modelr",
@@ -770,6 +845,13 @@
       "Repository": "CRAN",
       "Hash": "35de1ce639f20b5e10f7f46260730c65"
     },
+    "nloptr": {
+      "Package": "nloptr",
+      "Version": "1.2.2.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "22eeb1eb7129a2ca17b8eb70b56a02fe"
+    },
     "openssl": {
       "Package": "openssl",
       "Version": "1.4.5",
@@ -790,6 +872,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "417fd0d40479932c19faf2747817c473"
+    },
+    "pbapply": {
+      "Package": "pbapply",
+      "Version": "1.5-0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "11359a5bb73622ab3f4136bf57108b64"
     },
     "pillar": {
       "Package": "pillar",
