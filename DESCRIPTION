@@ -1,10 +1,10 @@
-Package: Eumaeus
-Title: Evaluating Use of Methods for Adverse Event Under Surveillance
-Version: 1.2.0
-Date: 2021-06-01
-Author: Martijn J. Schuemie [aut, cre]
-Maintainer: Martijn J. Schuemie <schuemie@ohdsi.org>
-Description: Similar to our previous research on the evaluation of causal effect estimation methods, this study aims to systematically evaluate methods for (safety) surveillance of vaccines.
+Package: better
+Title: Bayesian Evaluation of Time-To-Event and Reliability (for vaccine surveillance)
+Version: 1.0.0
+Date: 2022-01-10
+Author: Fan Bu, Martijn J. Schuemie [aut, cre]
+Maintainer: Fan Bu <fanbu@ucla.edu>
+Description: Following our previous EUMAEUS study, this study compares frequentist and Bayesian sequential analysis methods for vaccine safety surveillance.
 Depends:
     DatabaseConnector (>= 4.0.0),
     survival
@@ -13,6 +13,7 @@ Imports:
     Cyclops (>= 3.1.0),
     CohortDiagnostics (>= 2.0.0),
     MethodEvaluation (>= 2.1.0),
+    EvidenceSynthesis,
     FeatureExtraction,
     CaseControl (>= 3.1.0),
     CohortMethod (>= 4.1.0),

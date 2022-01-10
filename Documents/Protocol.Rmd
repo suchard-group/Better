@@ -302,7 +302,7 @@ Specific aims:
 The evaluation will center on six existing (groups of) vaccines, for specific time periods (start date to end date), as shown in Table \@ref(tab:exposures-of-interest).
 
 ```{r exposures-of-interest, echo=FALSE, warning=FALSE}
-eois <- readr::read_csv(system.file("settings", "ExposuresOfInterest.csv", package = "Eumaeus"), col_types = readr::cols()) %>%
+eois <- readr::read_csv(system.file("settings", "ExposuresOfInterest.csv", package = "better"), col_types = readr::cols()) %>%
   select(exposureName, startDate, endDate, historyStartDate, historyEndDate)
 colnames(eois) <- SqlRender::camelCaseToTitleCase(colnames(eois))
 
@@ -651,7 +651,7 @@ With dedicated support from the OHDSI communications specialist, we will deliver
 # Exposure Cohort Definitions
 
 ```{r h1n1-cohort, echo=FALSE, results="asis", warning=FALSE, message=FALSE}
-baseCohortJson <- SqlRender::readSql(system.file("cohorts", "H1N1vaccination.json", package = "Eumaeus"))
+baseCohortJson <- SqlRender::readSql(system.file("cohorts", "H1N1vaccination.json", package = "better"))
 baseCohort <- RJSONIO::fromJSON(baseCohortJson)
 
 baseCohortJson <- RJSONIO::toJSON(baseCohort, digits = 50)
@@ -661,7 +661,7 @@ printCohortDefinitionFromNameAndJson(name = "H1N1pdm Vaccines",
 ```
 
 ```{r fluvirin-cohort, echo=FALSE, results="asis", warning=FALSE, message=FALSE}
-baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Fluvirin.json", package = "Eumaeus"))
+baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Fluvirin.json", package = "better"))
 baseCohort <- RJSONIO::fromJSON(baseCohortJson)
 
 baseCohortJson <- RJSONIO::toJSON(baseCohort, digits = 50)
@@ -671,7 +671,7 @@ printCohortDefinitionFromNameAndJson(name = "Seasonal Flu Vaccines (Fluvirin)",
 ```
 
 ```{r fluzone-cohort, echo=FALSE, results="asis", warning=FALSE, message=FALSE}
-baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Fluzone.json", package = "Eumaeus"))
+baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Fluzone.json", package = "better"))
 baseCohort <- RJSONIO::fromJSON(baseCohortJson)
 
 baseCohortJson <- RJSONIO::toJSON(baseCohort, digits = 50)
@@ -681,7 +681,7 @@ printCohortDefinitionFromNameAndJson(name = "Seasonal Flu Vaccines (Fluzone)",
 ```
 
 ```{r flu-cohort, echo=FALSE, results="asis", warning=FALSE, message=FALSE}
-baseCohortJson <- SqlRender::readSql(system.file("cohorts", "AllFluVaccines.json", package = "Eumaeus"))
+baseCohortJson <- SqlRender::readSql(system.file("cohorts", "AllFluVaccines.json", package = "better"))
 baseCohort <- RJSONIO::fromJSON(baseCohortJson)
 
 baseCohortJson <- RJSONIO::toJSON(baseCohort, digits = 50)
@@ -691,7 +691,7 @@ printCohortDefinitionFromNameAndJson(name = "Seasonal Flu Vaccines (All)",
 ```
 
 ```{r hpv-cohort, echo=FALSE, results="asis", warning=FALSE, message=FALSE}
-baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Gardasil9.json", package = "Eumaeus"))
+baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Gardasil9.json", package = "better"))
 baseCohort <- RJSONIO::fromJSON(baseCohortJson)
 
 baseCohortJson <- RJSONIO::toJSON(baseCohort, digits = 50)
@@ -701,7 +701,7 @@ printCohortDefinitionFromNameAndJson(name = "HPV Vaccines",
 ```
 
 ```{r zoster-cohort, echo=FALSE, results="asis", warning=FALSE, message=FALSE}
-baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Shingrix.json", package = "Eumaeus"))
+baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Shingrix.json", package = "better"))
 baseCohort <- RJSONIO::fromJSON(baseCohortJson)
 
 baseCohortJson <- RJSONIO::toJSON(baseCohort, digits = 50)
@@ -714,7 +714,7 @@ printCohortDefinitionFromNameAndJson(name = "Zoster Vaccines",
 # Negative controls
 
 ```{r ncs, echo=FALSE, warning=FALSE}
-ncs <- readr::read_csv(system.file("settings", "NegativeControls.csv", package = "Eumaeus"), col_types = readr::cols())
+ncs <- readr::read_csv(system.file("settings", "NegativeControls.csv", package = "better"), col_types = readr::cols())
 colnames(ncs) <- SqlRender::camelCaseToTitleCase(colnames(ncs))
 
 tab <- kable(ncs, booktabs = TRUE, linesep = "",
@@ -734,7 +734,7 @@ if (knitr::is_latex_output()) {
 # Additional investigated outcome cohort
 
 ```{r guillainBarre-cohort, echo=FALSE, results="asis", warning=FALSE, message=FALSE}
-baseCohortJson <- SqlRender::readSql(system.file("cohorts", "GBS.json", package = "Eumaeus"))
+baseCohortJson <- SqlRender::readSql(system.file("cohorts", "GBS.json", package = "better"))
 baseCohort <- RJSONIO::fromJSON(baseCohortJson)
 baseCohortJson <- RJSONIO::toJSON(baseCohort, digits = 50)
 printCohortDefinitionFromNameAndJson(name = "Adverse Event Outcome - Guillain Barre Syndrome",
