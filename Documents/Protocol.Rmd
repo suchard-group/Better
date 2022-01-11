@@ -188,7 +188,7 @@ We will also produce a reference table of Type I and II error rates and signal d
 
 **Study Description**
 
-* Design: Self-controlled studies
+* Design: Historic comparator & self-controlled studies
 * Exposures: previous viral vaccines including 2017-2018 flu, H1N1pdm flu, Human Papillomavirus (HPV), and Varicella-Zoster.
 * Outcomes: selected adverse events of special interest; negative control outcomes; imputed positive control outcomes
 * Analyses: 
