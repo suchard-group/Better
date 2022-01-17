@@ -368,24 +368,24 @@ All data sources will receive institutional review board approval or exemption f
 ```{r data-sources, echo=FALSE, warning=FALSE}
 data_sources <- readr::read_delim(col_names = TRUE, delim = ";", trim_ws = TRUE, file = "
   Data source ; Population ; Patients ; History ; Data capture process and short description
+  Columbia University Irving Medical Center (CIUMC) ; Academic medical center patients, racially diverse ; 6M ; 1989 -- ; General practice, specialists and inpatient hospital services from the New York-Presbyterian hospital and affiliated academic physician practices in New York.
   IBM MarketScan Commercial Claims and Encounters (CCAE) ; Commercially insured, < 65 years ; 142M ; 2000 -- ; Adjudicated health insurance claims (e.g. inpatient, outpatient, and outpatient pharmacy)  from large employers and health plans who provide private healthcare coverage to employees, their spouses and dependents.
   IBM MarketScan Medicare Supplemental Database (MDCR)  ; Commercially insured, 65$+$ years ; 10M ; 2000 -- ; Adjudicated health insurance claims of retirees with primary or Medicare supplemental coverage through privately insured fee-for-service, point-of-service or capitated health plans.
   IBM MarketScan Multi-State Medicaid Database (MDCD) ; Medicaid enrollees, racially diverse ; 26M ; 2006 -- ; Adjudicated health insurance claims for Medicaid enrollees from multiple states and includes hospital discharge diagnoses, outpatient diagnoses and procedures, and outpatient pharmacy claims.
   Optum Clinformatics Data Mart (Optum) ; Commercially or Medicare insured ; 85M ; 2000 -- ; Inpatient and outpatient healthcare insurance claims.
   Optum Electronic Health Records (OptumEHR) ; US, general ; 93M ; 2006 -- ; Clinical information, prescriptions, lab results, vital signs, body measurements, diagnoses and procedures derived from clinical notes using natural language processing. 
-  Columbia University Health Records Database (CU); US, general; -- ; -- ; (data description pending).
 ")
 tab <- kable(data_sources, booktabs = TRUE, linesep = "",
-      caption = "Committed BETTER data sources and the populations they cover.") %>% 
-  kable_styling(bootstrap_options = "striped", latex_options = "striped") %>%
-  pack_rows("Administrative claims", 1, 4, latex_align = "c", indent = FALSE) %>%
-  pack_rows("Electronic health records (EHRs)", 5, 5, latex_align = "c", indent = FALSE)
+      caption = "BETTER data sources and the populations they cover.") %>% 
+  kable_styling(bootstrap_options = "striped", latex_options = "striped") #%>%
+  # pack_rows("Administrative claims", 1, 4, latex_align = "c", indent = FALSE) %>%
+  # pack_rows("Electronic health records (EHRs)", 5, 5, latex_align = "c", indent = FALSE)
 
 if (knitr::is_latex_output()) {
   tab %>%
     column_spec(1, width = "10em") %>%
     column_spec(2, width = "10em") %>%
-    column_spec(5, width = "25em") %>%
+    column_spec(5, width = "10em") %>%
     kable_styling(font_size = latex_table_font_size)
 } else {
   tab
