@@ -501,7 +501,6 @@ World Health Organization
 <h1><span class="header-section-number">2</span> Responsible Parties</h1>
 <div id="investigators" class="section level2" number="2.1">
 <h2><span class="header-section-number">2.1</span> Investigators</h2>
-<p><strong>(need more editing to include all investigators)</strong></p>
 <table style="NAborder-bottom: 0; margin-left: auto; margin-right: auto;" class="table table-striped">
 <thead>
 <tr>
@@ -516,18 +515,10 @@ Institution/Affiliation
 <tbody>
 <tr>
 <td style="text-align:left;width: 10em; ">
-Fan Bu
+Fan Bu *
 </td>
 <td style="text-align:left;width: 30em; ">
 Department of Human Genetics, University of California, Los Angeles, Los Angeles, CA, USA
-</td>
-</tr>
-<tr>
-<td style="text-align:left;width: 10em; ">
-Louisa Smith
-</td>
-<td style="text-align:left;width: 30em; ">
-Roux Institute, Northeastern University, Portland, ME, USA
 </td>
 </tr>
 <tr>
@@ -541,14 +532,6 @@ Department of Biomedical Informatics, Columbia University, New York, NY, USA
 <tr>
 <td style="text-align:left;width: 10em; ">
 Patrick B. Ryan
-</td>
-<td style="text-align:left;width: 30em; ">
-Observational Health Data Analytics, Janssen Research and Development, Titusville, NJ, USA
-</td>
-</tr>
-<tr>
-<td style="text-align:left;width: 10em; ">
-Martijn J. Schuemie *
 </td>
 <td style="text-align:left;width: 30em; ">
 Observational Health Data Analytics, Janssen Research and Development, Titusville, NJ, USA
@@ -577,9 +560,8 @@ Department of Biostatistics, University of California, Los Angeles, Los Angeles,
 <p><strong>(need editing on info below)</strong></p>
 <p>This study is undertaken within Observational Health Data Sciences and Informatics (OHDSI), an open collaboration.
 <strong>GH</strong> receives grant funding from the US National Institutes of Health and the US Food &amp; Drug Administration.
-<strong>PBR</strong> and <strong>MJS</strong> are employees of Janssen Research and Development and shareholders in John &amp; Johnson.
-<strong>DPA</strong> reports grants and other from Amgen, grants, non-financial support and other from UCB Biopharma, grants from Les Laboratoires Servier, outside the submitted work; and Janssen, on behalf of IMI-funded EHDEN and EMIF consortiums, and Synapse Management Partners have supported training programmes organised by DPA’s department and open for external participants.
-<strong>MAS</strong> receives grant funding from the US National Institutes of Health and the US Food &amp; Drug Administration and contracts from the US Department of Veterans Affairs and Janssen Research and Development.</p>
+<strong>PBR</strong> and is an employee of Janssen Research and Development and shareholders in John &amp; Johnson.
+<strong>FB</strong> and <strong>MAS</strong> receive grant funding from the US National Institutes of Health and the US Food &amp; Drug Administration and contracts from the US Department of Veterans Affairs and Janssen Research and Development.</p>
 </div>
 </div>
 <div id="abstract" class="section level1" number="3">
@@ -597,9 +579,11 @@ Bayesian and frequentist sequential analysis methods for the study of comparativ
 <ul>
 <li>Design: Historic comparator &amp; self-controlled studies</li>
 <li>Exposures: previous viral vaccines including 2017-2018 flu, H1N1pdm flu, Human Papillomavirus (HPV), and Varicella-Zoster.</li>
-<li>Outcomes: selected adverse events of special interest; negative control outcomes; imputed positive control outcomes</li>
+<li>Outcomes: selected adverse events of special interest (e.g., <strong>Guillain-Barre Syndrome</strong>); negative control outcomes; imputed positive control outcomes</li>
 <li>Analyses:
 <ol style="list-style-type: decimal">
+<li>Historic comparator/historic rates (frequentist)</li>
+<li>Historic comparator/historic rates (Bayesian)</li>
 <li>Self-controlled case series with variations (frequentist)</li>
 <li>Self-controlled case series with variations (Bayesian)</li>
 </ol></li>
@@ -608,8 +592,8 @@ Bayesian and frequentist sequential analysis methods for the study of comparativ
 <li>Frequentist method: reject null at <span class="math inline">\(\alpha = 0.05\)</span> level, using the MaxSPRT adjustment</li>
 <li>Bayesian method:
 <ul>
-<li>Posterior probability of signal, <span class="math inline">\(P_1 = P(H_1 \text{ true } \mid \text{data})\)</span>; reject null (claim signal) when <span class="math inline">\(P_1 &gt; \delta_1\)</span>, with <span class="math inline">\(\delta_1 = 0.80, 0.90, 0.95\)</span>;</li>
-<li>Posterior probability of futility, <span class="math inline">\(P_0 = P(H_0 \text{ true } \mid \text{data})\)</span>; accept null (claim safety) when <span class="math inline">\(P_0 &gt; \delta_0\)</span>, with <span class="math inline">\(\delta_0 = 0.90, 0.95, 0.99\)</span>.</li>
+<li>Posterior probability of <em>signal</em>, <span class="math inline">\(P_1 = P(H_1 \text{ true, signal} \mid \text{data})\)</span>; reject null (claim signal) when <span class="math inline">\(P_1 &gt; \delta_1\)</span>, with <span class="math inline">\(\delta_1 = 0.80, 0.90, 0.95\)</span>;</li>
+<li>Posterior probability of <em>futility</em>, <span class="math inline">\(P_0 = P(H_0 \text{ true, safety}\mid \text{data})\)</span>; accept null (claim safety) when <span class="math inline">\(P_0 &gt; \delta_0\)</span>, with <span class="math inline">\(\delta_0 = 0.90, 0.95, 0.99\)</span>.</li>
 </ul></li>
 </ul></li>
 <li>Metrics:
@@ -891,11 +875,11 @@ Although this assumption is likely not to hold in the real world, imputing posit
 For each negative control we will impute positive controls with true effect sizes of 1.5, 2, and 4, so using the 93 negative controls we are able to construct 93 <span class="math inline">\(\times\)</span> 3 = 279 positive control outcomes.
 This increased true effect is applied both for the first and second injection of multi-dose vaccines.</p>
 </div>
-<div id="outcome-of-special-interest" class="section level3" number="8.1.4">
-<h3><span class="header-section-number">8.1.4</span> Outcome of special interest</h3>
+<div id="outcome-of-special-interest-guillain-barre-syndrome" class="section level3" number="8.1.4">
+<h3><span class="header-section-number">8.1.4</span> Outcome of special interest — Guillain-Barre Syndrome</h3>
 <p>In addition to the negative control and imputed positive control outcomes, we will further investigate the risk of Guillain-Barre Syndrome (GBS) following the zoster vaccine, as comparison to previous study findings <span class="citation">[<a href="#ref-goud2021risk" role="doc-biblioref">7</a>]</span>.
 The previous study by Goud et al. used the self-controlled case series design to analyze Medicare claims data, and found a significant elevated risk (risk ratio 2.34, 95% CI, 1.01-5.41).
-We will use both the historical comparator and self-controlled designs, apply both frequentist and Bayesian sequential testing methods, and run analyses on a variety of large-scale databases, in the hope of a more comprehensive analysis of the risk of GBS post zoster vaccination.</p>
+We will use both the historic comparator and self-controlled designs, apply both frequentist and Bayesian sequential testing methods, and run analyses on a variety of large-scale databases, in the hope of a more comprehensive analysis of the risk of GBS post zoster vaccination.</p>
 </div>
 </div>
 <div id="data-sources" class="section level2" number="8.2">
@@ -903,7 +887,7 @@ We will use both the historical comparator and self-controlled designs, apply bo
 <p>We will execute BETTER as an OHDSI network study.
 All data partners within OHDSI are encouraged to participate voluntarily and can do so conveniently, because of the community’s shared Observational Medical Outcomes Partnership (OMOP) common data model (CDM) and OHDSI tool-stack.
 Many OHDSI community data partners have already committed to participate and we will recruit further data partners through OHDSI’s standard recruitment process, which includes protocol publication on OHDSI’s GitHub, an announcement in OHDSI’s research forum, presentation at the weekly OHDSI all-hands-on meeting and direct requests to data holders.</p>
-<p>Table <a href="#tab:data-sources">8.2</a> lists the 5 already committed data sources for BETTER; these sources encompass a large variety of practice types and populations.
+<p>Table <a href="#tab:data-sources">8.2</a> lists the potential data sources for BETTER; these sources encompass a large variety of practice types and populations.
 For each data source, we report a brief description and size of the population it represents.
 All data sources will receive institutional review board approval or exemption for their participation before executing BETTER.</p>
 <table class="table table-striped" style="margin-left: auto; margin-right: auto;">
@@ -1025,6 +1009,23 @@ US, general
 Clinical information, prescriptions, lab results, vital signs, body measurements, diagnoses and procedures derived from clinical notes using natural language processing.
 </td>
 </tr>
+<tr>
+<td style="text-align:left;">
+Columbia University Health Records Database (CU)
+</td>
+<td style="text-align:left;">
+US, general
+</td>
+<td style="text-align:left;">
+–
+</td>
+<td style="text-align:left;">
+–
+</td>
+<td style="text-align:left;">
+(data description pending).
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -1091,7 +1092,7 @@ Although typically MaxSPRT uses a historic rate as counterfactual, any counterfa
 <li>A log-normal prior with mean <span class="math inline">\(= 0\)</span> and SD <span class="math inline">\(= 10\)</span> (a <strong>diffuse</strong> prior)</li>
 <li>A log-normal prior with mean <span class="math inline">\(= 0\)</span> and SD <span class="math inline">\(= 1.5\)</span> (a <strong>conservative</strong> prior with &gt;90% mass below 2)</li>
 <li>A log-normal prior with mean <span class="math inline">\(= 0\)</span> and SD <span class="math inline">\(= 4\)</span> (a weakly informed prior with ~70% mass below 2)</li>
-<li>(For the historical comparator design) A log-normal prior with mean <span class="math inline">\(=\)</span> historic rate and SD <span class="math inline">\(=4\)</span> to incorporate historic information</li>
+<li>(For the historic comparator design) A log-normal prior with mean <span class="math inline">\(=\)</span> historic rate and SD <span class="math inline">\(=4\)</span> to incorporate historic information</li>
 </ul>
 <p>For both frequentist and Bayesian methods, estimation will be conducted both <em>with</em> and <em>without</em> empirical calibration. <span class="citation">[<a href="#ref-Schuemie2014-bv" role="doc-biblioref">11</a>,<a href="#ref-Schuemie2018-hq" role="doc-biblioref">12</a>]</span>. Empirical calibration will be done using leave-one-out: when calibrating the estimate for a control, the systematic error distribution will be fitted uses all controls except the one being calibrated.</p>
 </div>

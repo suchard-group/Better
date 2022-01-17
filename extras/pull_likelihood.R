@@ -220,7 +220,7 @@ sql <- "SELECT point, value FROM eumaeus.LIKELIHOOD_PROFILE
         AND outcome_id = @outcome_id
         AND period_id = @period_id"
 sql <- SqlRender::render(sql, 
-                         database_id = 'IBM_MDCD',
+                         database_id = "IBM_MDCD",
                          method = 'SCCS',
                          analysis_id = 1,
                          exposure_id = 21184,
@@ -228,7 +228,7 @@ sql <- SqlRender::render(sql,
                          period_id = 3)
 ## Hmmmmm need to wrap the chars with additional pair of " " to make it work?!?!
 sql <- SqlRender::render(sql, 
-                         database_id = "'IBM_MDCD'",
+                         database_id = "\"IBM_MDCD\"",
                          method = "'SCCS'",
                          analysis_id = 1,
                          exposure_id = 21184,
