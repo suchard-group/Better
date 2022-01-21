@@ -32,9 +32,19 @@ names(allNegControls) = tolower(names(allNegControls))
 allNegControls = allNegControls %>% 
   select(database_id, method, analysis_id, exposure_id, outcome_id, period_id, 
          log_rr, se_log_rr)
-saveRDS(allNegControls, './localCache/NegControlsSCCSHistComparator.rds')
+#saveRDS(allNegControls, './localCache/NegControlsSCCSHistComparator.rds')
+
+### save a summary too
+### count how many results are available for each existing analysis 
+### (that there is ANY neg control result at all)
+# NC_summary = allNegControls %>% 
+#   group_by(database_id, method, exposure_id, analysis_id, period_id) %>%
+#   count()
+# saveRDS(NC_summary, './localCache/NegControlsSummarySCCSHistComparator.rds')
 
 ### try out one particular analysis
 exNC = allNegControls %>% filter(method == 'SCCS', period_id == 5, 
                                  analysis_id ==1, database_id == 'IBM_MDCD',
                                  exposure_id == 21184)
+
+DatabaseConnector::disconnect(connection)

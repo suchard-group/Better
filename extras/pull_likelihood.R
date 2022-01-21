@@ -251,4 +251,4 @@ lik <- DatabaseConnector::querySql(connection, sql)
 
 
 # finally need to disconnect
-disconnect(connection)
+DatabaseConnector::disconnect(connection)
