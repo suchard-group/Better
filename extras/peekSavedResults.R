@@ -30,21 +30,92 @@ names(allNegControls) = tolower(names(allNegControls))
 ### only need database, method, exposure, outcome, analysis, period and 
 ### log_rr & se_log_rr
 allNegControls = allNegControls %>% 
-  select(database_id, method, analysis_id, exposure_id, outcome_id, period_id, 
+  select(database_id, method, analysis_id, 
+         exposure_id, outcome_id, period_id, 
          log_rr, se_log_rr)
 #saveRDS(allNegControls, './localCache/NegControlsSCCSHistComparator.rds')
+
+allNegControls %>% filter(!is.na(log_rr) & !is.na(se_log_rr)) %>% count()
+# 738460 with estimates
 
 ### save a summary too
 ### count how many results are available for each existing analysis 
 ### (that there is ANY neg control result at all)
-# NC_summary = allNegControls %>% 
-#   group_by(database_id, method, exposure_id, analysis_id, period_id) %>%
-#   count()
-# saveRDS(NC_summary, './localCache/NegControlsSummarySCCSHistComparator.rds')
+### filter out the NA results first
+NC_summary = allNegControls %>%
+  filter(!is.na(log_rr) & !is.na(se_log_rr)) %>%
+  group_by(database_id, method, exposure_id, analysis_id, period_id) %>%
+  count()
+saveRDS(NC_summary, './localCache/NegControlsSummarySCCSHistComparator.rds')
 
 ### try out one particular analysis
 exNC = allNegControls %>% filter(method == 'SCCS', period_id == 5, 
                                  analysis_id ==1, database_id == 'IBM_MDCD',
                                  exposure_id == 21184)
+
+
+# 2. some kind of summary for likelihood profiles
+
+## Negative control results
+sql <- "SELECT database_id, method, 
+        exposure_id, analysis_id, period_id,
+        likelihood_profile.outcome_id AS outcome_id
+        FROM eumaeus.likelihood_profile
+        INNER JOIN eumaeus.NEGATIVE_CONTROL_OUTCOME
+        ON likelihood_profile.outcome_id = NEGATIVE_CONTROL_OUTCOME.outcome_id
+        WHERE (method = 'SCCS' OR method = 'HistoricalComparator')"
+sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+NegControlsLik <- DatabaseConnector::querySql(connection, sql)
+### 837860 rows with LPs saved
+names(NegControlsLik) = tolower(names(NegControlsLik))
+### arrange it a little bit and give it an ID column
+NegControlsLik = NegControlsLik %>%
+  arrange(database_id, method, exposure_id, outcome_id, 
+          analysis_id, period_id)
+IDs = seq(from = 1, to = nrow(NegControlsLik), by = 1)
+NegControlsLik$ID = paste0('NC', IDs)
+### save it
+saveRDS(NegControlsLik, './localCache/LikProfilesNegControlsSCCSHistComparator.rds')
+
+## Imputed positive controls
+sql <- "SELECT database_id, method, 
+          likelihood_profile.exposure_id AS exposure_id,
+          analysis_id, period_id,
+          likelihood_profile.outcome_id AS outcome_id
+        FROM eumaeus.likelihood_profile
+        INNER JOIN eumaeus.IMPUTED_POSITIVE_CONTROL_OUTCOME
+          ON likelihood_profile.outcome_id = IMPUTED_POSITIVE_CONTROL_OUTCOME.outcome_id
+          AND likelihood_profile.exposure_id = IMPUTED_POSITIVE_CONTROL_OUTCOME.exposure_id
+        WHERE (method = 'SCCS' OR method = 'HistoricalComparator')"
+sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+PosControlsLik <- DatabaseConnector::querySql(connection, sql)
+
+### ??? no likelihood profiles saved for imputed positive controls ???
+
+sql <- "SELECT database_id, method, 
+          exposure_id,
+          analysis_id, period_id,
+          outcome_id
+        FROM eumaeus.likelihood_profile
+        WHERE (method = 'SCCS' OR method = 'HistoricalComparator')
+          AND outcome_id = 219728539"
+sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+PosControlsLik <- DatabaseConnector::querySql(connection, sql)
+
+### try to get ALL outcome results from likelihood profile and see if any imputed PCs exist in there
+sql <- "SELECT database_id, method, exposure_id, outcome_id,
+        MAX(period_id) max_period
+        FROM eumaeus.likelihood_profile
+        WHERE (method = 'SCCS' OR method = 'HistoricalComparator')
+        GROUP BY database_id, method, exposure_id, outcome_id"
+sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+max_periods_LP <- DatabaseConnector::querySql(connection, sql)
+
+### check if any
+PosControls = DatabaseConnector::querySql(connection, 'SELECT outcome_id from eumaeus.IMPUTED_POSITIVE_CONTROL_OUTCOME')
+PC_ids = unique(PosControls$OUTCOME_ID)
+LP_ids = unique(max_periods_LP$OUTCOME_ID)
+sum(sapply(PC_ids, function(x) x %in% LP_ids))
+### !!!! NONE of the imputed positive control outcomes have likelihood profiles!!!!
 
 DatabaseConnector::disconnect(connection)
