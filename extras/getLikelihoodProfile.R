@@ -16,13 +16,13 @@ getLikelihoodProfile <- function(connection,
                                  outcome_id,
                                  analysis_id,
                                  period_id,
-                                 method = "'SCCS'", # default to SCCS for our purposes
+                                 method = "SCCS", # default to SCCS for our purposes
                                  plot=FALSE){
   
   sql <- "SELECT point, value 
           FROM @schema.LIKELIHOOD_PROFILE
-          WHERE database_id = @database_id
-          AND method = @method
+          WHERE database_id = '@database_id'
+          AND method = '@method'
           AND analysis_id = @analysis_id
           AND exposure_id = @exposure_id
           AND outcome_id = @outcome_id
@@ -77,15 +77,15 @@ getLikelihoodProfile <- function(connection,
 
 # example
 # lik = getLikelihoodProfile(connection, "eumaeus",
-#                            database_id = "'IBM_MDCD'", analysis_id = 1,
+#                            database_id = "IBM_MDCD", analysis_id = 1,
 #                            exposure_id = 21184, outcome_id = 438945,
 #                            period_id = 3, plot=TRUE)
 
 
 ## a function to extract multiple likelihood profiles 
 ## (as a list of named double vectors)
-## given database_id, method, exposure and period
-## optional: can sub set on outcome, period and analysis
+## given database_id, method, analysis, period and exposure
+## optional: can sub set on outcomes
 ## process: if to split the string points and values and return a list
 ##          (FALSE: return the raw queried table w/o splitting the strings)
 
@@ -93,24 +93,26 @@ getMultiLikelihoodProfiles <- function(connection,
                                        schema,
                                        database_id,
                                        exposure_id, 
+                                       analysis_id,
                                        period_id,
                                        outcome_ids = NULL,
-                                       analysis_ids = NULL,
                                        method = "'SCCS'",
                                        process = FALSE){
   # query all likelihood profiles needed
   sql <- "SELECT * 
           FROM @schema.LIKELIHOOD_PROFILE
-          WHERE database_id = @database_id
-          AND method = @method
+          WHERE database_id = '@database_id'
+          AND method = '@method'
           AND exposure_id = @exposure_id
-          AND period_id = @period_id"
+          AND period_id = @period_id
+          AND analysis_id = @analysis_id"
   sql <- SqlRender::render(sql, 
                            schema = schema,
                            database_id = database_id,
                            method = method,
                            exposure_id = exposure_id,
-                           period_id = period_id)
+                           period_id = period_id,
+                           analysis_id = analysis_id)
   LPs = DatabaseConnector::querySql(connection, sql)
   cat('Likelihood profiles extracted.\n')
   
@@ -121,9 +123,9 @@ getMultiLikelihoodProfiles <- function(connection,
   if(!is.null(outcome_ids)){
     LPs  = LPs %>% filter(outcome_id %in% outcome_ids)
   }
-  if(!is.null(analysis_ids)){
-    LPs  = LPs %>% filter(analysis_id %in% analysis_ids)
-  }
+  # if(!is.null(analysis_ids)){
+  #   LPs  = LPs %>% filter(analysis_id %in% analysis_ids)
+  # }
   # if(!is.null(period_ids)){
   #   LPs  = LPs %>% filter(period_id %in% period_ids)
   # }
@@ -144,13 +146,14 @@ getMultiLikelihoodProfiles <- function(connection,
 
 ## try it and time it
 ## it seems more reasonable now
-t1 = Sys.time()
-LPs = getMultiLikelihoodProfiles(connection, 'eumaeus',
-                                 database_id = "'IBM_MDCD'",
-                                 exposure_id = 21184, # H1N1 vaccine
-                                 method = "'SCCS'",
-                                 period_id = 9)
-Sys.time() - t1
+# t1 = Sys.time()
+# LPs = getMultiLikelihoodProfiles(connection, 'eumaeus',
+#                                  database_id = "IBM_MDCD",
+#                                  exposure_id = 21184, # H1N1 vaccine
+#                                  method = "SCCS",
+#                                  period_id = 9,
+#                                  analysis_id = 1)
+# Sys.time() - t1
 
 
 ## function to get a particular likelihood profile from the pulled raw datatable
@@ -181,7 +184,7 @@ selectLikelihoodProfileEntry <- function(df,
     }else{
       # split string and convert to numbers
       ## report rows we've got here
-      cat('rows returned: ', nrow(lik),'\n')
+      #cat('rows returned: ', nrow(lik),'\n')
       points = str_split(lik$POINT,';') %>% 
         unlist() %>% as.numeric()
       values = str_split(lik$VALUE,';') %>% 
@@ -208,7 +211,7 @@ selectLikelihoodProfileEntry <- function(df,
 }
 
 # # try it
-# lik = selectLikelihoodProfileEntry(LPs, 'IBM_MDCD', 'SCCS', 
-#                                    21184, 9, 
+# lik = selectLikelihoodProfileEntry(LPs, 'IBM_MDCD', 'SCCS',
+#                                    21184, 9,
 #                                    outcome_id = 10109,
 #                                    analysis_id = 1, plot=TRUE)

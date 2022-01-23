@@ -34,8 +34,8 @@ fitNegativeControlDistribution <- function(connection,
   FROM @schema.estimate
   INNER JOIN @schema.negative_control_outcome
     ON estimate.outcome_id = negative_control_outcome.outcome_id
-  WHERE database_id = @database_id
-    AND method = @method
+  WHERE database_id = '@database_id'
+    AND method = '@method'
     AND exposure_id = @exposure_id
     AND analysis_id = @analysis_id
     AND period_id = @period_id;"
@@ -100,11 +100,12 @@ fitNegativeControlDistribution <- function(connection,
 }
 
 # # try it
-# NCs = fitNegativeControlDistribution(connection, 'eumaeus', 
-#                                      database_id = "'IBM_MDCD'",
-#                                      method = "'SCCS'",
+# NCs = fitNegativeControlDistribution(connection, 'eumaeus',
+#                                      database_id = "IBM_MDCD",
+#                                      method = "SCCS",
 #                                      exposure_id = 21184,
 #                                      period_id = 9,
-#                                      analysis_id = 1, 
+#                                      analysis_id = 1,
+#                                      outcomeToExclude = 43020446, # (Sedative withdrawal)
 #                                      numsamps = 10000,
 #                                      plot = TRUE)

@@ -111,7 +111,7 @@ sql <- "SELECT database_id, method, exposure_id, outcome_id,
 sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
 max_periods_LP <- DatabaseConnector::querySql(connection, sql)
 
-### check if any
+### check if any imputed pos controls have likelihood profiles at all
 PosControls = DatabaseConnector::querySql(connection, 'SELECT outcome_id from eumaeus.IMPUTED_POSITIVE_CONTROL_OUTCOME')
 PC_ids = unique(PosControls$OUTCOME_ID)
 LP_ids = unique(max_periods_LP$OUTCOME_ID)
