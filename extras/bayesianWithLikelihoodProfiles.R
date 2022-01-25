@@ -131,8 +131,8 @@ oneBayesianAnalysis <- function(connection,
   }
 
   # return final result
-  sprintf('Finished Bayesian analysis for database %s, exposure %s, in period %s, using %s analysis %s',
-          database_id, exposure_id, period_id, method, analysis_id)
+  cat(sprintf('Finished Bayesian analysis for database %s, exposure %s, in period %s, using %s analysis %s\n',
+          database_id, exposure_id, period_id, method, analysis_id))
   res
 }
 

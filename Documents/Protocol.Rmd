@@ -109,6 +109,7 @@ abbreviations <- readr::read_delim(col_names = FALSE, delim = ";", trim_ws = TRU
   LLR; Log Likelihood Ratio
   MAP; Maximum A Posteriori
   MaxSPRT; MAXimized Sequential Probability Ratio Test 
+  MCMC; Markov Chain Monte Carlo
   MDCR; IBM MarketScan Medicare Supplemental Database
   MDCD; IBM MarketScan Multi-State Medicaid Database 
   MSE; Mean Squared Error
@@ -453,9 +454,13 @@ Although typically MaxSPRT uses a historic rate as counterfactual, any counterfa
 
 For the Bayesian method, we obtain:
 
-- Posterior distribution for the effect-size. This is obtained using the Bayes Rule by combining the likelihood function and the prior distribution. The end result is not a single point estimate but rather a *distribution profile* about our knowledge of the effect-size given accrued data. 
+- Posterior distribution for the effect-size, approximated by MCMC posterior samples. This is obtained using the Bayes Rule by combining the likelihood function and the prior distribution. The end result is not a single point estimate but rather a *distribution profile* about our knowledge of the effect-size given accrued data. 
 
 - Maximum A Posteriori (MAP) estimate for the effect-size. This is a point estimate obtained by extracting the maxima of the posterior density; this estimate can be regarded as a Bayesian counterpart of the frequentist effect-size estimate. 
+
+- Posterior mean for the effect-size. This is a commonly adopted Bayesian estimate, and is, in fact, the optimal Bayesian estimate with squared loss. 
+
+- Posterior median for the effect-size. This is another commonly adopted Bayesian estimate, and is also the optimal Bayesian estimate with absolute error loss. 
 
 For the Bayesian method, we also evaluate different prior distribution choices for the effect-size:
 

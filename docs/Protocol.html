@@ -416,6 +416,14 @@ MAXimized Sequential Probability Ratio Test
 </tr>
 <tr>
 <td style="text-align:left;">
+MCMC
+</td>
+<td style="text-align:left;">
+Markov Chain Monte Carlo
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 MDCR
 </td>
 <td style="text-align:left;">
@@ -1057,8 +1065,10 @@ We obtain slightly different estimation outcomes for the frequentist (i.e., MaxS
 Although typically MaxSPRT uses a historic rate as counterfactual, any counterfactual can be used to compute the LLR and can be used in MaxSPRT; our use of either the HC or SCCS/SCRI design does not affect the validity of using the LLR as the test statistic.</p>
 <p>For the Bayesian method, we obtain:</p>
 <ul>
-<li><p>Posterior distribution for the effect-size. This is obtained using the Bayes Rule by combining the likelihood function and the prior distribution. The end result is not a single point estimate but rather a <em>distribution profile</em> about our knowledge of the effect-size given accrued data.</p></li>
+<li><p>Posterior distribution for the effect-size, approximated by MCMC posterior samples. This is obtained using the Bayes Rule by combining the likelihood function and the prior distribution. The end result is not a single point estimate but rather a <em>distribution profile</em> about our knowledge of the effect-size given accrued data.</p></li>
 <li><p>Maximum A Posteriori (MAP) estimate for the effect-size. This is a point estimate obtained by extracting the maxima of the posterior density; this estimate can be regarded as a Bayesian counterpart of the frequentist effect-size estimate.</p></li>
+<li><p>Posterior mean for the effect-size. This is a commonly adopted Bayesian estimate, and is, in fact, the optimal Bayesian estimate with squared loss.</p></li>
+<li><p>Posterior median for the effect-size. This is another commonly adopted Bayesian estimate, and is also the optimal Bayesian estimate with absolute error loss.</p></li>
 </ul>
 <p>For the Bayesian method, we also evaluate different prior distribution choices for the effect-size:</p>
 <ul>
