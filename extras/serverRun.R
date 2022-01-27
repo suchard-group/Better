@@ -12,3 +12,6 @@ ConnectionDetails = DatabaseConnector::createConnectionDetails(
   pathToDriver = '~/')
 
 connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
+
+
+DatabaseConnector::disconnect(connection)
