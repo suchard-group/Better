@@ -30,6 +30,8 @@ sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
 num.analysis <- DatabaseConnector::querySql(connection, sql)
 cat('Total number of EUMAEUS analyses: ', num.analysis$COUNT, '\n\n')
 
+DatabaseConnector::disconnect(connection)
+
 ## 2. try run foreach
 xx = foreach(i=1:3, .combine = 'c') %dopar% {
   rnorm(5)
