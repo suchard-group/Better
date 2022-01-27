@@ -543,4 +543,4 @@ multiRes3 = multiBayesianAnalyses(connection,
                                  analysis_ids = c(15),
                                  period_ids = c(5),
                                  includePosControls = TRUE,
-                                 savpath = '~/testResults')
+                                 savepath = '~/testResults')
