@@ -516,21 +516,31 @@ multiBayesianAnalyses <- function(connection,
        priors = priorTable)
 }
 
-# try it
-multiRes = multiBayesianAnalyses(connection,
-                                 'eumaeus',
-                                 database_id = 'IBM_MDCD',
-                                 method = 'SCCS',
-                                 exposure_id = 21184,
-                                 analysis_ids = c(15),
-                                 period_ids = c(5),
-                                 includePosControls = FALSE)
+# # try it
+# multiRes = multiBayesianAnalyses(connection,
+#                                  'eumaeus',
+#                                  database_id = 'IBM_MDCD',
+#                                  method = 'SCCS',
+#                                  exposure_id = 21184,
+#                                  analysis_ids = c(15),
+#                                  period_ids = c(5),
+#                                  includePosControls = FALSE)
+# 
+# multiRes2 = multiBayesianAnalyses(connection,
+#                                  'eumaeus',
+#                                  database_id = 'IBM_MDCD',
+#                                  method = 'SCCS',
+#                                  exposure_id = 21184,
+#                                  analysis_ids = c(15),
+#                                  period_ids = c(5),
+#                                  includePosControls = TRUE)
 
-multiRes2 = multiBayesianAnalyses(connection,
+multiRes3 = multiBayesianAnalyses(connection,
                                  'eumaeus',
                                  database_id = 'IBM_MDCD',
                                  method = 'SCCS',
                                  exposure_id = 21184,
                                  analysis_ids = c(15),
                                  period_ids = c(5),
-                                 includePosControls = TRUE)
+                                 includePosControls = TRUE,
+                                 savpath = '~/testResults')
