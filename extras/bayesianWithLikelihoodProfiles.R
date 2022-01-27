@@ -320,7 +320,12 @@ multiBayesianAnalyses <- function(connection,
         
         # go through each prior setting
         # (default: combine as a list)
-        big_list = list()
+        # big_list = list()
+        
+        ## change the organization of the list for a little bit
+        ## easier for post-processing after the for loop
+        ## NOT TO USE for the foreach parallel run !!! #
+        big_list = list(samples = list(), summary = list())
         for(pr in prior_ids){
           ## output message
           cat(sprintf(
@@ -406,10 +411,20 @@ multiBayesianAnalyses <- function(connection,
           # attr(this.samps, 'names') = as.character(pr)
           
           ## return a big list with summary and samples
-          big_list[[which(prior_ids == pr)]] = 
-            list(summary = this.summ, samples = this.samps)
+          # big_list[[which(prior_ids == pr)]] = 
+          #   list(summary = this.summ, samples = this.samps)
+          
+          ### change organization of the big_list for easier post-processing
+          ### FOR THE FOR LOOP ONLY ###
+          ### NOT TO USE for the foreach parallel run !!! ###
+          big_list$summary[[which(prior_ids == pr)]] = this.summ
+          big_list$samples[[which(prior_ids == pr)]] = this.samps
+          
+          # cat(sprintf('\nObject big_list$samples now has space %s\n\n',
+          #             object.size(big_list$samples)))
         }
         
+        #
         # NOT doing the parallel thing for now...
         # big_list =
         #   foreach(pr = prior_ids) %dopar% {
@@ -419,6 +434,13 @@ multiBayesianAnalyses <- function(connection,
         # if NO results are returned for this analysis_id
         # then move on to the next one
         if(length(big_list) == 0){
+          cat(sprintf('No results available for analysis %s!\n', a))
+          next
+        }
+        
+        # ONLY for the for loop! #
+        # check if big_list$summary is empty
+        if(('summary' %in% names(big_list)) & (length(big_list$summary) == 0)){
           cat(sprintf('No results available for analysis %s!\n', a))
           next
         }
@@ -433,13 +455,34 @@ multiBayesianAnalyses <- function(connection,
           # glue together file name for saving
           fname = sprintf('%s_%s_%s_period%s_analysis%s_samples.RData', 
                           database_id, method, exposure_id, p, a)
+          
+          # give the samples a name for saving
+          samplesToSave = big_list$samples
+          
           # save as RData
-          save(big_list$samples, file = file.path(savepath,fname))
+          save(samplesToSave, file = file.path(savepath,fname))
         }
         
         # return the summary dataframe part
         analysis_dat_list[[as.character(a)]] = 
-          big_list$summary %>% mutate(analysis_id = a)
+          bind_rows(big_list$summary) %>% 
+          mutate(analysis_id = a)
+        
+        # save the little summary data table as well
+        if(!is.null(savepath)){
+          # create folder 
+          if(!dir.exists(file.path(savepath))) dir.create(file.path(savepath))
+          
+          # glue together file name for saving
+          fname = sprintf('%s_%s_%s_period%s_analysis%s_summary.RData', 
+                          database_id, method, exposure_id, p, a)
+          
+          # give the summary a name
+          summaryToSave = analysis_dat_list[[as.character(a)]]
+          # save as RData
+          save(summaryToSave, 
+               file = file.path(savepath,fname))
+        }
       }
       
       # check if any results are returned
@@ -469,4 +512,4 @@ multiRes = multiBayesianAnalyses(connection,
                                  method = 'SCCS',
                                  exposure_id = 21184,
                                  analysis_ids = c(14:15),
-                                 period_ids = c(2))
+                                 period_ids = c(2:3))
