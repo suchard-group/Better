@@ -294,6 +294,7 @@ multiBayesianAnalyses <- function(connection,
                                   thin = 10,
                                   preLearnNull = FALSE,
                                   negControls = NULL,
+                                  includePosControls = TRUE,
                                   savepath = 'localCache/testResults/'){
   
   # generate prior table
@@ -341,6 +342,8 @@ multiBayesianAnalyses <- function(connection,
           pSd = this.prior$Sd
           
           ## get likelihood profiles to use
+          ## (add option to run on negative control likelihood profiles ONLY)
+          ## (if no subsetting on outcomes, will include old synthetic positive controls)
           LPs = getMultiLikelihoodProfiles(
             connection,
             schema,
@@ -348,6 +351,7 @@ multiBayesianAnalyses <- function(connection,
             exposure_id,
             analysis_id = a,
             period_id = p,
+            outcome_ids = ifelse(includePosControls, NULL, NCs),
             method = method
           )
           
