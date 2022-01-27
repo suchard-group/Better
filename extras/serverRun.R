@@ -8,6 +8,7 @@ ConnectionDetails = DatabaseConnector::createConnectionDetails(
                  "shinydb",
                  sep = "/"),
   user = "eumaeus_readonly",
-  password = "9BA3DFEE23C176")
+  password = "9BA3DFEE23C176",
+  pathToDriver = '~/')
 
 connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
