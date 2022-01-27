@@ -9,6 +9,8 @@ library(foreach)
 library(doParallel)
 registerDoParallel()
 
+library(ParallelLogger)
+
 ## 0. get array_id
 array_id = Sys.getenv('SGE_TASK_ID')
 cat('Array ID is', array_id, '\n\n')
@@ -37,7 +39,17 @@ xx = foreach(i=1:3, .combine = 'c') %dopar% {
   rnorm(5)
 }
 
-cat(sprintf('Total length of combined vector is %s, with mean %.3f\n', 
+cat(sprintf('Total length of combined vector is %s, with mean %.3f\n\n', 
             length(xx), mean(xx)))
 
 
+## 3. try using ParallelLogger
+fun <- function(x) {
+  x^2
+}
+cluster <- makeCluster(numberOfThreads = 2)
+yy = unlist(
+  clusterApply(cluster, 1:10, fun)
+)
+cat('ParallelLogger test results: y=', paste(yy, collapse = ','),'.\n')
+stopCluster(cluster)
