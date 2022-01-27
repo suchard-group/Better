@@ -106,7 +106,7 @@ oneBayesianAnalysis <- function(connection,
   res = list()
   for(outcome in outcomesToDo){
     # message
-    cat('Analysis for outcome', outcome, 'underway...\n')
+    cat('\n\nAnalysis for outcome', outcome, 'underway...\n')
     
     # get the likelihood profile
     lik = selectLikelihoodProfileEntry(LPs,
@@ -309,6 +309,13 @@ multiBayesianAnalyses <- function(connection,
     NCs = negControls
   }
   
+  # whether or not to include positive controls as well
+  if(includePosControls){
+    oids = NULL
+  }else{
+    oids = NCs
+  }
+  
   # go through period_ids and combine the summary data tables
   summary_dat_list = list()
   for(p in period_ids){
@@ -351,7 +358,7 @@ multiBayesianAnalyses <- function(connection,
             exposure_id,
             analysis_id = a,
             period_id = p,
-            outcome_ids = ifelse(includePosControls, NULL, NCs),
+            outcome_ids = oids,
             method = method
           )
           
@@ -515,5 +522,15 @@ multiRes = multiBayesianAnalyses(connection,
                                  database_id = 'IBM_MDCD',
                                  method = 'SCCS',
                                  exposure_id = 21184,
-                                 analysis_ids = c(14:15),
-                                 period_ids = c(2:3))
+                                 analysis_ids = c(15),
+                                 period_ids = c(5),
+                                 includePosControls = FALSE)
+
+multiRes2 = multiBayesianAnalyses(connection,
+                                 'eumaeus',
+                                 database_id = 'IBM_MDCD',
+                                 method = 'SCCS',
+                                 exposure_id = 21184,
+                                 analysis_ids = c(15),
+                                 period_ids = c(5),
+                                 includePosControls = TRUE)

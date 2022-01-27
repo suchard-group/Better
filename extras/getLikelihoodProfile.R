@@ -121,7 +121,7 @@ getMultiLikelihoodProfiles <- function(connection,
   #   LPs  = LPs %>% filter(exposure_id %in% exposure_ids)
   # }
   if(!is.null(outcome_ids)){
-    LPs  = LPs %>% filter(outcome_id %in% outcome_ids)
+    LPs  = LPs %>% filter(OUTCOME_ID %in% outcome_ids)
   }
   # if(!is.null(analysis_ids)){
   #   LPs  = LPs %>% filter(analysis_id %in% analysis_ids)
