@@ -425,6 +425,13 @@
       "Repository": "CRAN",
       "Hash": "24b6d006b8b2343876cf230687546932"
     },
+    "codetools": {
+      "Package": "codetools",
+      "Version": "0.2-18",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "019388fc48e48b3da0d3a76ff94608a8"
+    },
     "colorspace": {
       "Package": "colorspace",
       "Version": "2.0-2",
@@ -495,6 +502,13 @@
       "Repository": "CRAN",
       "Hash": "cf6b206a045a684728c3267ef7596190"
     },
+    "doParallel": {
+      "Package": "doParallel",
+      "Version": "1.0.16",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "2dc413572eb42475179bfe0afabd2adf"
+    },
     "dplyr": {
       "Package": "dplyr",
       "Version": "1.0.7",
@@ -564,6 +578,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "81c3244cab67468aac4c60550832655d"
+    },
+    "foreach": {
+      "Package": "foreach",
+      "Version": "1.5.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "e32cfc0973caba11b65b1fa691b4d8c9"
     },
     "fs": {
       "Package": "fs",
@@ -683,6 +704,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "7ab57a6de7f48a8dc84910d1eca42883"
+    },
+    "iterators": {
+      "Package": "iterators",
+      "Version": "1.0.13",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "64778782a89480e9a644f69aad9a2877"
     },
     "jquerylib": {
       "Package": "jquerylib",
