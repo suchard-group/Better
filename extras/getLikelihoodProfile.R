@@ -85,7 +85,7 @@ getLikelihoodProfile <- function(connection,
 ## a function to extract multiple likelihood profiles 
 ## (as a list of named double vectors)
 ## given database_id, method, analysis, period and exposure
-## optional: can sub set on outcomes
+## optional: can subset on outcomes
 ## process: if to split the string points and values and return a list
 ##          (FALSE: return the raw queried table w/o splitting the strings)
 
@@ -96,7 +96,7 @@ getMultiLikelihoodProfiles <- function(connection,
                                        analysis_id,
                                        period_id,
                                        outcome_ids = NULL,
-                                       method = "'SCCS'",
+                                       method = "SCCS",
                                        process = FALSE){
   # query all likelihood profiles needed
   sql <- "SELECT * 

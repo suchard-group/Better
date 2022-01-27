@@ -54,7 +54,14 @@ exNC = allNegControls %>% filter(method == 'SCCS', period_id == 5,
                                  exposure_id == 21184)
 
 
-# 2. some kind of summary for likelihood profiles
+# 2. a summary table of all analyses
+sql = "SELECT * from eumaeus.ANALYSIS
+       WHERE method = 'HistoricalComparator'
+       OR method = 'SCCS'"
+analyses = DatabaseConnector::querySql(connection, sql)
+
+
+# 3. some kind of summary for likelihood profiles
 
 ## Negative control results
 sql <- "SELECT database_id, method, 
