@@ -5,33 +5,12 @@
 library(EvidenceSynthesis)
 source('./extras/getLikelihoodProfile.R')
 source('./extras/fitNegativeControlDistribution.R')
+source('./extras/helperFunctions.R')
 
 library(foreach)
 library(doParallel)
 registerDoParallel()
 
-
-## a little helper function to get maximum density estimate from samples
-getMAP <- function(x){
-  dens = density(x)
-  dens$x[which.max(dens$y)]
-}
-
-## another little helper function to generate a table of prior choices
-getPriorTable <- function(priors = list(Mean = c(0,0,0),
-                                        Sd = c(10, 1.5, 4)),
-                          default=TRUE){
-  # default: whether or not to use default choices in priors
-  #          (FALSE: use historical rates for historical comparator - TBD)
-  if(default){
-    res = as.data.frame(priors)
-    res$prior_id = seq_along(res$Mean)
-  }else{
-    # the other option not yet implemented
-    stop('Non-default prior not yet implemented!\n')
-  }
-  res
-}
 
 # small module function for
 # one (database, method, exposure, analysis, period) combo (with all available outcomes)
