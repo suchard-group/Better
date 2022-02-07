@@ -23,3 +23,6 @@ Documents/*.pdf
 Documents/*.tex
 Documents/*.log
 Documents/*.docx
+
+# eumaeus credentials
+extras/credentials.R
