@@ -88,35 +88,53 @@ getLikelihoodProfile <- function(connection,
 ## optional: can subset on outcomes
 ## process: if to split the string points and values and return a list
 ##          (FALSE: return the raw queried table w/o splitting the strings)
+## Feb 2022 update: can allow (1 period, multi analyses) OR (1 analysis, multi periods)
 
 getMultiLikelihoodProfiles <- function(connection, 
                                        schema,
                                        database_id,
                                        exposure_id, 
-                                       analysis_id,
-                                       period_id,
+                                       analysis_id = NULL,
+                                       period_id = NULL,
                                        outcome_ids = NULL,
                                        method = "SCCS",
                                        process = FALSE){
   # query all likelihood profiles needed
-  sql <- "SELECT * 
+    ## if multiple analyses...
+  if(is.null(analysis_id)){
+    sql <- "SELECT * 
           FROM @schema.LIKELIHOOD_PROFILE
           WHERE database_id = '@database_id'
           AND method = '@method'
           AND exposure_id = @exposure_id
-          AND period_id = @period_id
+          AND period_id = @period_ids"
+    sql <- SqlRender::render(sql, 
+                             schema = schema,
+                             database_id = database_id,
+                             method = method,
+                             exposure_id = exposure_id,
+                             period_id = period_id)
+  }else{
+    ## otherwise, multiple periods
+    sql <- "SELECT * 
+          FROM @schema.LIKELIHOOD_PROFILE
+          WHERE database_id = '@database_id'
+          AND method = '@method'
+          AND exposure_id = @exposure_id
           AND analysis_id = @analysis_id"
-  sql <- SqlRender::render(sql, 
-                           schema = schema,
-                           database_id = database_id,
-                           method = method,
-                           exposure_id = exposure_id,
-                           period_id = period_id,
-                           analysis_id = analysis_id)
+    sql <- SqlRender::render(sql, 
+                             schema = schema,
+                             database_id = database_id,
+                             method = method,
+                             exposure_id = exposure_id,
+                             analysis_id = analysis_id)
+  }
+  
   LPs = DatabaseConnector::querySql(connection, sql)
   cat('Likelihood profiles extracted.\n')
   
-  # filter on needed subsets
+  # filter on needed subsets...
+  
   # if(!is.null(exposure_ids)){
   #   LPs  = LPs %>% filter(exposure_id %in% exposure_ids)
   # }
@@ -151,7 +169,7 @@ getMultiLikelihoodProfiles <- function(connection,
 #                                  database_id = "IBM_MDCD",
 #                                  exposure_id = 21184, # H1N1 vaccine
 #                                  method = "SCCS",
-#                                  period_id = 9,
+#                                  period_id = NULL,
 #                                  analysis_id = 1)
 # Sys.time() - t1
 
