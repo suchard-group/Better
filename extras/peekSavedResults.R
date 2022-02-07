@@ -125,4 +125,28 @@ LP_ids = unique(max_periods_LP$OUTCOME_ID)
 sum(sapply(PC_ids, function(x) x %in% LP_ids))
 ### !!!! NONE of the imputed positive control outcomes have likelihood profiles!!!!
 
+
+# 4. experiment with likelihood profile pull
+## single period, multiple analyses --> ~10sec on Mac, okay
+sql <- "SELECT * 
+          FROM eumaeus.LIKELIHOOD_PROFILE
+          WHERE database_id = 'IBM_MDCD'
+          AND method = 'SCCS'
+          AND exposure_id = 21184
+          AND period_id = 9"
+
+## single analysis, multiple periods --> slightly less time
+sql <- "SELECT * 
+          FROM eumaeus.LIKELIHOOD_PROFILE
+          WHERE database_id = 'IBM_MDCD'
+          AND method = 'SCCS'
+          AND exposure_id = 21184
+          AND analysis_id = 1"
+
+## time it
+t1 = Sys.time()
+sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+LPs <- DatabaseConnector::querySql(connection, sql)
+Sys.time() - t1
+
 DatabaseConnector::disconnect(connection)
