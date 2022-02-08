@@ -149,4 +149,10 @@ sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
 LPs <- DatabaseConnector::querySql(connection, sql)
 Sys.time() - t1
 
+# 5. look at imputed positive control outcomes
+sql <- "SELECT outcome_id, exposure_id, negative_control_id, effect_size
+        FROM eumaeus.IMPUTED_POSITIVE_CONTROL_OUTCOME"
+sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+IPCs <- DatabaseConnector::querySql(connection, sql)
+
 DatabaseConnector::disconnect(connection)
