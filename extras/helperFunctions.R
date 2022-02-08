@@ -157,5 +157,5 @@ getNegControlEstimates <- function(connection,
   estimates
 }
 
-estimates = getNegControlEstimates(connection, 'eumaeus', 'IBM_MDCD', 'SCCS', 
-                                   21184, period_id = 9)
+# estimates = getNegControlEstimates(connection, 'eumaeus', 'IBM_MDCD', 'SCCS', 
+#                                    21184, period_id = 9)
