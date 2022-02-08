@@ -101,6 +101,9 @@ oneBayesianAnalysis <- function(connection,
   # go through all the outcomes
   res = list()
   for(outcome in outcomesToDo){
+  # try using foreach here
+  # tempList = 
+  #   foreach(outcome = outcomesToDo) %dopar% {
     # message
     cat('\n\nAnalysis for outcome', outcome, 'underway...\n')
     
@@ -174,6 +177,7 @@ oneBayesianAnalysis <- function(connection,
              adjustedPostMean = mean(adjSamps), 
              adjustedPostMAP = getMAP(adjSamps),
              adjustedPostMedian = median(adjSamps))
+      cat('\nResult written to list!\n\n')
     }
     
   }
@@ -207,17 +211,28 @@ oneBayesianAnalysis <- function(connection,
 #                                IPCtable = IPCs)
 
 ## try to use pre-saved estimates for fitting null distribution
-# estimates = getNegControlEstimates(connection, 'eumaeus', 'IBM_MDCD', 'SCCS', 
-#                                    21184, period_id = 9)
-# bayesRes = oneBayesianAnalysis(connection,
-#                                'eumaeus',
-#                                database_id = 'IBM_MDCD',
-#                                method = 'SCCS',
-#                                exposure_id = 21184,
-#                                analysis_id = 1,
-#                                period_id = 9,
-#                                IPCtable = IPCs,
-#                                savedEstimates = estimates)
+estimates = getNegControlEstimates(connection, 'eumaeus', 'IBM_MDCD', 'SCCS',
+                                   21184, period_id = 9)
+bayesRes = oneBayesianAnalysis(connection,
+                               'eumaeus',
+                               database_id = 'IBM_MDCD',
+                               method = 'SCCS',
+                               exposure_id = 21184,
+                               analysis_id = 1,
+                               period_id = 9,
+                               IPCtable = IPCs,
+                               savedEstimates = estimates,
+                               negControls = c(443421, 196347)) # only use two NCs and see if that works
+bayesRes = oneBayesianAnalysis(connection,
+                               'eumaeus',
+                               database_id = 'IBM_MDCD',
+                               method = 'SCCS',
+                               exposure_id = 21184,
+                               analysis_id = 15,
+                               period_id = 3,
+                               IPCtable = IPCs,
+                               savedEstimates = estimates)
+
 
 ## helper functions to extract results from the result list
 ## (1.a) get the summary AND calculate posterior P1 and P0 for ONE outcome only
@@ -614,6 +629,7 @@ multiBayesianAnalyses <- function(connection,
 }
 
 # # try it
+IPCs = getIPCs(connection, 'eumaeus', './localCache/')
 # multiRes = multiBayesianAnalyses(connection,
 #                                  'eumaeus',
 #                                  database_id = 'IBM_MDCD',
@@ -637,7 +653,23 @@ multiRes3 = multiBayesianAnalyses(connection,
                                  database_id = 'IBM_MDCD',
                                  method = 'SCCS',
                                  exposure_id = 21184,
-                                 analysis_ids = c(10,15),
+                                 analysis_ids = c(15),
                                  period_ids = c(5),
-                                 includeSyntheticPos = TRUE,
+                                 includeSyntheticPos = FALSE,
+                                 IPCtable = IPCs,
+                                 preLearnNull = FALSE,
                                  savepath = './localCache/testResults')
+# try a very small parallel run example
+multiRes4 = multiBayesianAnalyses(connection,
+                                  'eumaeus',
+                                  database_id = 'IBM_MDCD',
+                                  method = 'SCCS',
+                                  exposure_id = 21184,
+                                  analysis_ids = c(12,14),
+                                  period_ids = c(5),
+                                  includeSyntheticPos = FALSE,
+                                  IPCtable = IPCs,
+                                  priors = list(Mean = 0, Sd = 1.5),
+                                  preLearnNull = FALSE,
+                                  negControls = c(443421, 196347),
+                                  savepath = './localCache/testResults')
