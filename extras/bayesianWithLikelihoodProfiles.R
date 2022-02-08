@@ -5,33 +5,12 @@
 library(EvidenceSynthesis)
 source('./extras/getLikelihoodProfile.R')
 source('./extras/fitNegativeControlDistribution.R')
+source('./extras/helperFunctions.R')
 
 library(foreach)
 library(doParallel)
 registerDoParallel()
 
-
-## a little helper function to get maximum density estimate from samples
-getMAP <- function(x){
-  dens = density(x)
-  dens$x[which.max(dens$y)]
-}
-
-## another little helper function to generate a table of prior choices
-getPriorTable <- function(priors = list(Mean = c(0,0,0),
-                                        Sd = c(10, 1.5, 4)),
-                          default=TRUE){
-  # default: whether or not to use default choices in priors
-  #          (FALSE: use historical rates for historical comparator - TBD)
-  if(default){
-    res = as.data.frame(priors)
-    res$prior_id = seq_along(res$Mean)
-  }else{
-    # the other option not yet implemented
-    stop('Non-default prior not yet implemented!\n')
-  }
-  res
-}
 
 # small module function for
 # one (database, method, exposure, analysis, period) combo (with all available outcomes)
@@ -39,6 +18,8 @@ getPriorTable <- function(priors = list(Mean = c(0,0,0),
 
 ## return numeric(0) if no likelihood profiles are available 
 ## return empty list() if no negative control results are available 
+
+## Feb 2022 update: add imputed positive control outcomes as well
 oneBayesianAnalysis <- function(connection,
                                 schema,
                                 database_id,
@@ -46,6 +27,9 @@ oneBayesianAnalysis <- function(connection,
                                 exposure_id,
                                 analysis_id, 
                                 period_id,
+                                IPCtable = NULL,
+                                noSyntheticPos=TRUE,
+                                savedEstimates = NULL,
                                 priorMean = 0,
                                 priorSd = 1, 
                                 numsamps = 10000,
@@ -80,8 +64,18 @@ oneBayesianAnalysis <- function(connection,
     return(numeric(0))
   }
   
+  # get a subset IPC table if available
+  if(!is.null(IPCtable)){
+    IPCtable = IPCtable %>% filter(EXPOSURE_ID == exposure_id)
+  }
+  
   # get the list of all outcomes that have LPs available
   outcomesToDo = unique(LPs$OUTCOME_ID)
+  
+  # filter outcomes to negative control outcomes only (NO synthetic pos controls) if...
+  if(noSyntheticPos){
+    outcomesToDo = outcomesToDo[outcomesToDo %in% NCs]
+  }
   
   # if there is pre-saved learned null distribution 
   # AND there are positive control outcomes
@@ -90,8 +84,10 @@ oneBayesianAnalysis <- function(connection,
   if(any(!outcomesToDo %in% NCs)){
     if(is.null(preSaveNull)){
       null = fitNegativeControlDistribution(connection, schema, database_id, 
-                                            method, exposure_id, analysis_id, 
-                                            period_id, outcomeToExclude = NULL,
+                                            method, exposure_id, 
+                                            analysis_id, period_id, 
+                                            savedEstimates = savedEstimates,
+                                            outcomeToExclude = NULL,
                                             numsamps = numsamps, thin = thin)
     }else{
       null = preSaveNull
@@ -124,7 +120,9 @@ oneBayesianAnalysis <- function(connection,
       # negative control: LOO null distribution needed
       this.null = fitNegativeControlDistribution(connection, schema, database_id, 
                                                  method, exposure_id, analysis_id, 
-                                                 period_id, outcomeToExclude = outcome,
+                                                 period_id, 
+                                                 savedEstimates = savedEstimates,
+                                                 outcomeToExclude = outcome,
                                                  numsamps = numsamps, thin = thin)
       
       # if can't fit null (no other negative control results available)
@@ -138,26 +136,46 @@ oneBayesianAnalysis <- function(connection,
     }
     
     # run MCMC
-    mcmc = approximateSimplePosterior(lik, 
-                                      chainLength = numsamps * thin + 1e5,
-                                      burnIn = 1e5, # (use default burn-in = 1e5)
-                                      subSampleFrequency = thin,
-                                      priorMean = priorMean, priorSd = priorSd)
+    ## need to do imputed positive controls as well if this one is NC
+    if(!is.null(IPCtable) && outcome %in% NCs){
+      nudgeValues = c(1, 1.5, 2, 4)
+      outcomeVector = c(outcome, getThisIPCs(exposure_id, outcome, IPCtable))
+    }else{
+      nudgeValues = c(1)
+      outcomeVector = outcome
+    }
+    names(outcomeVector) = as.character(nudgeValues)
     
-    samps = mcmc$theta1
+    original_lik = lik
+    for(nv in nudgeValues){
+      this.outcome = outcomeVector[[as.character(nv)]]
+      if(nv != 1){
+        cat('\nAlso analyze imputed positive control outcome', 
+            this.outcome, '...\n')
+      }
+      ## nudge the likelihood profiles given the effect size
+      lik = nudgeLikelihood(original_lik, nv)
+      mcmc = approximateSimplePosterior(lik, 
+                                        chainLength = numsamps * thin + 1e5,
+                                        burnIn = 1e5, # (use default burn-in = 1e5)
+                                        subSampleFrequency = thin,
+                                        priorMean = priorMean, priorSd = priorSd)
+      
+      samps = mcmc$theta1
+      # with calibration
+      adjSamps =  samps - biases
+      
+      # get result to list
+      # key: outcome id
+      res[[as.character(this.outcome)]] = 
+        list(postSamps = samps, adjustedPostSamps = adjSamps,
+             postMean = mean(samps), postMAP = getMAP(samps), 
+             postMedian = median(samps),
+             adjustedPostMean = mean(adjSamps), 
+             adjustedPostMAP = getMAP(adjSamps),
+             adjustedPostMedian = median(adjSamps))
+    }
     
-    # with calibration
-    adjSamps =  samps - biases
-    
-    # get result to list
-    # key: outcome id
-    res[[as.character(outcome)]] = 
-      list(postSamps = samps, adjustedPostSamps = adjSamps,
-           postMean = mean(samps), postMAP = getMAP(samps), 
-           postMedian = median(samps),
-           adjustedPostMean = mean(adjSamps), 
-           adjustedPostMAP = getMAP(adjSamps),
-           adjustedPostMedian = median(adjSamps))
   }
 
   # return final result
@@ -168,6 +186,7 @@ oneBayesianAnalysis <- function(connection,
 
 
 # try it
+# IPCs = getIPCs(connection, 'eumaeus', './localCache/')
 # ## example of returning a lot of results
 # bayesRes = oneBayesianAnalysis(connection,
 #                                'eumaeus',
@@ -175,7 +194,8 @@ oneBayesianAnalysis <- function(connection,
 #                                method = 'SCCS',
 #                                exposure_id = 21184,
 #                                analysis_id = 1,
-#                                period_id = 9)
+#                                period_id = 9,
+#                                IPCtable = IPCs)
 # ## another example of returning less or nothing (list())
 # bayesRes = oneBayesianAnalysis(connection,
 #                                'eumaeus',
@@ -183,8 +203,21 @@ oneBayesianAnalysis <- function(connection,
 #                                method = 'SCCS',
 #                                exposure_id = 21184,
 #                                analysis_id = 15,
-#                                period_id = 1)
+#                                period_id = 1,
+#                                IPCtable = IPCs)
 
+## try to use pre-saved estimates for fitting null distribution
+# estimates = getNegControlEstimates(connection, 'eumaeus', 'IBM_MDCD', 'SCCS', 
+#                                    21184, period_id = 9)
+# bayesRes = oneBayesianAnalysis(connection,
+#                                'eumaeus',
+#                                database_id = 'IBM_MDCD',
+#                                method = 'SCCS',
+#                                exposure_id = 21184,
+#                                analysis_id = 1,
+#                                period_id = 9,
+#                                IPCtable = IPCs,
+#                                savedEstimates = estimates)
 
 ## helper functions to extract results from the result list
 ## (1.a) get the summary AND calculate posterior P1 and P0 for ONE outcome only
@@ -285,235 +318,299 @@ multiBayesianAnalyses <- function(connection,
                                   database_id,
                                   method,
                                   exposure_id,
-                                  analysis_ids, 
+                                  analysis_ids,
                                   period_ids,
+                                  IPCtable = NULL,
                                   priors = list(Mean = rep(0, 3),
-                                                Sd = c(10, 1.5, 4)), 
+                                                Sd = c(10, 1.5, 4)),
                                   returnCIs = TRUE,
                                   numsamps = 10000,
                                   thin = 10,
-                                  preLearnNull = FALSE,
+                                  preLearnNull = TRUE,
+                                  preSaveEstimates = TRUE,
                                   negControls = NULL,
-                                  includePosControls = TRUE,
-                                  savepath = 'localCache/testResults/'){
-  
+                                  includeSyntheticPos = FALSE,
+                                  savepath = 'localCache/testResults/') {
   # generate prior table
-  priorTable = getPriorTable(priors = priors, default=TRUE)
+  priorTable = getPriorTable(priors = priors, default = TRUE)
   prior_ids = priorTable$prior_id
   
+  # save prior table if it doesn't already exist in the results folder
+  if (!file.exists(file.path(savepath, 'priorTable.rds'))) {
+    saveRDS(priorTable, file.path(savepath, 'priorTable.rds'))
+  }
+  
   # get a list of negative controls to use across all runs
-  if(is.null(negControls)){
+  if (is.null(negControls)) {
     sql <- "SELECT outcome_id from eumaeus.NEGATIVE_CONTROL_OUTCOME"
     NCs = DatabaseConnector::querySql(connection, sql)$OUTCOME_ID
-  }else{
+  } else{
     NCs = negControls
   }
   
-  # whether or not to include positive controls as well
-  if(includePosControls){
+  # whether or not to include synthetic positive controls
+  if (includeSyntheticPos) {
     oids = NULL
-  }else{
+  } else{
     oids = NCs
+  }
+  
+  # check if to include imputed positive controls
+  # and filter it down to the relevant exposure ids
+  if (!is.null(IPCtable)) {
+    IPCtable = IPCtable %>% filter(EXPOSURE_ID == exposure_id)
   }
   
   # go through period_ids and combine the summary data tables
   summary_dat_list = list()
-  for(p in period_ids){
-    #foreach(p = period_ids, .combine = 'bind_rows') %dopar% {
+  for (p in period_ids) {
+    ## get likelihood profiles to use
+    ## (if no subsetting on outcomes, will include old synthetic positive controls)
+    LPs = getMultiLikelihoodProfiles(
+      connection,
+      schema,
+      database_id,
+      exposure_id,
+      analysis_id = NULL,
+      period_id = p,
+      outcome_ids = oids,
+      method = method
+    )
+    # if no LPs returned, skip this one
+    if (nrow(LPs) == 0) {
+      #cat('No pre-saved likelihood profiles available! Skipped.\n')
+      next
+    }
+    
+    # pre-pull negative control Estimates
+    if(preSaveEstimates){
+      savedEstimates = getNegControlEstimates(connection, schema, 
+                                              database_id, method, 
+                                              exposure_id,
+                                              period_id = p)
       
-      # go through analysis_ids and combine the summary data tables
-      #foreach(a = analysis_ids, .combine = 'bind_rows') %dopar% {
-      analysis_dat_list = list()
-      for(a in analysis_ids){
-        
-        # go through each prior setting
-        # (default: combine as a list)
-        # big_list = list()
-        
-        ## change the organization of the list for a little bit
-        ## easier for post-processing after the for loop
-        ## NOT TO USE for the foreach parallel run !!! #
-        big_list = list(samples = list(), summary = list())
-        for(pr in prior_ids){
-          ## output message
-          cat(sprintf(
+      ## check if estimates exist at all
+      if(nrow(savedEstimates) == 0){
+        cat('No negative controls estimates available! Skipped.\n')
+        next
+      }
+    }else{
+      savedEstimates = NULL
+    }
+    
+    # go through analysis_ids and combine the summary data tables
+    #analysis_dat_list = list()
+    analysis_dat = 
+      foreach(a = analysis_ids, .combine = 'bind_rows') %dopar% {
+    #for (a in analysis_ids) {
+      
+      ## check LPs
+      LPs.a = LPs %>% filter(ANALYSIS_ID == a)
+      if(nrow(LPs.a) == 0){
+        return()
+      }
+      
+      ## pre-learn null distribution if...
+      if (preLearnNull) {
+        learnedNull = fitNegativeControlDistribution(
+          connection,
+          schema,
+          database_id,
+          method,
+          exposure_id,
+          analysis_id = a,
+          period_id = p,
+          savedEstimates = savedEstimates,
+          outcomeToExclude = NULL,
+          numsamps = numsamps,
+          thin = thin
+        )
+      } else{
+        ## otherwise, just set it to NULL
+        learnedNull = NULL
+      }
+      
+      # go through each prior setting
+      # (default: combine as a list)
+      # big_list = list()
+      
+      # NOT doing the parallel thing for now...
+      # big_list =
+      #   foreach(pr = prior_ids) %dopar% {
+      #
+      #   }
+      
+      ## change the organization of the list for a little bit
+      ## easier for post-processing after the for loop
+      ## NOT TO USE for the foreach parallel run !!! #
+      big_list = list(samples = list(), summary = list())
+      for (pr in prior_ids) {
+        ## output message
+        cat(
+          sprintf(
             '\n\n\n Analysis for period %s, analysis %s and prior %s......\n',
             p,
             a,
             pr
-          ))
-          
-          ## get prior mean and sd
-          this.prior = priorTable %>% filter(prior_id == pr) %>% select(Mean, Sd)
-          pMean = this.prior$Mean
-          pSd = this.prior$Sd
-          
-          ## get likelihood profiles to use
-          ## (add option to run on negative control likelihood profiles ONLY)
-          ## (if no subsetting on outcomes, will include old synthetic positive controls)
-          LPs = getMultiLikelihoodProfiles(
-            connection,
-            schema,
-            database_id,
-            exposure_id,
-            analysis_id = a,
-            period_id = p,
-            outcome_ids = oids,
-            method = method
           )
-          
-          # if no LPs returned, skip this one
-          if(nrow(LPs) == 0){
-            cat('No pre-saved likelihood profiles available! Skipped.\n')
-            next
-          }
-          
-          ## pre-learn null distribution if...
-          if (preLearnNull) {
-            learnedNull = fitNegativeControlDistribution(
-              connection,
-              schema,
-              database_id,
-              method,
-              exposure_id,
-              analysis_id = a,
-              period_id = p,
-              outcomeToExclude = NULL,
-              numsamps = numsamps,
-              thin = thin
-            )
-          } else{
-            ## otherwise, just set it to NULL
-            learnedNull = NULL
-          }
-          
-          ## run analysis to get results
-          this.res = oneBayesianAnalysis(
-            connection,
-            schema,
-            database_id,
-            method,
-            exposure_id,
-            analysis_id = a,
-            period_id = p,
-            priorMean = pMean,
-            priorSd = pSd,
-            numsamps = numsamps,
-            thin = thin,
-            preSaveLPs = LPs,
-            preSaveNull = learnedNull,
-            negControls = NCs
-          )
-          
-          ## if no results returned, skip
-          if(length(this.res) == 0){
-            cat(sprintf('No results returned for prior %s!\n', pr))
-            next
-          }
-          
-          ## summarize it
-          this.summ = summarizeOneAnalysis(this.res, getCI = returnCIs)
-          # add column for prior_id
-          this.summ$prior_id = pr
-          
-          ## pull post. samples
-          this.samps = getSamplesFromOneAnalysis(this.res)
-          # this.samps = list(this.samps)
-          # attr(this.samps, 'names') = as.character(pr)
-          
-          ## return a big list with summary and samples
-          # big_list[[which(prior_ids == pr)]] = 
-          #   list(summary = this.summ, samples = this.samps)
-          
-          ### change organization of the big_list for easier post-processing
-          ### FOR THE FOR LOOP ONLY ###
-          ### NOT TO USE for the foreach parallel run !!! ###
-          big_list$summary[[which(prior_ids == pr)]] = this.summ
-          big_list$samples[[which(prior_ids == pr)]] = this.samps
-          
-          # cat(sprintf('\nObject big_list$samples now has space %s\n\n',
-          #             object.size(big_list$samples)))
-        }
+        )
         
-        #
-        # NOT doing the parallel thing for now...
-        # big_list =
-        #   foreach(pr = prior_ids) %dopar% {
-        #     
-        #   }
+        ## get prior mean and sd
+        this.prior = priorTable %>% filter(prior_id == pr) %>% select(Mean, Sd)
+        pMean = this.prior$Mean
+        pSd = this.prior$Sd
         
-        # if NO results are returned for this analysis_id
-        # then move on to the next one
-        if(length(big_list) == 0){
-          cat(sprintf('No results available for analysis %s!\n', a))
+        ## run analysis to get results
+        this.res = oneBayesianAnalysis(
+          connection,
+          schema,
+          database_id,
+          method,
+          exposure_id,
+          analysis_id = a,
+          period_id = p,
+          IPCtable = IPCtable,
+          savedEstimates = savedEstimates,
+          priorMean = pMean,
+          priorSd = pSd,
+          numsamps = numsamps,
+          thin = thin,
+          preSaveLPs = LPs,
+          preSaveNull = learnedNull,
+          negControls = NCs
+        )
+        
+        ## if no results returned, skip
+        if (length(this.res) == 0) {
+          cat(sprintf('No results returned for prior %s!\n', pr))
           next
         }
         
-        # ONLY for the for loop! #
-        # check if big_list$summary is empty
-        if(('summary' %in% names(big_list)) & (length(big_list$summary) == 0)){
-          cat(sprintf('No results available for analysis %s!\n', a))
-          next
-        }
+        ## summarize it
+        this.summ = summarizeOneAnalysis(this.res, getCI = returnCIs)
+        # add column for prior_id
+        this.summ$prior_id = pr
         
-        # save the posterior samples in the big_list
-        # IF a savepath is provided
-        # otherwise just skip posterior sample saving 
-        if(!is.null(savepath)){
-          # create folder 
-          if(!dir.exists(file.path(savepath))) dir.create(file.path(savepath))
-          
-          # glue together file name for saving
-          fname = sprintf('%s_%s_%s_period%s_analysis%s_samples.RData', 
-                          database_id, method, exposure_id, p, a)
-          
-          # give the samples a name for saving
-          samplesToSave = big_list$samples
-          
-          # save as RData
-          save(samplesToSave, file = file.path(savepath,fname))
-        }
+        ## pull post. samples
+        this.samps = getSamplesFromOneAnalysis(this.res)
+        # this.samps = list(this.samps)
+        # attr(this.samps, 'names') = as.character(pr)
         
-        # return the summary dataframe part
-        analysis_dat_list[[as.character(a)]] = 
-          bind_rows(big_list$summary) %>% 
-          mutate(analysis_id = a)
+        ## return a big list with summary and samples
+        # big_list[[which(prior_ids == pr)]] =
+        #   list(summary = this.summ, samples = this.samps)
         
-        # save the little summary data table as well
-        if(!is.null(savepath)){
-          # create folder 
-          if(!dir.exists(file.path(savepath))) dir.create(file.path(savepath))
-          
-          # glue together file name for saving
-          fname = sprintf('%s_%s_%s_period%s_analysis%s_summary.RData', 
-                          database_id, method, exposure_id, p, a)
-          
-          # give the summary a name
-          summaryToSave = analysis_dat_list[[as.character(a)]]
-          # save as RData
-          save(summaryToSave, 
-               file = file.path(savepath,fname))
-        }
+        ### change organization of the big_list for easier post-processing
+        ### FOR THE FOR LOOP ONLY ###
+        ### NOT TO USE for the foreach parallel run !!! ###
+        big_list$summary[[which(prior_ids == pr)]] = this.summ
+        big_list$samples[[which(prior_ids == pr)]] = this.samps
+        
+        # cat(sprintf('\nObject big_list$samples now has space %s\n\n',
+        #             object.size(big_list$samples)))
       }
       
-      # check if any results are returned
-      if(length(analysis_dat_list) == 0){
-        cat(sprintf('\nNo results available for all analyses in period %s!\n\n', p))
-        next
+      # if NO results are returned for this analysis_id
+      # then move on to the next one
+      # if (length(big_list) == 0) {
+      #   cat(sprintf('No results available for analysis %s!\n', a))
+      #   return()
+      # }
+      
+      # ONLY for the for loop! #
+      # check if big_list$summary is empty
+      if (('summary' %in% names(big_list)) &
+          (length(big_list$summary) == 0)) {
+        cat(sprintf('No results available for analysis %s!\n', a))
+        return()
       }
       
-      summary_dat_list[[as.character(p)]] = 
-        bind_rows(analysis_dat_list) %>% 
-        mutate(period_id = p)
+      # save the posterior samples in the big_list
+      # IF a savepath is provided
+      # otherwise just skip posterior sample saving
+      if (!is.null(savepath)) {
+        # create folder
+        if (!dir.exists(file.path(savepath)))
+          dir.create(file.path(savepath))
+        
+        # glue together file name for saving
+        fname = sprintf(
+          '%s_%s_%s_period%s_analysis%s_samples.RData',
+          database_id,
+          method,
+          exposure_id,
+          p,
+          a
+        )
+        
+        # give the samples a name for saving
+        samplesToSave = big_list$samples
+        
+        # save as RData
+        save(samplesToSave, file = file.path(savepath, fname))
+      }
+      
+      # save the little summary data table as well
+      summaryToSave = bind_rows(big_list$summary) %>%
+        mutate(analysis_id = a)
+        
+      if (!is.null(savepath)) {
+        # create folder
+        if (!dir.exists(file.path(savepath)))
+          dir.create(file.path(savepath))
+        
+        # glue together file name for saving
+        fname = sprintf(
+          '%s_%s_%s_period%s_analysis%s_summary.RData',
+          database_id,
+          method,
+          exposure_id,
+          p,
+          a
+        )
+        
+        # give the summary a name
+        # summaryToSave = analysis_dat_list[[as.character(a)]]
+        # save as RData
+        save(summaryToSave,
+             file = file.path(savepath, fname))
+      }
+      
+      # return the summary dataframe part
+      # analysis_dat_list[[as.character(a)]] =
+      #   bind_rows(big_list$summary) %>%
+      #   mutate(analysis_id = a)
+      
+      return(summaryToSave)
+      
+    }
+    
+    # check if any results are returned
+    #if (length(analysis_dat_list) == 0) {
+    if (nrow(analysis_dat) == 0) {
+      cat(sprintf(
+        '\nNo results available for all analyses in period %s!\n\n',
+        p
+      ))
+      next
+    }
+    
+    summary_dat_list[[as.character(p)]] =
+      #bind_rows(analysis_dat_list) %>%
+      analysis_dat %>%
+      mutate(period_id = p)
     
   }
   
-  summary_dat = bind_rows(summary_dat_list)
+  #summary_dat = bind_rows(summary_dat_list)
+  
+  bind_rows(summary_dat_list)
   
   # return result
+  # update: return summary datatable only
   # (a summary datatable and a prior table)
-  list(summary_dat = summary_dat,
-       priors = priorTable)
+  # list(summary_dat = summary_dat,
+  #      priors = priorTable)
 }
 
 # # try it
@@ -524,7 +621,7 @@ multiBayesianAnalyses <- function(connection,
 #                                  exposure_id = 21184,
 #                                  analysis_ids = c(15),
 #                                  period_ids = c(5),
-#                                  includePosControls = FALSE)
+#                                  includeSyntheticPos = FALSE)
 # 
 # multiRes2 = multiBayesianAnalyses(connection,
 #                                  'eumaeus',
@@ -533,14 +630,14 @@ multiBayesianAnalyses <- function(connection,
 #                                  exposure_id = 21184,
 #                                  analysis_ids = c(15),
 #                                  period_ids = c(5),
-#                                  includePosControls = TRUE)
+#                                  includeSyntheticPos = TRUE)
 
 multiRes3 = multiBayesianAnalyses(connection,
                                  'eumaeus',
                                  database_id = 'IBM_MDCD',
                                  method = 'SCCS',
                                  exposure_id = 21184,
-                                 analysis_ids = c(15),
+                                 analysis_ids = c(10,15),
                                  period_ids = c(5),
-                                 includePosControls = TRUE,
-                                 savepath = '~/testResults')
+                                 includeSyntheticPos = TRUE,
+                                 savepath = './localCache/testResults')

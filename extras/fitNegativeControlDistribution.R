@@ -7,6 +7,8 @@
 # returns: a list of posterior samples for the normal mean and sd,
 # as well as equal number of predictive samples of the systematic error
 # (return numeric(0) if no negative controls results exist for required analysis)
+
+# Feb 2022 update: make use of pre-pulled estimates if available 
 fitNegativeControlDistribution <- function(connection,
                                            schema,
                                            database_id,
@@ -14,6 +16,7 @@ fitNegativeControlDistribution <- function(connection,
                                            exposure_id,
                                            analysis_id, 
                                            period_id,
+                                           savedEstimates = NULL,
                                            outcomeToExclude=NULL,
                                            numsamps = 10000,
                                            thin = 10,
@@ -22,8 +25,9 @@ fitNegativeControlDistribution <- function(connection,
   # numsamps: total num of posterior samples to acquire (default = 10)
   # thin: thinning iters (default = 10)
   
-  # query relevant data first
-  sql <-  "SELECT database_id,
+  # get relevant data first
+  if(is.null(savedEstimates)){
+    sql <-  "SELECT database_id,
     method,
     exposure_id,
     analysis_id,
@@ -39,15 +43,21 @@ fitNegativeControlDistribution <- function(connection,
     AND exposure_id = @exposure_id
     AND analysis_id = @analysis_id
     AND period_id = @period_id;"
-  sql <- SqlRender::render(sql, 
-                           schema = schema,
-                           database_id = database_id,
-                           method = method,
-                           exposure_id = exposure_id,
-                           period_id = period_id,
-                           analysis_id = analysis_id)
-  estimates <- DatabaseConnector::querySql(connection, sql)
-  cat('Negative controls pulled...\n')
+    sql <- SqlRender::render(sql, 
+                             schema = schema,
+                             database_id = database_id,
+                             method = method,
+                             exposure_id = exposure_id,
+                             period_id = period_id,
+                             analysis_id = analysis_id)
+    estimates <- DatabaseConnector::querySql(connection, sql)
+    cat('Negative controls estimates pulled...\n')
+  }else{
+    estimates = savedEstimates %>%
+      filter(ANALYSIS_ID == analysis_id, 
+             PERIOD_ID == period_id)
+  }
+  
   
   # check if anything returned
   if(nrow(estimates) == 0){
