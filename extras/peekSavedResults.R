@@ -143,6 +143,13 @@ sql <- "SELECT *
           AND exposure_id = 21184
           AND analysis_id = 1"
 
+## multiple analyses + multiple periods?
+sql <- "SELECT * 
+          FROM eumaeus.LIKELIHOOD_PROFILE
+          WHERE database_id = 'IBM_MDCD'
+          AND method = 'SCCS'
+          AND exposure_id = 21184"
+
 ## time it
 t1 = Sys.time()
 sql <- SqlRender::translate(sql, targetDialect = connection@dbms)

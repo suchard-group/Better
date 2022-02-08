@@ -107,7 +107,7 @@ getMultiLikelihoodProfiles <- function(connection,
           WHERE database_id = '@database_id'
           AND method = '@method'
           AND exposure_id = @exposure_id
-          AND period_id = @period_ids"
+          AND period_id = @period_id"
     sql <- SqlRender::render(sql, 
                              schema = schema,
                              database_id = database_id,
