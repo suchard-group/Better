@@ -16,6 +16,7 @@ array_id = Sys.getenv('SGE_TASK_ID') %>% as.numeric()
 # SCCS: analysis_id 1-15; period_id 1-12
 # HC: analysis_id 1-24;  period_id 1-12
 
+
 if(array_id <= 24){
   ## first 24: SCCS 
   method = 'SCCS'
@@ -29,7 +30,8 @@ if(array_id <= 24){
 }else{
   ## last 36: HC
   method = "HistoricalComparator"
-  period_id = (array_id + 2) %/% 3
+  period_id = (array_id-24 + 2) %/% 3
+  #cat('array_id =', array_id, '; period_id =', period_id, '\n')
   if(array_id %% 3 == 1){
     analysis_ids = c(1:8)
   }else if(array_id %% 3 == 2){
@@ -38,6 +40,8 @@ if(array_id <= 24){
     analysis_ids = c(17:24)
   }
 }
+
+
 
 cat(sprintf('Task %s: run analysis for %s, %s, period %s, and analysis %s to %s\n\n',
             array_id, database_id, 
