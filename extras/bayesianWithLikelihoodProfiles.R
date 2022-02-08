@@ -434,7 +434,7 @@ multiBayesianAnalyses <- function(connection,
       ## do so by checking if posterior samples are already saved
       if(!is.null(sampspath)){
         fname = sprintf(
-          '%s_%s_%s_period%s_analysis%s_samples.RData',
+          '%s_%s_%s_period%s_analysis%s_samples.rds',
           database_id,
           method,
           exposure_id,
@@ -575,7 +575,7 @@ multiBayesianAnalyses <- function(connection,
         
         # glue together file name for saving
         fname = sprintf(
-          '%s_%s_%s_period%s_analysis%s_samples.RData',
+          '%s_%s_%s_period%s_analysis%s_samples.rds',
           database_id,
           method,
           exposure_id,
@@ -586,8 +586,8 @@ multiBayesianAnalyses <- function(connection,
         # give the samples a name for saving
         samplesToSave = big_list$samples
         
-        # save as RData
-        save(samplesToSave, file = file.path(sampspath, fname))
+        # save as rds
+        saveRDS(samplesToSave, file = file.path(sampspath, fname))
       }
       
       # save the little summary data table as well
@@ -601,7 +601,7 @@ multiBayesianAnalyses <- function(connection,
         
         # glue together file name for saving
         fname = sprintf(
-          '%s_%s_%s_period%s_analysis%s_summary.RData',
+          '%s_%s_%s_period%s_analysis%s_summary.rds',
           database_id,
           method,
           exposure_id,
@@ -611,8 +611,8 @@ multiBayesianAnalyses <- function(connection,
         
         # give the summary a name
         # summaryToSave = analysis_dat_list[[as.character(a)]]
-        # save as RData
-        save(summaryToSave,
+        # save as rds
+        saveRDS(summaryToSave,
              file = file.path(savepath, fname))
       }
       
@@ -628,8 +628,8 @@ multiBayesianAnalyses <- function(connection,
     }
     
     # check if any results are returned
-    #if (length(analysis_dat_list) == 0) {
-    if (nrow(analysis_dat) == 0) {
+    if (length(analysis_dat_list) == 0) {
+    #if (nrow(analysis_dat) == 0) {
       cat(sprintf(
         '\nNo results available for all analyses in period %s!\n\n',
         p
@@ -649,28 +649,32 @@ multiBayesianAnalyses <- function(connection,
   final_summary = bind_rows(summary_dat_list)
   
   # also save it if savepath is provided
-  if(!is.null(savepath)){
+  if(!is.null(savepath) && nrow(final_summary) > 0){
     # create folder if...
     if (!dir.exists(file.path(savepath)))
       dir.create(file.path(savepath))
     
     # glue together file name for saving
+    ## also include analysis_id range
+    ## for splitting runs
     fname = sprintf(
-      'period_summary_%s_%s_%s_period%s.RData',
+      'period_summary_%s_%s_%s_period%s_analysis%s-%s.rds',
       database_id,
       method,
       exposure_id,
-      p
+      p,
+      min(analysis_ids),
+      max(analysis_ids)
     )
     
-    # save as RData
-    save(final_summary,
+    # save as rds
+    saveRDS(final_summary,
          file = file.path(savepath, fname))
     
     # remove the temporary summary files of each analysis
     if(removeTempSummary){
       fnamePattern = sprintf(
-        '%s_%s_%s_period%s_analysis[1-9]*_summary.RData',
+        '%s_%s_%s_period%s_analysis[1-9]*_summary.rds',
         database_id,
         method,
         exposure_id,
@@ -678,7 +682,7 @@ multiBayesianAnalyses <- function(connection,
       )
       filesToRM = list.files(path = savepath, 
                              pattern = fnamePattern)
-      if(length(filesToRM) > 0) {file.remove(filesToRM)}
+      if(length(filesToRM) > 0) {file.remove(file.path(savepath,filesToRM))}
     }
   }
   
@@ -689,7 +693,7 @@ multiBayesianAnalyses <- function(connection,
 }
 
 # # try it
-IPCs = getIPCs(connection, 'eumaeus', './localCache/')
+# IPCs = getIPCs(connection, 'eumaeus', './localCache/')
 # multiRes = multiBayesianAnalyses(connection,
 #                                  'eumaeus',
 #                                  database_id = 'IBM_MDCD',
@@ -708,28 +712,29 @@ IPCs = getIPCs(connection, 'eumaeus', './localCache/')
 #                                  period_ids = c(5),
 #                                  includeSyntheticPos = TRUE)
 
-multiRes3 = multiBayesianAnalyses(connection,
-                                 'eumaeus',
-                                 database_id = 'IBM_MDCD',
-                                 method = 'SCCS',
-                                 exposure_id = 21184,
-                                 analysis_ids = c(15),
-                                 period_ids = c(5),
-                                 includeSyntheticPos = FALSE,
-                                 IPCtable = IPCs,
-                                 preLearnNull = FALSE,
-                                 savepath = './localCache/testResults')
-# try a very small parallel run example
-multiRes4 = multiBayesianAnalyses(connection,
-                                  'eumaeus',
-                                  database_id = 'IBM_MDCD',
-                                  method = 'SCCS',
-                                  exposure_id = 21184,
-                                  analysis_ids = c(12,14),
-                                  period_ids = c(5),
-                                  includeSyntheticPos = FALSE,
-                                  IPCtable = IPCs,
-                                  priors = list(Mean = 0, Sd = 1.5),
-                                  preLearnNull = FALSE,
-                                  negControls = c(443421, 196347),
-                                  savepath = './localCache/testResults')
+# multiRes3 = multiBayesianAnalyses(connection,
+#                                  'eumaeus',
+#                                  database_id = 'IBM_MDCD',
+#                                  method = 'SCCS',
+#                                  exposure_id = 21184,
+#                                  analysis_ids = c(15),
+#                                  period_ids = c(5),
+#                                  includeSyntheticPos = FALSE,
+#                                  IPCtable = IPCs,
+#                                  preLearnNull = FALSE,
+#                                  savepath = './localCache/testResults')
+# # try a very small parallel run example
+# multiRes4 = multiBayesianAnalyses(connection,
+#                                   'eumaeus',
+#                                   database_id = 'IBM_MDCD',
+#                                   method = 'SCCS',
+#                                   exposure_id = 21184,
+#                                   analysis_ids = c(14:15),
+#                                   period_ids = c(9),
+#                                   includeSyntheticPos = FALSE,
+#                                   IPCtable = IPCs,
+#                                   priors = list(Mean = 0, Sd = 1.5),
+#                                   preLearnNull = FALSE,
+#                                   negControls = c(196044, 196347),
+#                                   savepath = './localCache/testResults',
+#                                   sampspath = './localCache/sampleSaves')
