@@ -419,7 +419,7 @@ multiBayesianAnalyses <- function(connection,
       
       # if period summary already exists, move on...
       if(flag) {
-        cat(sprintf('Analysis already done for database %s, method %s, exposure %s, period %p and analysis %s-%s! Skipped...\n\n',
+        cat(sprintf('Analysis already done for database %s, method %s, exposure %s, period %s and analysis %s-%s! Skipped...\n\n',
                     database_id, method, exposure_id, 
                     p, min(analysis_ids), max(analysis_ids)))
         next
