@@ -159,3 +159,41 @@ getNegControlEstimates <- function(connection,
 
 # estimates = getNegControlEstimates(connection, 'eumaeus', 'IBM_MDCD', 'SCCS', 
 #                                    21184, period_id = 9)
+
+
+###----------
+## helper function to check if a particular period summary file already exists in the savepath
+checkPeriodSummary <- function(savepath, database_id, method, 
+                               exposure_id, period_id, analysis_ids){
+  fnamePattern = sprintf(
+    'period_summary_%s_%s_%s_period%s_analysis.*\\.rds',
+    database_id,
+    method,
+    exposure_id,
+    period_id
+  )
+  
+  summary_files = list.files(path = savepath, 
+                             pattern = fnamePattern)
+  
+  # go through each matched file to see 
+  # if results for the analysis range are already saved
+  flag = FALSE
+  for(f in summary_files){
+    chunks = unlist(stringr::str_split(f, 's|-|\\.'))
+    last_digit = max(which(stringr::str_detect(chunks, 
+                                               pattern = '[1-9]+')))
+    an_en = chunks[last_digit] %>%
+      as.numeric()
+    an_st = chunks[last_digit-1] %>%
+    as.numeric()
+    if((an_en %in% analysis_ids) & (an_st %in% analysis_ids)){
+      flag = TRUE
+    }
+  }
+  
+  flag
+}
+
+
+

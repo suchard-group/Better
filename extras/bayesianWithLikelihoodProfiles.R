@@ -403,6 +403,29 @@ multiBayesianAnalyses <- function(connection,
   # go through period_ids and combine the summary data tables
   summary_dat_list = list()
   for (p in period_ids) {
+    ## check if period summary already exists in the savepath
+    if(!is.null(savepath) && dir.exists(savepath)){
+      flag = tryCatch(
+        expr = {
+          checkPeriodSummary(savepath, database_id,
+                             method, exposure_id,
+                             p, analysis_ids)
+        },
+        error = function(e){
+          cat('Got error when checking period summary file. Treat like results are not available..\n\n')
+          FALSE
+        }
+      )
+      
+      # if period summary already exists, move on...
+      if(flag) {
+        cat(sprintf('Analysis already done for database %s, method %s, exposure %s, period %p and analysis %s-%s! Skipped...\n\n',
+                    database_id, method, exposure_id, 
+                    p, min(analysis_ids), max(analysis_ids)))
+        next
+      }
+    }
+    
     ## get likelihood profiles to use
     ## (if no subsetting on outcomes, will include old synthetic positive controls)
     LPs = getMultiLikelihoodProfiles(
@@ -527,7 +550,7 @@ multiBayesianAnalyses <- function(connection,
           priorSd = pSd,
           numsamps = numsamps,
           thin = thin,
-          preSaveLPs = LPs,
+          preSaveLPs = LPs.a,
           preSaveNull = learnedNull,
           negControls = NCs
         )
@@ -650,59 +673,107 @@ multiBayesianAnalyses <- function(connection,
       next
     }
     
-    summary_dat_list[[as.character(p)]] =
-      bind_rows(analysis_dat_list) %>%
-      #analysis_dat %>%
+    # save result for this whole period
+    period_summary = bind_rows(analysis_dat_list) %>%
       mutate(period_id = p)
+    
+    if(!is.null(savepath) && nrow(period_summary) > 0){
+      # create folder if...
+      if (!dir.exists(file.path(savepath)))
+        dir.create(file.path(savepath))
+      
+      # glue together file name for saving
+      ## also include analysis_id range
+      ## for splitting runs
+      
+      ## Feb 9 change: include *actual* analysis_id range in the summary table
+      
+      analysis_range = range(period_summary$analysis_id)
+      
+      fname = sprintf(
+        'period_summary_%s_%s_%s_period%s_analysis%s-%s.rds',
+        database_id,
+        method,
+        exposure_id,
+        p,
+        analysis_range[1],#min(analysis_ids),
+        analysis_range[2]#max(analysis_ids)
+      )
+      
+      # save as rds
+      saveRDS(period_summary,
+              file = file.path(savepath, fname))
+      
+      # remove the temporary summary files of each analysis
+      if(removeTempSummary){
+        fnamePattern = sprintf(
+          '%s_%s_%s_period%s_analysis[1-9]*_summary.rds',
+          database_id,
+          method,
+          exposure_id,
+          p
+        )
+        filesToRM = list.files(path = savepath, 
+                               pattern = fnamePattern)
+        if(length(filesToRM) > 0) {file.remove(file.path(savepath,filesToRM))}
+      }
+    }
+    
+    # include it in the multi-period big list
+    summary_dat_list[[as.character(p)]] = period_summary
   }
   
   # return result
   # update: return summary datatable only
   
-  final_summary = bind_rows(summary_dat_list)
-  
-  # also save it if savepath is provided
-  if(!is.null(savepath) && nrow(final_summary) > 0){
-    # create folder if...
-    if (!dir.exists(file.path(savepath)))
-      dir.create(file.path(savepath))
+  # update: only return a big summary datatable if there are >1 periods...
+  if(length(period_ids) > 1){
+    final_summary = bind_rows(summary_dat_list)
     
-    # glue together file name for saving
-    ## also include analysis_id range
-    ## for splitting runs
-    
-    ## Feb 9 change: include *actual* analysis_id range in the summary table
-    
-    analysis_range = range(final_summary$analysis_id)
-    
-    fname = sprintf(
-      'period_summary_%s_%s_%s_period%s_analysis%s-%s.rds',
-      database_id,
-      method,
-      exposure_id,
-      p,
-      analysis_range[1],#min(analysis_ids),
-      analysis_range[2]#max(analysis_ids)
-    )
-    
-    # save as rds
-    saveRDS(final_summary,
-         file = file.path(savepath, fname))
-    
-    # remove the temporary summary files of each analysis
-    if(removeTempSummary){
-      fnamePattern = sprintf(
-        '%s_%s_%s_period%s_analysis[1-9]*_summary.rds',
+    # also save it if savepath is provided
+    if(!is.null(savepath) && nrow(final_summary) > 0){
+      # create folder if...
+      if (!dir.exists(file.path(savepath)))
+        dir.create(file.path(savepath))
+      
+      # glue together file name for saving
+      ## also include analysis_id range
+      ## for splitting runs
+      
+      ## Feb 9 change: 
+      ## include *actual* analysis_id range in the summary table
+      ## also do that for period_id ranage
+      analysis_range = range(final_summary$analysis_id)
+      period_range = range(final_summary$period_id)
+      
+      fname = sprintf(
+        'Summary_%s_%s_%s_period%s-%s_analysis%s-%s.rds',
         database_id,
         method,
         exposure_id,
-        p
+        period_range[1],
+        period_range[2],
+        analysis_range[1],#min(analysis_ids),
+        analysis_range[2]#max(analysis_ids)
       )
-      filesToRM = list.files(path = savepath, 
-                             pattern = fnamePattern)
-      if(length(filesToRM) > 0) {file.remove(file.path(savepath,filesToRM))}
+      
+      # save as rds
+      saveRDS(final_summary,
+              file = file.path(savepath, fname))
     }
   }
+  
+  cat(sprintf('All analysis finished for database %s, exposure %s, using method %s analysis %s-%s for periods %s-%s...\n\n',
+              database_id,
+              exposure_id,
+              method,
+              min(analysis_ids),
+              max(analysis_ids),
+              min(period_ids),
+              max(period_ids)))
+  return()
+  
+  
   
   #summary_dat = bind_rows(summary_dat_list)
   # (a summary datatable and a prior table)
