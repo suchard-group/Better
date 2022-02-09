@@ -164,11 +164,25 @@ oneBayesianAnalysis <- function(connection,
       }
       ## nudge the likelihood profiles given the effect size
       lik = nudgeLikelihood(original_lik, nv)
-      mcmc = approximateSimplePosterior(lik, 
-                                        chainLength = numsamps * thin + 1e5,
-                                        burnIn = 1e5, # (use default burn-in = 1e5)
-                                        subSampleFrequency = thin,
-                                        priorMean = priorMean, priorSd = priorSd)
+      
+      ## Feb 2022: handle errors from the Java MCMC run
+      mcmc = tryCatch(
+        expr = {approximateSimplePosterior(
+          lik,
+          chainLength = numsamps * thin + 1e5,
+          burnIn = 1e5, # (use default burn-in = 1e5)
+          subSampleFrequency = thin,
+          priorMean = priorMean,
+          priorSd = priorSd
+        )},
+        error = function(e){
+          cat('Error occurred while trying to run MCMC! Skipped...\n\n')
+          'error'
+        }
+      )
+      ## if there is error, skip this outcome and move on to next
+      if(length(mcmc) == 1 && mcmc == 'error') next
+        
       
       samps = mcmc$theta1
       # with calibration
@@ -190,8 +204,8 @@ oneBayesianAnalysis <- function(connection,
   }
 
   # return final result
-  cat(sprintf('Finished Bayesian analysis for database %s, exposure %s, in period %s, using %s analysis %s\n',
-          database_id, exposure_id, period_id, method, analysis_id))
+  cat(sprintf('Finished Bayesian analysis for database %s, exposure %s, in period %s, using %s analysis %s, with priorMean=%s, priorSd=%s\n',
+          database_id, exposure_id, period_id, method, analysis_id, priorMean, priorSd))
   res
 }
 
