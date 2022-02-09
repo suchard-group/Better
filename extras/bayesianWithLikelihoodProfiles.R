@@ -446,9 +446,7 @@ multiBayesianAnalyses <- function(connection,
       
       ## check LPs
       LPs.a = LPs %>% filter(ANALYSIS_ID == a)
-      if(nrow(LPs.a) == 0){
-        return()
-      }
+      if(nrow(LPs.a) == 0) next
       
       ## pre-learn null distribution if...
       if (preLearnNull) {
@@ -562,7 +560,8 @@ multiBayesianAnalyses <- function(connection,
       if (('summary' %in% names(big_list)) &
           (length(big_list$summary) == 0)) {
         cat(sprintf('No results available for analysis %s!\n', a))
-        return()
+        #return()
+        next
       }
       
       # save the posterior samples in the big_list
@@ -657,14 +656,19 @@ multiBayesianAnalyses <- function(connection,
     # glue together file name for saving
     ## also include analysis_id range
     ## for splitting runs
+    
+    ## Feb 9 change: include *actual* analysis_id range in the summary table
+    
+    analysis_range = range(final_summary$analysis_id)
+    
     fname = sprintf(
       'period_summary_%s_%s_%s_period%s_analysis%s-%s.rds',
       database_id,
       method,
       exposure_id,
       p,
-      min(analysis_ids),
-      max(analysis_ids)
+      analysis_range[1],#min(analysis_ids),
+      analysis_range[2]#max(analysis_ids)
     )
     
     # save as rds
