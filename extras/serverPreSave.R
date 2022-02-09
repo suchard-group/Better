@@ -53,7 +53,7 @@ for(i in runs){
   }else{
     ## last 36: HC
     method = "HistoricalComparator"
-    period_id = (aid + 2) %/% 3
+    period_id = (aid -24 + 2) %/% 3
     if(aid %% 3 == 1){
       analysis_ids = c(1:8)
     }else if(aid %% 3 == 2){

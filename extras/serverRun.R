@@ -18,12 +18,22 @@ array_id = Sys.getenv('SGE_TASK_ID') %>% as.numeric()
 # SCCS: analysis_id 1-15; period_id 1-12
 # HC: analysis_id 1-24;  period_id 1-12
 
+### Feb 9 update: split it further up to smaller chunks
+### with 300 runs
 
-if(array_id <= 24){
+NR = 300
+runs = c(1:NR)
+expo_groups = (runs-1) %/% 60 + 1
+analysis_groups = rep(1:60, NR%/%60)
+
+exid = expo_groups[array_id]
+aid = analysis_groups[array_id]
+
+if(aid <= 24){
   ## first 24: SCCS 
   method = 'SCCS'
-  period_id = (array_id + 1) %/% 2
-  if(array_id %% 2 == 1){
+  period_id = (aid + 1) %/% 2
+  if(aid %% 2 == 1){
     # odd number: analysis 1-7
     analysis_ids = c(1:7)
   }else{
@@ -32,11 +42,11 @@ if(array_id <= 24){
 }else{
   ## last 36: HC
   method = "HistoricalComparator"
-  period_id = (array_id-24 + 2) %/% 3
-  #cat('array_id =', array_id, '; period_id =', period_id, '\n')
-  if(array_id %% 3 == 1){
+  period_id = (aid-24 + 2) %/% 3
+  #cat('aid =', aid, '; period_id =', period_id, '\n')
+  if(aid %% 3 == 1){
     analysis_ids = c(1:8)
-  }else if(array_id %% 3 == 2){
+  }else if(aid %% 3 == 2){
     analysis_ids = c(9:16)
   }else{
     analysis_ids = c(17:24)
@@ -45,7 +55,7 @@ if(array_id <= 24){
 
 
 
-cat(sprintf('Task %s: run analysis for %s, %s, period %s, and analysis %s to %s\n\n',
+cat(sprintf('Task %s: run analysis for %s, %s, period %s, and analysis %s to %s\n',
             array_id, database_id, 
             method, period_id, 
             min(analysis_ids), max(analysis_ids)))
@@ -69,6 +79,10 @@ IPCs = getIPCs(connection, 'eumaeus', output_dir)
 ## get exposure IDs and negative controls outcomes IDs
 exposures = sort(unique(IPCs$EXPOSURE_ID))
 NCs = sort(unique(IPCs$NEGATIVE_CONTROL_ID))
+
+## Feb 9 2022: only subset on exposures
+exposures = exposures[c(exid*2-1,exid*2)]
+cat('Running analyses for exposures', paste(exposures, collapse = ', '), '\n\n')
 
 ## run the analyses corresponding to this array id---------
 ## go through each exposure one by one
