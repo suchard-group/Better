@@ -1,6 +1,8 @@
 # Jan 2022
 # to run on Hoffman2
 
+# (Feb 9: re-run aborted jobs, set removeTempSummary = FALSE)
+
 ## setup
 source('./extras/bayesianWithLikelihoodProfiles.R')
 
@@ -84,7 +86,8 @@ for(expo in exposures){
                         preLearnNull = FALSE,
                         negControls = NCs,
                         savepath = output_dir,
-                        sampspath = cache_dir)
+                        sampspath = cache_dir,
+                        removeTempSummary = FALSE)
 }
 
 
