@@ -13,6 +13,9 @@ output_dir = '/u/home/f/fanbu42/betterResults'
 ## do one database for now ----------------
 database_id = 'IBM_MDCD'
 
+## try CCAE, Feb 12
+database_id = 'CCAE'
+
 ## process array_id to figure out what to run in this task ---------
 array_id = Sys.getenv('SGE_TASK_ID') %>% as.numeric()
 # SCCS: analysis_id 1-15; period_id 1-12
