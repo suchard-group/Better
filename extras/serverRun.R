@@ -11,7 +11,7 @@ cache_dir = '/u/scratch/f/fanbu42/samples'
 output_dir = '/u/home/f/fanbu42/betterResults'
 
 ## do one database for now ----------------
-database_id = 'IBM_MDCD'
+# database_id = 'IBM_MDCD'
 
 ## try CCAE, Feb 12
 database_id = 'CCAE'

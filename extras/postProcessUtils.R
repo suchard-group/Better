@@ -4,7 +4,7 @@
 library(tidyverse)
 library(foreach)
 library(doParallel)
-registerDoParallel()
+registerDoParallel(cores = 4)
 
 #####
 ## function to put together all summaries for each (or a set of) exposure
@@ -124,30 +124,35 @@ getPeriodID <- function(fname){
 #### examples tried ------------
 # ## try it
 # IPCs = readRDS('./localCache/allIPCs.rds')
+# resPath = '~/Documents/Research/betterResults/betterResults-MDCD/'
 # comb_res = pullResultsOneExpo(database_id = 'IBM_MDCD',
 #                               method = 'SCCS',
 #                               exposure_id = 211981,
-#                               resultsPath = '~/Documents/results/betterResults/',
+#                               resultsPath = resPath,
 #                               IPCtable = IPCs, verbose=TRUE)
 # 
 # all_expos = sort(unique(IPCs$EXPOSURE_ID))
 # big_comb_res = pullResults(database_id = 'IBM_MDCD',
 #                            method = 'SCCS',
 #                            exposure_id = all_expos,
-#                            resultsPath = '~/Documents/results/betterResults/',
+#                            resultsPath = resPath,
 #                            IPCpath = './localCache/')
 
 
 
 ## function to make test decisions using the Bayesian postprob thresholds
+## re-arrange the columns a little, and allow saving the dataframe w/ decisions
 makeDecisions <- function(summ, 
                           delta1 = c(0.80,0.90,0.95),
                           delta0 = c(0.90,0.95,0.99),
                           filepath = NULL,
-                          savepath = NULL){
+                          savepath = NULL,
+                          fname = NULL){
   ## summ: default should be a dataframe
   ##       if character string, then it's a fname to load RDS from
   ## filepath: the path to look for the summary files to process
+  ## savepath: path to save the processed file
+  ## fname: customize a fname; default "summary_decisions.rds"
   
   if(is.character(summ)){
     if(is.null(savepath)){
@@ -172,7 +177,21 @@ makeDecisions <- function(summ,
              "adjustedFutility{d0_perc}" := adjustedP0 > d0)
   }
   
-  summ
+  ## put important columns up front
+  summ = summ %>% 
+    relocate(database_id, method, analysis_id, exposure_id, 
+             outcome_id, period_id, prior_id) 
+  
+  ## save if...
+  if(!is.null(savepath)){
+    if(!dir.exists(savepath)) dir.create(savepath)
+    if(!is.null(fname)) fname = "summary_decisions.rds"
+    
+    saveRDS(summ, file = file.path(savepath, fname))
+  }else{
+    # if not save, then directly return
+    return(summ)
+  }
   
 }
 
