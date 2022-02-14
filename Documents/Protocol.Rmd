@@ -97,15 +97,11 @@ abbreviations <- readr::read_delim(col_names = FALSE, delim = ";", trim_ws = TRU
   CDM; Common Data Model
   CIOMS; Council for International Organizations of Medical Sciences
   COVID-19; COronaVIrus Disease 2019
-  CPRD; Clinical Practice Research Datalink
   CRAN; Comprehensive R Archive Network
   EHR; Electronic Health Record
-  EMA; European Medicines Agency
-  ENCEPP; European Network of Centres for Pharmacoepidemiology and Pharmacovigilance
   H1N1pdm; Hemagglutinin Type 1 and Neuraminidase Type 1 (2009 pandemic influenza)
   HPV; Human PapillomaVirus
   IRB; Institutional review board
-  JMDC; Japan Medical Data Center
   LLR; Log Likelihood Ratio
   MAP; Maximum A Posteriori
   MaxSPRT; MAXimized Sequential Probability Ratio Test 
@@ -267,29 +263,38 @@ if (knitr::is_latex_output()) {
 
 # Rationale and Background
 
-**(need further editing with updated information)**
+Mass vaccination against SARS-CoV-2 is critical to ending the current COVID-19 global pandemic. 
+By the beginning of 2022, 9 vaccines have been approved under the WHO Emergency Use List, and more than 10 billion doses have been administered globally by February 2022 [@WHOdashboard2022].
+With the large-scale usage of vaccines under emergency approval, it is essential to ensure their safety and effectiveness through post-market surveillance, as rare but serious adverse events may not be identified in phase 3 clinical trials. 
+In the US, messenger RNA (mRNA) vaccines (BNT162b2, Pfizer-BioNTech; and mRNA-1273, Moderna) were the first SARS-CoV-2 vaccines authorized and as of February 2022, more than 500 million doses of mRNA vaccines have been administered. [@Statista2022]
+And yet, there is limited experience with mRNA platforms previous to SARS-CoV-2, and therefore safety surveillance is particularly important to inform public health policy and maintain public trust. 
 
-A total of 3 COVID-19 vaccines have been approved for clinical use in Europe, and 3 in the USA.
-Many more are in pipeline, and at least two more have reported to date on phase 3 efficacy data. Although safe and effective based on large randomised controlled trials, COVID-19 vaccines will be subject to post-marketing safety studies, including both analyses of spontaneous reports (pharmacovigilance) as well as longitudinal analyses in the form of post-authorisation safety studies.  
+The design of a rapid and reliable vaccine safety surveillance system requires an efficient and robust statistical monitoring approach. 
+The current standard approach used by regulatory agencies in the US is a frequentist sequential analysis method, MaxSPRT [@kulldorf2011]. 
+It is designed to control the overall analysis Type I error rate of a sequential analysis by allocating the allowed false positive error over sequential analysis stages. 
+This method has long suffered from its inflexibility as it requires a pre-specified analysis schedule, and does _not_ allow extended analysis after the pre-chosen analysis endpoint. 
 
-The ENCEPP (European Network of Centres for Pharmacoepidemiology and Pharmacovigilance) methodological guidelines, in their 8th revision,[@encepp2010] mention a few documents that set out standards for the conducting of vaccine safety studies. 
-Specific aspects related to vaccine safety research are discussed in detail in different materials, including the Report of the CIOMS/WHO Working Group on Definition and Application of Terms for Vaccine Pharmacovigilance (2012), the CIOMS Guide to Active Vaccine Safety Surveillance (2017), the CIOMS Guide to Vaccine Safety Communication (2018), the Brighton Collaboration resources, the Module 4 (Surveillance) of the e-learning training course Vaccine Safety Basics by the World Health Organization (WHO), or the recommendations on vaccine-specific aspects of the EU pharmacovigilance system outlined in the Module P.I: Vaccines for prophylaxis against infectious diseases of the Good pharmacovigilance practices (GVP). 
-Additionally, the Accelerated Development of VAccine beNefit-risk Collaboration in Europe (ADVANCE) project has summarized methods for vaccine safety in a bespoke report [@advance2014] covering multiple study designs, both experimental and observational in nature. 
-The EMA (European Medicines Agency) has also issued guidances [@ema2020_1] and a plan [@ema2020_2] for pharmacovigilance of COVID-19 vaccines. 
-Despite this plethora of literature and guidance, there is a scarcity of methodological studies on the performance of different methods for vaccine safety. 
+A more flexible sequential analysis method is, therefore, much desired. 
+A promising candidate is a Bayesian sequential testing framework.
+Under a Bayesian framework, multiplicity of sequential analyses can be handled more elegantly, without the need for a rigid, pre-specified analysis schedule while allowing continued analyses beyond anticipated endpoints. It is also easier to incorporate historical information into current analyses using a prior distribution through Bayesian inference. 
+With all its theoretical advantages, however, the performance and operating characteristics of Bayesian sequential testing methods have not yet been extensively studied on large-scale real-world data. 
+In particular, with observational health data, Bayesian methods can potentially adjust for unmeasured confounding and sampling bias, but the performance and behavior have not been evaluated in a systematic manner.
 
-Given the quick and increasingly global rollout of COVID-19 vaccines internationally, it is highly likely that potential safety signals will emerge, which will need a timely but robust evaluation in ‘real world’ observational studies. 
-It is therefore urgent that we conduct large-scale evaluations of methods for vaccine safety, similar to previous work on methods for drug safety. [@Schuemie2020-he]
-The results of this evaluation will help us understand how these methods will perform when applied to COVID-19 vaccines. 
+The goal of this study is to compare the performance of a Bayesian testing framework with that of MaxSPRT (the current standard approach), in terms of both the hypothesis testing errors (sensitivity and specificity) and estimation accuracy (in estimating the relative risks of adverse events of interest).
+This study will be conducted on various large-scale health claims databases, in order to understand the operating characteristics in a real-world data-intensive setting. 
+At the initial stage of the study, all analyses will be performed _retrospectively_ using historical vaccines with more regular roll-out schedules. 
+We believe the results of our comprehensive evaluations will help us better understand the performance and behavior of a Bayesian sequential testing framework and facilitate the design of a more flexible and reliable safety surveillance system for COVID-19 vaccines. 
+
 
 # Study Objectives
 
 The overarching aim is to compare the performance of Frequentist and Bayesian sequential analysis methods for the generation of evidence of vaccine safety in observational, real-world data.
 Specific aims:
 
-- To estimate the bias and precision associated with the use of Frequentist and Bayesian methods with self-controlled designs for the study of vaccine safety
+- To evaluate and compare the operating characteristics (Type I and II errors, sensitivity and specificity, etc.) of Frequentist and Bayesian sequential testing methods
 - To compare the 'timeliness' of these methods for the identification of vaccine safety signals
-- To gain a deeper understanding of the behavior of Bayesian sequential methods; specifically, the relationship between threshold choices, Type I and II errors, and time-to-signal 
+- To estimate the bias and precision associated with the use of Frequentist and Bayesian methods with self-controlled or historical rates designs for the study of vaccine safety
+- To gain a deeper understanding of the behavior of Bayesian sequential methods; specifically, the relationship between threshold choices, Type I and II errors, and time-to-signal -- the study will produce **a reference table of estimated Type I and II errors and time-to-signal** for each combination of Bayesian sequential testing choices
 
 # Research Methods
 

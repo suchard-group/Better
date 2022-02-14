@@ -1,7 +1,9 @@
 #TOC::before {
-  content: "";
+  font-size: 2.5em;
+  text-align: center;
+  content: "Outline";
   display: block;
-  height: 50px;
+  height: 0px;
   margin: 5px 0px 5px 0px;
   background-size: contain;
   background-position: center center;
