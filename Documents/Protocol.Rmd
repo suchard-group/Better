@@ -51,7 +51,7 @@ mainfont: Arial
 bibliography: Protocol.bib
 params:
   date: '2021-12-20'
-  version: 1.0.0
+  version: 1.0.1
 subtitle: 'Version: `r params$version`'
 link-citations: true
 csl: jamia.csl
@@ -115,7 +115,6 @@ abbreviations <- readr::read_delim(col_names = FALSE, delim = ";", trim_ws = TRU
   MSE; Mean Squared Error
   OHDSI; Observational Health Data Science and Informatics
   OMOP; Observational Medical Outcomes Partnership
-  # PS; Propensity score
   RCT; Randomized controlled trial
   SCCS; Self-Controlled Case Series
   SCRI; Self-Controlled Risk Interval
@@ -198,16 +197,17 @@ We will also produce a reference table of Type I and II error rates and signal d
         + Posterior probability of _signal_, $P_1 = P(H_1 \text{ true, signal} \mid \text{data})$; reject null (claim signal) when $P_1 > \delta_1$, with $\delta_1 = 0.80, 0.90, 0.95$;
         + Posterior probability of _futility_, $P_0 = P(H_0 \text{ true, safety}\mid \text{data})$; accept null (claim safety) when $P_0 > \delta_0$, with $\delta_0 = 0.90, 0.95, 0.99$.
 * Metrics:
-    - Area Under the receiver-operator Curve (AUC). The ability to discriminate between positive controls and negative controls based on the point estimate of the effect size. Will be stratified by true effect size of the positive controls.
-    - Coverage. How often the true effect size is within the 95% confidence (or credible) interval.
-    - Mean precision, computed as $1 / (\text{standard error})^2$ (for the Bayesian method, ``standard error'' is taken as the square root of the posterior distribution variance)
-    - Mean squared error (MSE). Mean squared error between the log of the effect size point-estimate (MAP estimate for Bayesian method) and the log of the true effect size.
     - Type 1 error. For negative controls, how often was the null rejected using the various decision rules. This is equivalent to the false positive rate and 1 - specificity.
     - Type 2 error. For positive controls, how often was the null **not** rejected using the various decision rules. This is equivalent to the false negative rate and 1 - sensitivity. Will be stratified by true effect size of the positive controls.
     - Posterior probability of futility ($H_0$ true) at final analysis; only reported for Bayesian methods. 
     - Sensitivity and specificity based on the various decision rules
     - Detection time: the number of analyses (months) until signals are claimed for 80% of positive controls. Will be stratified by true effect size of the positive controls.
-    - Rate of contradictory early decisions. For all controls, how often did an earlier signal/futility decision contradict the decision based on full analysis of all data. This is a proxy measure of the ``quality'' of early signal detection methods. 
+    - Rate of contradictory early decisions. For all controls, how often did an earlier signal/futility decision contradict the decision based on full analysis of all data. 
+    
+    - Area Under the receiver-operator Curve (AUC). The ability to discriminate between positive controls and negative controls based on the point estimate of the effect size. Will be stratified by true effect size of the positive controls.
+    - Coverage. How often the true effect size is within the 95% confidence (or credible) interval.
+    - Mean precision, computed as $1 / (\text{standard error})^2$ (for the Bayesian method, ``standard error'' is taken as the square root of the posterior distribution variance)
+    - Mean squared error (MSE). Mean squared error between the log of the effect size point-estimate (MAP estimate for Bayesian method) and the log of the true effect size.
     - Non-estimable. Measure for how many of the controls was the method unable to produce an estimate
     
     
@@ -411,8 +411,8 @@ We will use the historical period indicated in Table 8.1 and evaluate **four** v
 - Unadjusted, time-at-risk relative to outpatient visit. Using a single rate computed during the time-at-risk relative to a random outpatient visit in the historic year.
 - Age and sex adjusted, time-at-risk relative to outpatient visit. Using a rate stratified by age and sex, computed during the time-at-risk relative to a random outpatient visit in the historic year.
 
-Results in the previous EUMAEUS study show that this counterfactual approach is sensitive to changes in coding practices. Following our previous study, we introduce a study diagnostic: the percent change in overall incidence rate (across the entire population) between the historic and current time period. 
-For each of the four variations listed above, we add a new variation where effect-size estimates are removed if the change in incidence rate is greater than 50%.
+<!-- Results in the previous EUMAEUS study show that this counterfactual approach is sensitive to changes in coding practices. Following our previous study, we introduce a study diagnostic: the percent change in overall incidence rate (across the entire population) between the historic and current time period.  -->
+<!-- For each of the four variations listed above, we add a new variation where effect-size estimates are removed if the change in incidence rate is greater than 50%. -->
 
 
 #### Self-Controlled Case Series (SCCS)/Self-Controlled Risk Interval (SCRI)
@@ -467,7 +467,9 @@ For the Bayesian method, we also evaluate different prior distribution choices f
 - A log-normal prior with mean $= 0$ and SD $= 10$ (a **diffuse** prior)
 - A log-normal prior with mean $= 0$ and SD $= 1.5$ (a **conservative** prior with >90% mass below 2)
 - A log-normal prior with mean $= 0$ and SD $= 4$ (a weakly informed prior with ~70% mass below 2)
-- (For the historical comparator design) A log-normal prior with mean $=$ historic rate and SD $=4$ to incorporate historic information
+
+We choose to use log-normal priors for their simplicity and wide use, in order to focus mainly on comparison between Bayesian and frequentist testing methods.
+We will consider adopting other prior distributions (e.g., Laplace priors) in subsequent studies. 
 
 
 For both frequentist and Bayesian methods, estimation will be conducted both *with* and *without* empirical calibration. [@Schuemie2014-bv;@Schuemie2018-hq]. Empirical calibration will be done using leave-one-out: when calibrating the estimate for a control, the systematic error distribution will be fitted uses all controls except the one being calibrated.
@@ -491,18 +493,24 @@ We will evaluate three choices of $\delta_1$: $0.80, 0.90, 0.95$; and also three
 
 ## Metrics
 
-We will compute the following metrics based on estimation outcomes, as an adaptation of previous work: [@Schuemie2020-wx]
+As we will conduct both estimation and testing tasks at the same time, we will compute two sets of metrics based on the estimation outcomes: 
+metrics for testing, and metrics for estimation. (The following metrics are adapted from previous work [@Schuemie2020-wx].)
 
-- Area Under the receiver-operator Curve (AUC). The ability to discriminate between positive controls and negative controls based on the point estimate of the effect size. Will be stratified by true effect size of the positive controls.
-- Coverage. How often the true effect size is within the 95% confidence (or credible) interval.
-- Mean precision, computed as $1 / (\text{standard error})^2$ (for the Bayesian method, ``standard error'' is taken as the square root of the posterior distribution variance)
-- Mean squared error (MSE). Mean squared error between the log of the effect size point-estimate (MAP estimate for Bayesian method) and the log of the true effect size.
+1. Testing metrics:
+
 - Type 1 error. For negative controls, how often was the null rejected using the various decision rules. This is equivalent to the false positive rate and 1 - specificity.
 - Type 2 error. For positive controls, how often was the null **not** rejected using the various decision rules. This is equivalent to the false negative rate and 1 - sensitivity. Will be stratified by true effect size of the positive controls.
 - Posterior probability of futility ($H_0$ true) at final analysis; only reported for Bayesian methods. 
 - Sensitivity and specificity based on the various decision rules, as well as prior choices in the Bayesian method. 
 - Detection time: the number of analyses (months) until signals are claimed for 80% of positive controls. This will be stratified by true effect size of the positive controls.
-- Rate of contradictory early decisions. For all controls, how often did an earlier signal/futility decision contradict the decision based on full analysis of all data. This is a proxy measure of the ``quality'' of early signal detection methods. 
+- Rate of contradictory early decisions. For all controls, how often did an earlier signal/futility decision contradict the decision based on full analysis of all data. This can serve as a measure of temporal stationarity of the sequential process --- if such contradictory rate is high, then there may be time-varying confounding factors left unadjusted for. 
+
+2. Estimation metrics:
+
+- Mean precision, computed as $1 / (\text{standard error})^2$ (for the Bayesian method, ``standard error'' is taken as the square root of the posterior distribution variance)
+- Mean squared error (MSE). Mean squared error between the log of the effect size point-estimate (MAP estimate for Bayesian method) and the log of the true effect size.
+- Area Under the receiver-operator Curve (AUC). The ability to discriminate between positive controls and negative controls based on the point estimate of the effect size. Will be stratified by true effect size of the positive controls.
+- Coverage. How often the true effect size is within the 95% confidence (or credible) interval.
 - Non-estimable. Measure for how many of the controls was the method unable to produce an estimate
 
 
@@ -550,7 +558,7 @@ These analysis results will be computed for each database.
 # Strengths and Limitations
 
 ## Strengths
-(Need further verification...)
+**(Need further verification...)**
 
 - Cohort studies allow direct estimation of incidence rates following exposure of interest, and the new-user design can capture early events following treatment exposures while avoiding confounding from previous treatment effects; new use allows for a clear exposure index date.
 <!-- - Large-scale propensity score matching and stratification create balance on a large number of baseline potential confounders and have been found in the past to balance unmeasured confounders. -->
@@ -558,7 +566,7 @@ These analysis results will be computed for each database.
 - Use of real negative and synthetic positive control outcomes provides an independent estimate of residual bias in the experiment.
 - The fully specified study protocol is being published before analysis begins.
 - Dissemination of the results will not depend on estimated effects, avoiding publication bias.
-- (???) All analytic methods have previously been verified on real data.
+- All analytic methods have previously been verified on real data.
 - All software is freely available as open source.
 - Use of a common data model allows extension of the experiment to future databases and allows replication of these results on licensable databases that were used in this experiment, while still maintaining patient privacy on patient-level data.
 - Use of multiple databases allows estimating consistency to add credibility and supports generalizability.
@@ -585,10 +593,8 @@ Data source & Statement
 IBM MarketScan Commercial Claims and Encounters (CCAE) & New England Institutional Review Board and was determined to be exempt from broad IRB approval, as this research project did not involve human subject research.
 IBM MarketScan Medicare Supplemental Database (MDCR)  & New England Institutional Review Board and was determined to be exempt from broad IRB approval, as this research project did not involve human subject research.
 IBM MarketScan Multi-State Medicaid Database (MDCD) & New England Institutional Review Board and was determined to be exempt from broad IRB approval, as this research project did not involve human subject research.
-Japan Medical Data Center (JMDC) & New England Institutional Review Board and was determined to be exempt from broad IRB approval, as this research project did not involve human subject research.
 Optum Clinformatics Data Mart (Optum) & New England Institutional Review Board and was determined to be exempt from broad IRB approval, as this research project did not involve human subject research.
 Optum Electronic Health Records (OptumEHR) & New England Institutional Review Board and was determined to be exempt from broad IRB approval, as this research project did not involve human subject research.
-Clinical Practice Research Datalink (CPRD) GOLD & Independent Scientific Advisory Committee will review the protocol prior to study execution.
 ")
 
 tab <- kable(data_sources, booktabs = TRUE, linesep = "",

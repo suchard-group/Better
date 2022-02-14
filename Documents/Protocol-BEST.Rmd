@@ -492,7 +492,7 @@ We will evaluate three choices of $\delta_1$: $0.80, 0.90, 0.95$; and also three
 
 ## Metrics
 
-As we will conduct both estimation and testing at the same time, we will compute two sets of metrics based on the estimation outcomes: 
+As we will conduct both estimation and testing tasks at the same time, we will compute two sets of metrics based on the estimation outcomes: 
 metrics for testing, and metrics for estimation. (The following metrics are adapted from previous work [@Schuemie2020-wx].)
 
 1. Testing metrics:
@@ -591,11 +591,7 @@ data_sources <- readr::read_delim(col_names = TRUE, delim = "&", trim_ws = TRUE,
 Data source & Statement
 IBM MarketScan Commercial Claims and Encounters (CCAE) & New England Institutional Review Board and was determined to be exempt from broad IRB approval, as this research project did not involve human subject research.
 IBM MarketScan Medicare Supplemental Database (MDCR)  & New England Institutional Review Board and was determined to be exempt from broad IRB approval, as this research project did not involve human subject research.
-IBM MarketScan Multi-State Medicaid Database (MDCD) & New England Institutional Review Board and was determined to be exempt from broad IRB approval, as this research project did not involve human subject research.
-Japan Medical Data Center (JMDC) & New England Institutional Review Board and was determined to be exempt from broad IRB approval, as this research project did not involve human subject research.
 Optum Clinformatics Data Mart (Optum) & New England Institutional Review Board and was determined to be exempt from broad IRB approval, as this research project did not involve human subject research.
-Optum Electronic Health Records (OptumEHR) & New England Institutional Review Board and was determined to be exempt from broad IRB approval, as this research project did not involve human subject research.
-Clinical Practice Research Datalink (CPRD) GOLD & Independent Scientific Advisory Committee will review the protocol prior to study execution.
 ")
 
 tab <- kable(data_sources, booktabs = TRUE, linesep = "",
