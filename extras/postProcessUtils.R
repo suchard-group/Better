@@ -117,7 +117,8 @@ pullResultsOneExpo <- function(database_id,
 ## helper function to get the period id from file names
 ## (apparently for separate analysis files, period ids are not recorded in data frame...)
 getPeriodID <- function(fname){
-  chunks = stringr::str_split(fname, pattern = '([1-9]*_period)|(_a)') %>% unlist()
+  chunks = stringr::str_split(fname, pattern = '([1-9]*_period)|(_a)') %>% 
+    unlist()
   as.numeric(chunks[2])
 }
 
@@ -202,11 +203,206 @@ makeDecisions <- function(summ,
 
 ## function to get earliest time to signal/futility for each analysis across all periods
 
-## (1) helper function to do stuff for each (DB, method, analysis, exposure_id, outcome_id, prior_id) combination
+## (1) helper function to get a table of threshold values
+getThresholdTable <- function(delta1 = c(0.80,0.90,0.95),
+                              delta0 = c(0.90,0.95,0.99),
+                              savepath = NULL){
+  ## read from saved table if exists
+  if(!is.null(savepath) && file.exists(file.path(savepath, 'thresholdTable.rds'))){
+    readRDS(file.path(savepath, 'thresholdTable.rds'))
+  } 
+  
+  ## otherwise, construct it and save it to `savepath`
+  nd1s = length(delta1)
+  nd0s = length(delta0)
+  thresholds = data.frame(p1Threshold = rep(delta1, each=nd0s),
+                          p0Threshold = rep(delta0, nd1s))
+  thresholds$threshold_ID = c(1:nrow(thresholds))
+  
+  ## save it
+  if(!is.null(savepath)){
+    saveRDS(thresholds, file = file.path(savepath, 'thresholdTable.rds'))
+  }
+  
+  ## return it
+  thresholds
+}
+
+# ## try it and save a local version if possible
+# thresholds = getThresholdTable(savepath = './localCache/')
+
+
+## (2) function to determine decision, earliest-time-to-decision, 
+##     if earliest decision contradicts final decision
+##     AND if the decision is same with truth (v.s. negative/positive control)
+## FOR one particular threshold (either adjusted or un-adjusted) of Signal OR Futility
+## AND for one particular (DB, method, analysis, exposure_id, outcome_id, prior_id) combination
+
+## (2.a) little helper function to wrangle any string's first letter to capital
+##       no matter what
+capitalizeFirst <- function(s){
+  sapply(s,
+         function(w) {
+           ll = stringr::str_split(w, '') %>% unlist()
+           ll[1] = toupper(ll[1])
+           paste0(ll, collapse = '')
+         }) %>%
+    as.character()
+}
+
+## (2.b) function for one particular (DB, method, analysis, exposure_id, outcome_id, prior_id) combination
+##       for signal/futility with one threshold, with/without adjustment
+
+## if the threshold is NEVER crossed, then return "-1", 
+## meaning not enough evidence for a clear signal in either way
+checkOneDecisionRule <- function(df,
+                                 threshold, 
+                                 decisionType = 'signal',
+                                 adjusted = FALSE){
+  ## if somehow df has no rows at all
+  ## return NULL
+  if(nrow(df) == 0){return(NULL)}
+  
+  # get the relevant variable name
+  if(adjusted){
+    decisionVar = paste0('adjusted', 
+                         stringr::str_to_title(decisionType), 
+                         as.integer(threshold * 100))
+  }else{
+    decisionVar = paste0(decisionType, 
+                         as.integer(threshold * 100))
+  }
+  df = df %>% select(database_id, method,analysis_id,
+                     exposure_id,outcome_id,period_id,
+                     prior_id,one_of(decisionVar),
+                     negativeControl) %>%
+    arrange(period_id)
+  
+  
+  ## if all are FALSE, return -1 as earliest-time (meaning threshold never hit!)
+  if(!any(df[[decisionVar]])){
+    decision = FALSE
+    res = data.frame(timeToSignal = -1,
+               contradict = FALSE)
+  }else{
+  ## otherwise, the earliest period where decision is TRUE
+    decision = TRUE
+    np = nrow(df)
+    res = data.frame(timeToSignal = min(df$period_id[df[[decisionVar]]]),
+                     contradict = !(df[[decisionVar]][np]))
+  }
+  
+  ## then compare the decision with the truth
+  ## for NC: we need signal=FALSE but futility=TRUE
+  ## for IPC: we need signal=TRUE but futility=FALSE
+  isNC = df$negativeControl[1]
+  if(isNC){
+    res$correct = ifelse(decisionType=='signal', !decision, decision)
+  }else{
+    res$correct = ifelse(decisionType=='signal', decision, !decision)
+  }
+  
+  # ## work on column names (adjusted v.s. un-adjusted)
+  # if(adjusted){
+  #   names(res) = paste0('adjusted',capitalizeFirst(names(res)))
+  # }
+  
+  ## add columns for decisionType, threshold and adjusted
+  res$decisionType = decisionType
+  res$threshold = threshold
+  res$adjusted = adjusted
+  
+  res
+  
+}
+
+## (2.c) function to do everything (combinely process all possible decision rule combos) for each
+##       (DB, method, analysis, exposure_id, outcome_id, prior_id) combination)
+
+### !!! NEED to decide how to handle the case of "neither" decision boundary crossed !!!
+### RIGHT NOW: only focus on whether or not it signals --- is the "to signal" decision is correct, then 
+checkAllDecisionRules <- function(df, 
+                                  thresholdTable){
+  ## if somehow df has no rows at all
+  ## return NULL
+  if(nrow(df) == 0){return(NULL)}
+  
+  ## produce all one-rule decision results first
+  delta1 = sort(unique(thresholdTable$p1Threshold))
+  delta0 = sort(unique(thresholdTable$p0Threshold))
+  
+  ## get all one-decision-rule results
+  res = NULL
+  for(adj in c(FALSE, TRUE)){
+    resSignal = foreach(d1=delta1, .combine = 'bine_rows') %dopar% {
+      checkOneDecisionRule(df, threshold = d1, decisionType ='signal', adjusted=adj)
+    }
+    
+    # early stopping if returns NULL
+    if(is.null(resSignal)){return(NULL)}
+    
+    resSignal = foreach(d0=delta0, .combine = 'bine_rows') %dopar% {
+      checkOneDecisionRule(df, threshold = d0, decisionType ='futility', adjusted=adj)
+    }
+    
+    res = bind_rows(res, resSignal, resSignal)
+  }
+  
+  ## go through them and produce long format results
+  threshold_IDs = sort(thresholdTable$threshold_ID)
+  
+  decisionChecks = 
+  foreach(adj=c(FALSE, TRUE), .combine = 'bind_rows') %dopar% {
+    foreach(id=threshold_IDs, .combine = 'bind_rows') %dopar% {
+      d1 = thresholdTable$p1Threshold[id]
+      d0 = thresholdTable$p0Threshold[id]
+      thispair = res %>% 
+        filter((decisionType=='signal' & threshold==d1) | (decisionType=='futility' & threshold==d0)) %>%
+        filter(adjusted == adj)
+      
+      ## work with the timeToSignal column
+      if(all(thispair$timeToSignal < 0)){
+        # if neither threshold crossed...
+        this.combo = 
+          data.frame(decision='neither',
+                     timeToSignal = -1,
+                     correct = thispair %>% 
+                       filter(decisionType=='signal') %>% 
+                       select(correct) %>% pull()) ## <- need to rethink how to judge a "neither" decision!!
+        
+      }else if(sum(thispair$timeToSignal > 0) == 1){
+        # if only one threshold crossed
+        this.combo = thispair %>% filter(timeToSignal > 0) %>% 
+          select(decision = decisionType, timeToSignal, correct)
+      }else{
+        # if both thresholds crossed
+        # go with whichever is the early one
+        this.combo = thispair %>% 
+          filter(timeToSignal == min(thispair$timeToSignal)) %>% 
+          select(decision = decisionType, timeToSignal, correct)
+      }
+      
+      ## return with information about adjustment and decision rule ID
+      this.combo %>% mutate(threshold_id = id,
+                            adjusted = adj)
+    }
+    
+  }
+  
+  ## attach with other info for this analysis combination
+  infos = df[1,] %>% 
+    select(database_id, method, analysis_id, exposure_id, outcome_id, prior_id, negativeControl)
+  
+  bind_cols(infos, decisionChecks)
+  
+}
+
+
+## (2) helper function to do stuff for each (DB, method, analysis, exposure_id, outcome_id, prior_id) combination
 getTimeToSignal <- function(decisions){
   decisions %>% 
     group_by(database_id, method, analysis_id, exposure_id, outcome_id, prior_id) %>%
-    summarize() # TBD!!!å
+    summarize() # TBD!!!
 }
 
 
