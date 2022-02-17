@@ -316,6 +316,11 @@ checkOneDecisionRule <- function(df,
   
 }
 
+# ## try it out
+# checkOneDecisionRule(big_comb_res %>% 
+#                        filter(exposure_id==21184, outcome_id ==73302, analysis_id==1, prior_id==1),
+#                      threshold = 0.8)
+
 ## (2.c) function to do everything (combinely process all possible decision rule combos) for each
 ##       (DB, method, analysis, exposure_id, outcome_id, prior_id) combination)
 
@@ -334,31 +339,39 @@ checkAllDecisionRules <- function(df,
   ## get all one-decision-rule results
   res = NULL
   for(adj in c(FALSE, TRUE)){
-    resSignal = foreach(d1=delta1, .combine = 'bine_rows') %dopar% {
+    resSignal1 = foreach(d1=delta1, .combine = 'bind_rows') %do% {
       checkOneDecisionRule(df, threshold = d1, decisionType ='signal', adjusted=adj)
     }
     
     # early stopping if returns NULL
-    if(is.null(resSignal)){return(NULL)}
+    if(is.null(resSignal1)){return(NULL)}
     
-    resSignal = foreach(d0=delta0, .combine = 'bine_rows') %dopar% {
+    resSignal0 = foreach(d0=delta0, .combine = 'bind_rows') %do% {
       checkOneDecisionRule(df, threshold = d0, decisionType ='futility', adjusted=adj)
     }
     
-    res = bind_rows(res, resSignal, resSignal)
+    res = bind_rows(res, resSignal1, resSignal0)
   }
+  
+  #print(res)
   
   ## go through them and produce long format results
   threshold_IDs = sort(thresholdTable$threshold_ID)
   
-  decisionChecks = 
-  foreach(adj=c(FALSE, TRUE), .combine = 'bind_rows') %dopar% {
-    foreach(id=threshold_IDs, .combine = 'bind_rows') %dopar% {
+  decisionChecks = NULL
+  for(adj in c(FALSE, TRUE)){
+  # decisionChecks = 
+  # foreach(adj=c(FALSE, TRUE), .combine = 'bind_rows') %dopar% {
+    adj.res = NULL
+    for(id in threshold_IDs){
+    # foreach(id=threshold_IDs, .combine = 'bind_rows') %dopar% {
       d1 = thresholdTable$p1Threshold[id]
       d0 = thresholdTable$p0Threshold[id]
       thispair = res %>% 
         filter((decisionType=='signal' & threshold==d1) | (decisionType=='futility' & threshold==d0)) %>%
         filter(adjusted == adj)
+      
+      #print(thispair)
       
       ## work with the timeToSignal column
       if(all(thispair$timeToSignal < 0)){
@@ -383,11 +396,31 @@ checkAllDecisionRules <- function(df,
       }
       
       ## return with information about adjustment and decision rule ID
-      this.combo %>% mutate(threshold_id = id,
-                            adjusted = adj)
+      # this.combo %>% mutate(threshold_id = id,
+      #                       adjusted = adj)
+      
+      adj.res = bind_rows(adj.res, this.combo %>% mutate(threshold_id = id,
+                                                         adjusted = adj))
     }
     
+    #adj.res
+    
+    decisionChecks = rbind(decisionChecks, adj.res)
+    
   }
+  
+  ## a wide format with adjusted-named columns
+  adjusted_checks = decisionChecks %>% 
+    filter(adjusted==TRUE) %>%
+    select(adjustedDecision = decision, 
+           adjustedTimeToSignal = timeToSignal, 
+           adjustedCorrect = correct)
+  
+  decisionChecks = decisionChecks %>% 
+    filter(adjusted==FALSE) %>%
+    select(-adjusted) %>%
+    bind_cols(adjusted_checks) %>%
+    relocate(threshold_id)
   
   ## attach with other info for this analysis combination
   infos = df[1,] %>% 
@@ -397,12 +430,57 @@ checkAllDecisionRules <- function(df,
   
 }
 
+# ## try it out
+# allRules =
+#   checkAllDecisionRules(big_comb_res %>%
+#                        filter(exposure_id==21184, outcome_id ==73302, analysis_id==1, prior_id==1),
+#                      thresholds)
+
 
 ## (2) helper function to do stuff for each (DB, method, analysis, exposure_id, outcome_id, prior_id) combination
-getTimeToSignal <- function(decisions){
-  decisions %>% 
-    group_by(database_id, method, analysis_id, exposure_id, outcome_id, prior_id) %>%
-    summarize() # TBD!!!
+getDecisionChecks <- function(decisions, savepath=NULL, fname=NULL){
+  # decisions %>% 
+  #   group_by(database_id, method, analysis_id, exposure_id, outcome_id, prior_id) %>%
+  #   summarize() # TBD!!!
+  
+  # split up by grouping
+  groups = split(
+    decisions,
+    list(
+      decisions$database_id,
+      decisions$method,
+      decisions$analysis_id,
+      decisions$exposure_id,
+      decisions$outcome_id,
+      decisions$prior_id
+    ),
+    drop=TRUE
+  )
+  
+  # for each group, do the decision check stuff
+  allChecks = lapply(groups, 
+                     checkAllDecisionRules,
+                     thresholdTable = getThresholdTable(savepath=savepath))
+  
+  # back to data frame format
+  allChecks = bind_rows(allChecks)
+  
+  if(!is.null(savepath)){
+    if(!is.null(fname)){
+      fpath = file.path(savepath, fname)
+    }else{
+      fpath = file.path(savepath, 'allDecisionChecks.rds')
+    }
+    
+    saveRDS(allChecks, fpath)
+    
+  }
+  
+  allChecks
+  
 }
 
+## try it out
+# allChecks = getDecisionChecks(big_comb_res %>% sample_n(200),
+#                               savepath = './localCache/')
 
