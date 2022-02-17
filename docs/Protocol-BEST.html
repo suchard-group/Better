@@ -509,7 +509,6 @@ Department of Biostatistics, University of California, Los Angeles, Los Angeles,
 </div>
 <div id="disclosures" class="section level2" number="2.2">
 <h2><span class="header-section-number">2.2</span> Disclosures</h2>
-<p><strong>(need editing on info below)</strong></p>
 <p>This study is undertaken within Observational Health Data Sciences and Informatics (OHDSI), an open collaboration.
 <strong>GH</strong> receives grant funding from the US National Institutes of Health and the US Food &amp; Drug Administration.
 <strong>PBR</strong> and is an employee of Janssen Research and Development and shareholders in John &amp; Johnson.
@@ -524,22 +523,22 @@ Department of Biostatistics, University of California, Los Angeles, Los Angeles,
 The current standard method of safety surveillance adopted by the FDA is MaxSPRT, which suffers from the inflexibility of a pre-specified sequential analysis schedule.
 We hope to develop and implement a more flexible Bayesian surveillance framework and compare its performance with MaxSPRT in real-world data.</p>
 <p><strong>Study Aims</strong></p>
-<p>To compare the real-data performance (precision, bias, testing errors, and timeliness) of
+<p>To compare the real-data performance (testing errors, timeliness, precision and bias) of
 Bayesian and frequentist sequential analysis methods for the study of comparative vaccine safety.</p>
 <p>We will also produce a reference table of Type I and II error rates and signal detection times for all combinations of design and threshold choices, as exploration of the operating characteristics of Bayesian sequential methods.</p>
 <p><strong>Study Description</strong></p>
 <ul>
-<li>Design: historical comparator &amp; self-controlled studies</li>
-<li>Exposures: previous viral vaccines including 2017-2018 flu, H1N1pdm flu, Human Papillomavirus (HPV), and Varicella-Zoster.</li>
-<li>Outcomes: selected adverse events of special interest (e.g., <strong>Guillain-Barre Syndrome</strong>); negative control outcomes; imputed positive control outcomes</li>
-<li>Analyses:
+<li><p>Design: historical comparator &amp; self-controlled studies</p></li>
+<li><p>Exposures: previous viral vaccines including 2017-2018 flu, H1N1pdm flu, Human Papillomavirus (HPV), and Varicella-Zoster.</p></li>
+<li><p>Outcomes: selected adverse events of special interest (e.g., <strong>Guillain-Barre Syndrome</strong>); negative control outcomes; imputed positive control outcomes</p></li>
+<li><p>Analyses:</p>
 <ol style="list-style-type: decimal">
 <li>historical comparator/historical rates (frequentist)</li>
 <li>historical comparator/historical rates (Bayesian)</li>
 <li>Self-controlled case series with variations (frequentist)</li>
 <li>Self-controlled case series with variations (Bayesian)</li>
 </ol></li>
-<li>Decision rules:
+<li><p>Decision rules:</p>
 <ul>
 <li>Frequentist method: reject null at <span class="math inline">\(\alpha = 0.05\)</span> level, using the MaxSPRT adjustment</li>
 <li>Bayesian method:
@@ -548,45 +547,64 @@ Bayesian and frequentist sequential analysis methods for the study of comparativ
 <li>Posterior probability of <em>futility</em>, <span class="math inline">\(P_0 = P(H_0 \text{ true, safety}\mid \text{data})\)</span>; accept null (claim safety) when <span class="math inline">\(P_0 &gt; \delta_0\)</span>, with <span class="math inline">\(\delta_0 = 0.90, 0.95, 0.99\)</span>.</li>
 </ul></li>
 </ul></li>
-<li>Metrics:
+<li><p>Metrics:</p>
+<ol style="list-style-type: decimal">
+<li>Hypothesis testing related metrics</li>
+</ol>
 <ul>
-<li><p>Type 1 error. For negative controls, how often was the null rejected using the various decision rules. This is equivalent to the false positive rate and 1 - specificity.</p></li>
-<li><p>Type 2 error. For positive controls, how often was the null <strong>not</strong> rejected using the various decision rules. This is equivalent to the false negative rate and 1 - sensitivity. Will be stratified by true effect size of the positive controls.</p></li>
-<li><p>Posterior probability of futility (<span class="math inline">\(H_0\)</span> true) at final analysis; only reported for Bayesian methods.</p></li>
-<li><p>Sensitivity and specificity based on the various decision rules</p></li>
-<li><p>Detection time: the number of analyses (months) until signals are claimed for 80% of positive controls. Will be stratified by true effect size of the positive controls.</p></li>
-<li><p>Rate of contradictory early decisions. For all controls, how often did an earlier signal/futility decision contradict the decision based on full analysis of all data.</p></li>
-<li><p>Area Under the receiver-operator Curve (AUC). The ability to discriminate between positive controls and negative controls based on the point estimate of the effect size. Will be stratified by true effect size of the positive controls.</p></li>
-<li><p>Coverage. How often the true effect size is within the 95% confidence (or credible) interval.</p></li>
-<li><p>Mean precision, computed as <span class="math inline">\(1 / (\text{standard error})^2\)</span> (for the Bayesian method, ``standard error’’ is taken as the square root of the posterior distribution variance)</p></li>
-<li><p>Mean squared error (MSE). Mean squared error between the log of the effect size point-estimate (MAP estimate for Bayesian method) and the log of the true effect size.</p></li>
-<li><p>Non-estimable. Measure for how many of the controls was the method unable to produce an estimate</p></li>
+<li>Type 1 error. For negative controls, how often was the null rejected using the various decision rules. This is equivalent to the false positive rate and 1 - specificity.</li>
+<li>Type 2 error. For positive controls, how often was the null <strong>not</strong> rejected using the various decision rules. This is equivalent to the false negative rate and 1 - sensitivity. Will be stratified by true effect size of the positive controls.</li>
+<li>Posterior probability of futility (<span class="math inline">\(H_0\)</span> true) at final analysis; only reported for Bayesian methods.</li>
+<li>Sensitivity and specificity based on the various decision rules</li>
+<li>Detection time: the number of analyses (months) until signals are claimed for 80% of positive controls. Will be stratified by true effect size of the positive controls.</li>
+<li>Rate of contradictory early decisions. For all controls, how often did an earlier signal/futility decision contradict the decision based on full analysis of all data.</li>
+<li>Rate of “undetermined’’ decisions. At each analysis stage, for all controls, how often are the decisions”undetermined” (i.e., neither decision threshold is crossed). For most analyses, we would expect this rate to be high at earlier stages when there isn’t enough data evidence but gradually lower as more data accrue.
+<br>
+<br></li>
+</ul>
+<ol start="2" style="list-style-type: decimal">
+<li>Estimation related metrics</li>
+</ol>
+<ul>
+<li>Area Under the receiver-operator Curve (AUC). The ability to discriminate between positive controls and negative controls based on the point estimate of the effect size. Will be stratified by true effect size of the positive controls.</li>
+<li>Coverage. How often the true effect size is within the 95% confidence (or credible) interval.</li>
+<li>Mean precision, computed as <span class="math inline">\(1 / (\text{standard error})^2\)</span> (for the Bayesian method, ``standard error’’ is taken as the square root of the posterior distribution variance)</li>
+<li>Mean squared error (MSE). Mean squared error between the log of the effect size point-estimate (MAP estimate for Bayesian method) and the log of the true effect size.</li>
+<li>Non-estimable. Measure for how many of the controls was the method unable to produce an estimate</li>
 </ul></li>
 </ul>
 </div>
 <div id="amendments-and-updates" class="section level1" number="4">
 <h1><span class="header-section-number">4</span> Amendments and Updates</h1>
-<p>(No amendments yet)</p>
-<!-- Table \@ref(tab:amendments) lists any protocol amendments made over time. -->
-<!-- ```{r amendments, echo=FALSE, results="asis", warning=FALSE} -->
-<!-- amendments <- readr::read_delim(col_names = TRUE, delim = ";", trim_ws = TRUE, file = " -->
-<!--   Number; Date; Section of study protocol; Amendment or update; Reason -->
-<!--   1.1.0;2021-04-09;Methods to evaluate;Added historical comparator, cohort method, and SCCS variations;The historical comparator variation was based on initial EMAEUS results showing (preventable) outliers. The cohort method and SCCS variants are based on 3rd-party protocols for COVID-19 vaccine safety surveillance. -->
-<!--   1.2.0;2021-06-29;Exposure-outcome pairs;Switched from synthetic to imputed positive controls;Positive control synthesis requires a minimum number of outcomes in the data, precluding many negative controls and leading to only ‘highly’ powered positive controls. This limited the ability to measure performance of methods in low-power settings. Positive control imputation is more simplistic but can be applied in low-power settings. -->
-<!-- ") -->
-<!-- tab <- kable(amendments, booktabs = TRUE, linesep = "", caption = "Protocol amendments") -->
-<!-- if (knitr::is_latex_output()) { -->
-<!--   tab %>% -->
-<!--     column_spec(1, width = "4em") %>% -->
-<!--     column_spec(2, width = "6em") %>% -->
-<!--     column_spec(3, width = "10em") %>% -->
-<!--     column_spec(4, width = "15em") %>% -->
-<!--     column_spec(5, width = "15em") %>% -->
-<!--     kable_styling(latex_options = "striped", font_size = latex_table_font_size) -->
-<!-- } else { -->
-<!--   tab %>% kable_styling(bootstrap_options = "striped") -->
-<!-- } -->
-<!-- ``` -->
+<p>Table <a href="#tab:amendments">4.1</a> lists any protocol amendments made over time.</p>
+<table class="table table-striped" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:amendments">Table 4.1: </span>Protocol amendments
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Number
+</th>
+<th style="text-align:left;">
+Date
+</th>
+<th style="text-align:left;">
+Section of study protocol
+</th>
+<th style="text-align:left;">
+Amendment or update
+</th>
+<th style="text-align:left;">
+Reason
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="milestones" class="section level1" number="5">
 <h1><span class="header-section-number">5</span> Milestones</h1>
@@ -612,7 +630,7 @@ Planned / actual date
 EU PAS Registration
 </td>
 <td style="text-align:left;">
-???
+02/28/2022
 </td>
 </tr>
 <tr>
@@ -620,7 +638,6 @@ EU PAS Registration
 Start of analysis
 </td>
 <td style="text-align:left;">
-???
 </td>
 </tr>
 <tr>
@@ -628,7 +645,6 @@ Start of analysis
 End of analysis
 </td>
 <td style="text-align:left;">
-???
 </td>
 </tr>
 <tr>
@@ -636,7 +652,6 @@ End of analysis
 Results presentation
 </td>
 <td style="text-align:left;">
-???
 </td>
 </tr>
 </tbody>
@@ -665,12 +680,12 @@ We believe the results of our comprehensive evaluations will help us better unde
 </div>
 <div id="study-objectives" class="section level1" number="7">
 <h1><span class="header-section-number">7</span> Study Objectives</h1>
-<p>The overarching aim is to compare the performance of Frequentist and Bayesian sequential analysis methods for the generation of evidence of vaccine safety in observational, real-world data.
+<p>The overarching aim is to compare the performance of frequentist and Bayesian sequential analysis methods for the generation of evidence of vaccine safety in observational, real-world data.
 Specific aims:</p>
 <ul>
-<li>To evaluate and compare the operating characteristics (Type I and II errors, sensitivity and specificity, etc.) of Frequentist and Bayesian sequential testing methods</li>
+<li>To evaluate and compare the operating characteristics (Type I and II errors, sensitivity and specificity, etc.) of frequentist and Bayesian sequential testing methods</li>
 <li>To compare the ‘timeliness’ of these methods for the identification of vaccine safety signals</li>
-<li>To estimate the bias and precision associated with the use of Frequentist and Bayesian methods with self-controlled or historical rates designs for the study of vaccine safety</li>
+<li>To estimate the bias and precision associated with the use of frequentist and Bayesian methods with self-controlled or historical rates designs for the study of vaccine safety</li>
 <li>To gain a deeper understanding of the behavior of Bayesian sequential methods; specifically, the relationship between threshold choices, Type I and II errors, and time-to-signal – the study will produce <strong>a reference table of estimated Type I and II errors and time-to-signal</strong> for each combination of Bayesian sequential testing choices</li>
 </ul>
 </div>
@@ -1015,10 +1030,10 @@ That is, we will reject the null and claim a signal when <span class="math inlin
 </div>
 <div id="metrics" class="section level2" number="8.4">
 <h2><span class="header-section-number">8.4</span> Metrics</h2>
-<p>As we will conduct both estimation and testing tasks at the same time, we will compute two sets of metrics based on the estimation outcomes:
-metrics for testing, and metrics for estimation. (The following metrics are adapted from previous work <span class="citation">[<a href="#ref-Schuemie2020-wx" role="doc-biblioref">12</a>]</span>.)</p>
+<p>As we will conduct both estimation and testing tasks at the same time, we will compute two sets of metrics based on the study outcomes:
+(1) metrics for testing, and (2) metrics for estimation. (The following metrics are adapted from previous work <span class="citation">[<a href="#ref-Schuemie2020-wx" role="doc-biblioref">12</a>]</span>.)</p>
 <ol style="list-style-type: decimal">
-<li>Testing metrics:</li>
+<li>Testing-related metrics:</li>
 </ol>
 <ul>
 <li>Type 1 error. For negative controls, how often was the null rejected using the various decision rules. This is equivalent to the false positive rate and 1 - specificity.</li>
@@ -1027,9 +1042,10 @@ metrics for testing, and metrics for estimation. (The following metrics are adap
 <li>Sensitivity and specificity based on the various decision rules, as well as prior choices in the Bayesian method.</li>
 <li>Detection time: the number of analyses (months) until signals are claimed for 80% of positive controls. This will be stratified by true effect size of the positive controls.</li>
 <li>Rate of contradictory early decisions. For all controls, how often did an earlier signal/futility decision contradict the decision based on full analysis of all data. This can serve as a measure of temporal stationarity of the sequential process — if such contradictory rate is high, then there may be time-varying confounding factors left unadjusted for.</li>
+<li>Rate of “undetermined’’ decisions. At each analysis stage, for all controls, how often are the decisions”undetermined” (neither decision thresholds crossed). For most analyses, we would expect this rate to be high at earlier stages when there isn’t enough data evidence but gradually lower as more data accrue.</li>
 </ul>
 <ol start="2" style="list-style-type: decimal">
-<li>Estimation metrics:</li>
+<li>Estimation-related metrics:</li>
 </ol>
 <ul>
 <li>Mean precision, computed as <span class="math inline">\(1 / (\text{standard error})^2\)</span> (for the Bayesian method, ``standard error’’ is taken as the square root of the posterior distribution variance)</li>
@@ -1086,11 +1102,9 @@ For each month the methods will be executed using the data that had accumulated 
 <h1><span class="header-section-number">9</span> Strengths and Limitations</h1>
 <div id="strengths" class="section level2" number="9.1">
 <h2><span class="header-section-number">9.1</span> Strengths</h2>
-<p>(Need further verification…)</p>
 <ul>
-<li>Cohort studies allow direct estimation of incidence rates following exposure of interest, and the new-user design can capture early events following treatment exposures while avoiding confounding from previous treatment effects; new use allows for a clear exposure index date.
-<!-- - Large-scale propensity score matching and stratification create balance on a large number of baseline potential confounders and have been found in the past to balance unmeasured confounders. --></li>
-<li>Systematic processes including a pre-specified selection of covariates avoids investigator-specific biases in variable selection.</li>
+<li>Use and comprehensive evaluation of Bayesian sequential analysis methods for vaccine safety surveillance on large-scale real-world data.</li>
+<li>Use of self-controlled case series in addition to historical comparator methods, as the former method is less subject to unmeasured confounding and systematic error.</li>
 <li>Use of real negative and synthetic positive control outcomes provides an independent estimate of residual bias in the experiment.</li>
 <li>The fully specified study protocol is being published before analysis begins.</li>
 <li>Dissemination of the results will not depend on estimated effects, avoiding publication bias.</li>
@@ -1105,9 +1119,9 @@ For each month the methods will be executed using the data that had accumulated 
 <ul>
 <li>Even though many potential confounders will be included in this study, there may be residual bias due to unmeasured or misspecified confounders, such as confounding by indication, differences in physician characteristics that may be associated with drug choice, concomitant use of other drugs started after the index date, and informative censoring at the end of the on-treatment periods. To minimize this risk, we used methods to detect residual bias through our negative and positive controls.</li>
 <li>Our follow-up times are limited and variable, potentially reducing power to detect differences in effectiveness and safety.</li>
-<li>We assume hazards are not time varying.</li>
+<li>We assume hazards are <strong>not</strong> time varying, and we (at this stage) do not investigate time-varying confounding.</li>
+<li>We only adopt two commonly used study designs (at this stage) which may not be the most suitable design for vaccine safety surveillance situations with complex roll-out schedules (e.g., COVID-19 vaccines).</li>
 <li>Misclassification of study variables is unavoidable in secondary use of health data, so it is possible to misclassify treatments, covariates, and outcomes; we do not expect differential misclassification, so bias will most likely be towards the null.</li>
-<li>The electronic health record databases may be missing care episodes for patients due to care outside the respective health systems; bias will most likely be towards the null.</li>
 </ul>
 </div>
 </div>

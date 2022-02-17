@@ -193,12 +193,20 @@ We will also produce a reference table of Type I and II error rates and signal d
         + Posterior probability of _signal_, $P_1 = P(H_1 \text{ true, signal} \mid \text{data})$; reject null (claim signal) when $P_1 > \delta_1$, with $\delta_1 = 0.80, 0.90, 0.95$;
         + Posterior probability of _futility_, $P_0 = P(H_0 \text{ true, safety}\mid \text{data})$; accept null (claim safety) when $P_0 > \delta_0$, with $\delta_0 = 0.90, 0.95, 0.99$.
 * Metrics:
+
+    1. Hypothesis testing related metrics
+    
     - Type 1 error. For negative controls, how often was the null rejected using the various decision rules. This is equivalent to the false positive rate and 1 - specificity.
     - Type 2 error. For positive controls, how often was the null **not** rejected using the various decision rules. This is equivalent to the false negative rate and 1 - sensitivity. Will be stratified by true effect size of the positive controls.
     - Posterior probability of futility ($H_0$ true) at final analysis; only reported for Bayesian methods. 
     - Sensitivity and specificity based on the various decision rules
     - Detection time: the number of analyses (months) until signals are claimed for 80% of positive controls. Will be stratified by true effect size of the positive controls.
     - Rate of contradictory early decisions. For all controls, how often did an earlier signal/futility decision contradict the decision based on full analysis of all data. 
+    - Rate of "undetermined'' decisions. At each analysis stage, for all controls, how often are the decisions "undetermined" (i.e., neither decision threshold is crossed). For most analyses, we would expect this rate to be high at earlier stages when there isn't enough data evidence but gradually lower as more data accrue. 
+    
+    <br>
+    <br>
+    2. Estimation related metrics
     
     - Area Under the receiver-operator Curve (AUC). The ability to discriminate between positive controls and negative controls based on the point estimate of the effect size. Will be stratified by true effect size of the positive controls.
     - Coverage. How often the true effect size is within the 95% confidence (or credible) interval.
@@ -207,35 +215,33 @@ We will also produce a reference table of Type I and II error rates and signal d
     - Non-estimable. Measure for how many of the controls was the method unable to produce an estimate
     
     
+    
 
 # Amendments and Updates
 
-(No amendments yet)
+Table \@ref(tab:amendments) lists any protocol amendments made over time.
 
-<!-- Table \@ref(tab:amendments) lists any protocol amendments made over time. -->
+```{r amendments, echo=FALSE, results="asis", warning=FALSE}
+amendments <- readr::read_delim(col_names = TRUE, delim = ";", trim_ws = TRUE, file = "
+  Number; Date; Section of study protocol; Amendment or update; Reason
+")
 
-<!-- ```{r amendments, echo=FALSE, results="asis", warning=FALSE} -->
-<!-- amendments <- readr::read_delim(col_names = TRUE, delim = ";", trim_ws = TRUE, file = " -->
-<!--   Number; Date; Section of study protocol; Amendment or update; Reason -->
-<!--   1.1.0;2021-04-09;Methods to evaluate;Added historical comparator, cohort method, and SCCS variations;The historical comparator variation was based on initial EMAEUS results showing (preventable) outliers. The cohort method and SCCS variants are based on 3rd-party protocols for COVID-19 vaccine safety surveillance. -->
-<!--   1.2.0;2021-06-29;Exposure-outcome pairs;Switched from synthetic to imputed positive controls;Positive control synthesis requires a minimum number of outcomes in the data, precluding many negative controls and leading to only ‘highly’ powered positive controls. This limited the ability to measure performance of methods in low-power settings. Positive control imputation is more simplistic but can be applied in low-power settings. -->
-<!-- ") -->
+tab <- kable(amendments, booktabs = TRUE, linesep = "", caption = "Protocol amendments")
 
-<!-- tab <- kable(amendments, booktabs = TRUE, linesep = "", caption = "Protocol amendments") -->
+if (knitr::is_latex_output()) {
+  tab %>%
+    column_spec(1, width = "4em") %>%
+    column_spec(2, width = "6em") %>%
+    column_spec(3, width = "10em") %>%
+    column_spec(4, width = "15em") %>%
+    column_spec(5, width = "15em") %>%
+    kable_styling(latex_options = "striped", font_size = latex_table_font_size)
 
-<!-- if (knitr::is_latex_output()) { -->
-<!--   tab %>% -->
-<!--     column_spec(1, width = "4em") %>% -->
-<!--     column_spec(2, width = "6em") %>% -->
-<!--     column_spec(3, width = "10em") %>% -->
-<!--     column_spec(4, width = "15em") %>% -->
-<!--     column_spec(5, width = "15em") %>% -->
-<!--     kable_styling(latex_options = "striped", font_size = latex_table_font_size) -->
+} else {
+  tab %>% kable_styling(bootstrap_options = "striped")
+}
+```
 
-<!-- } else { -->
-<!--   tab %>% kable_styling(bootstrap_options = "striped") -->
-<!-- } -->
-<!-- ``` -->
 
 # Milestones
 
@@ -246,10 +252,10 @@ Table \@ref(tab:dates) lists the study milestones.
 ```{r dates, echo=FALSE, results="asis", warning=FALSE}
 dates <- readr::read_delim(col_names = TRUE, delim = ";", trim_ws = TRUE, file = "
   Milestone; Planned / actual date
-  EU PAS Registration; ???
-  Start of analysis; ???
-  End of analysis; ???
-  Results presentation; ???
+  EU PAS Registration; 02/28/2022
+  Start of analysis; 
+  End of analysis; 
+  Results presentation; 
 ")
 
 tab <- kable(dates, booktabs = TRUE, linesep = "", caption = "Study milestones")
@@ -498,10 +504,10 @@ We will evaluate three choices of $\delta_1$: $0.80, 0.90, 0.95$; and also three
 
 ## Metrics
 
-As we will conduct both estimation and testing tasks at the same time, we will compute two sets of metrics based on the estimation outcomes: 
-metrics for testing, and metrics for estimation. (The following metrics are adapted from previous work [@Schuemie2020-wx].)
+As we will conduct both estimation and testing tasks at the same time, we will compute two sets of metrics based on the study outcomes: 
+(1) metrics for testing, and (2) metrics for estimation. (The following metrics are adapted from previous work [@Schuemie2020-wx].)
 
-1. Testing metrics:
+1. Testing-related metrics:
 
 - Type 1 error. For negative controls, how often was the null rejected using the various decision rules. This is equivalent to the false positive rate and 1 - specificity.
 - Type 2 error. For positive controls, how often was the null **not** rejected using the various decision rules. This is equivalent to the false negative rate and 1 - sensitivity. Will be stratified by true effect size of the positive controls.
@@ -509,8 +515,9 @@ metrics for testing, and metrics for estimation. (The following metrics are adap
 - Sensitivity and specificity based on the various decision rules, as well as prior choices in the Bayesian method. 
 - Detection time: the number of analyses (months) until signals are claimed for 80% of positive controls. This will be stratified by true effect size of the positive controls.
 - Rate of contradictory early decisions. For all controls, how often did an earlier signal/futility decision contradict the decision based on full analysis of all data. This can serve as a measure of temporal stationarity of the sequential process --- if such contradictory rate is high, then there may be time-varying confounding factors left unadjusted for. 
+- Rate of "undetermined'' decisions. At each analysis stage, for all controls, how often are the decisions "undetermined" (neither decision thresholds crossed). For most analyses, we would expect this rate to be high at earlier stages when there isn't enough data evidence but gradually lower as more data accrue. 
 
-2. Estimation metrics:
+2. Estimation-related metrics:
 
 - Mean precision, computed as $1 / (\text{standard error})^2$ (for the Bayesian method, ``standard error'' is taken as the square root of the posterior distribution variance)
 - Mean squared error (MSE). Mean squared error between the log of the effect size point-estimate (MAP estimate for Bayesian method) and the log of the true effect size.
@@ -563,11 +570,9 @@ These analysis results will be computed for each database.
 # Strengths and Limitations
 
 ## Strengths
-**(Need further verification...)**
 
-- Cohort studies allow direct estimation of incidence rates following exposure of interest, and the new-user design can capture early events following treatment exposures while avoiding confounding from previous treatment effects; new use allows for a clear exposure index date.
-<!-- - Large-scale propensity score matching and stratification create balance on a large number of baseline potential confounders and have been found in the past to balance unmeasured confounders. -->
-- Systematic processes including a pre-specified selection of covariates avoids investigator-specific biases in variable selection.
+- Use and comprehensive evaluation of Bayesian sequential analysis methods for vaccine safety surveillance on large-scale real-world data.
+- Use of self-controlled case series in addition to historical comparator methods, as the former method is less subject to unmeasured confounding and systematic error. 
 - Use of real negative and synthetic positive control outcomes provides an independent estimate of residual bias in the experiment.
 - The fully specified study protocol is being published before analysis begins.
 - Dissemination of the results will not depend on estimated effects, avoiding publication bias.
@@ -581,9 +586,11 @@ These analysis results will be computed for each database.
  
 - Even though many potential confounders will be included in this study, there may be residual bias due to unmeasured or misspecified confounders, such as confounding by indication, differences in physician characteristics that may be associated with drug choice, concomitant use of other drugs started after the index date, and informative censoring at the end of the on-treatment periods. To minimize this risk, we used methods to detect residual bias through our negative and positive controls.
 - Our follow-up times are limited and variable, potentially reducing power to detect differences in effectiveness and safety.
-- We assume hazards are not time varying.
+- We assume hazards are **not** time varying, and we (at this stage) do not investigate time-varying confounding.
+- We only adopt two commonly used study designs (at this stage) which may not be the most suitable design for vaccine safety surveillance situations with complex roll-out schedules (e.g., COVID-19 vaccines).
 - Misclassification of study variables is unavoidable in secondary use of health data, so it is possible to misclassify treatments, covariates, and outcomes; we do not expect differential misclassification, so bias will most likely be towards the null.
 - The electronic health record databases may be missing care episodes for patients due to care outside the respective health systems; bias will most likely be towards the null.
+
 
 # Protection of Human Subjects
 
