@@ -4,12 +4,10 @@
 source('./extras/postProcessUtils.R')
 
 ## run setup
-# num.cores = 10 # num of cores to use -- on M1, I'm using 10 CPUs
-
 savepath = '~/Documents/Research/betterResults/summary'
 
-database_id = 'CCAE'
-method = 'SCCS' #'HistoricalComparator'
+database_id = 'OptumDod'
+#method = 'SCCS' 
 
 if(stringr::str_starts(database_id, 'IBM')){
   resultspath = sprintf('~/Documents/Research/betterResults/betterResults-%s/',
@@ -125,7 +123,7 @@ postProcess <- function(database_id,
                      '.rds')
     }
     saveRDS(res, file.path(savePath, fname))
-    cat(sprintf('Decision results for database %s method %s saved at %s\n',
+    cat(sprintf('Decision results for database %s method %s saved at %s\n\n',
                 database_id, method, file.path(savePath, fname)))
   }
 }
@@ -135,11 +133,13 @@ postProcess <- function(database_id,
 #### RUN command to post process -------------
 library(doSNOW)
 
+for(method in c('SCCS','HistoricalComparator')){
+
 postProcess(database_id = database_id, 
             method = method,
             resultsPath = resultspath,
             savePath = savepath)
 
-
+}
 
 
