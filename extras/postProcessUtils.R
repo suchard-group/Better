@@ -248,6 +248,43 @@ getThresholdTable <- function(delta1 = c(0.80,0.90,0.95),
 
 
 
+
+
+#### function to judge if decision is right or wrong ---------
+#### and compute Type I/II errors and rates of don't know
+
+## 2 judging styles:
+## (1) strict: if a signal isn't a "signal", or a non-signal isn't "futility", then WRONG
+## (2) lenient: if a signal isn't a "futility", or a non-signal isn't "signal", then RIGHT
+judgeDecisions <- function(df, judgeStyle = 'strict'){
+  if(judgeStyle == 'strict'){
+    df = df %>% 
+      mutate(judge = if_else(negativeControl, 
+                             decision == 'futility', 
+                             decision == 'signal'),
+             adjustedJudge = if_else(negativeControl, 
+                                     adjustedDecision == 'futility', 
+                                     adjustedDecision == 'signal'))
+  }else{
+    df = df %>% 
+      mutate(judge = if_else(negativeControl, 
+                             decision != 'signal', 
+                             decision != 'futility'),
+             adjustedJudge = if_else(negativeControl, 
+                                     adjustedDecision != 'signal', 
+                                     adjustedDecision != 'futility'))
+  }
+  df %>% 
+    group_by(database_id, method, analysis_id, exposure_id, prior_id, threshold_id,
+             negativeControl) %>%
+    summarize(errorRate = mean(judge), 
+              adjustedErrorRate = mean(adjustedJudge),
+              neitherRate = mean(decision == 'neither'),
+              adjustedNeitherRate = mean(adjustedDecision == 'neither'),
+              sampleSize = n())
+}
+
+
 ##### Outdated slow functions of making decisions below--------------------
 ### saved for records....
 
