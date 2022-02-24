@@ -15,6 +15,10 @@ ConnectionDetails <- DatabaseConnector::createConnectionDetails(
 # set up the DB connection
 connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
 
+## 0. get a table of all databases
+sql = 'SELECT * from eumaeus.DATABASE'
+databases = DatabaseConnector::querySql(connection, sql)
+databases$DATABASE_ID
 
 ## 1. get a table of all available negative control analysis results
 sql = "SELECT estimate.*
