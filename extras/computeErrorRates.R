@@ -79,7 +79,7 @@ computeErrorRates <- function(database_id,
                  y = errorRate,
                  fill = as.factor(errorLabel)
                )) +
-          geom_hline(yintercept = 0, size = 1.2) +
+          geom_hline(yintercept = 0, size = 1) +
           geom_boxplot(outlier.size = 1) +
           scale_x_discrete(breaks = d1.labs, labels = names(d1.labs)) +
           scale_y_continuous(breaks = ybrs, labels = ylbs) +
@@ -98,7 +98,10 @@ computeErrorRates <- function(database_id,
             label = 'Type II'
           ) +
           facet_grid(. ~ priorLabel) +
-          theme_bw(base_size = 14)
+          theme_bw(base_size = 14) +
+          theme(strip.background = element_blank(),
+                panel.border = element_blank(),
+                legend.position = 'bottom')
       )
     } else{
       ## b. if "strict" or "lenient", also stratify by d0
@@ -109,7 +112,7 @@ computeErrorRates <- function(database_id,
                  y = errorRate,
                  fill = as.factor(errorLabel)
                )) +
-          geom_hline(yintercept = 0, size = 1.2) +
+          geom_hline(yintercept = 0, size = 1) +
           geom_boxplot(outlier.size = 1) +
           scale_x_discrete(breaks = names(d1.labs), labels = d1.labs) +
           scale_y_continuous(breaks = ybrs, labels = ylbs) +
@@ -129,31 +132,34 @@ computeErrorRates <- function(database_id,
           ) +
           facet_grid(priorLabel ~ d0,
                      labeller = labeller(d0 = d0.labs)) +
-          theme_bw(base_size = 14)
+          theme_bw(base_size = 14)+
+          theme(strip.background = element_blank(),
+                panel.border = element_blank(),
+                legend.position = 'bottom')
       )
     }
   }
   
   # (2) stratified by thresholds and priors, error rates by effect size as well
-  if(stratifyByPriors & !stratifyByEffectSize){
+  if(stratifyByPriors & stratifyByEffectSize){
     # skip this one for now
     return()
   }
   
   # (3) stratified by exposures and analyses (similar to EUMAEUS plot)
   #     need multiple ones 
-
+  if()
   
   
   
 }
 
-# computeErrorRates(database_id = 'IBM_MDCD', 
-#                   method = "SCCS", 
-#                   resPath = '~/Documents/Research/betterResults/summary/',
-#                   cachePath = './localCache/',
-#                   #judgeStyle = 'lenient',
-#                   stratifyByEffectSize = FALSE)
-# 
+computeErrorRates(database_id = 'IBM_MDCD',
+                  method = "SCCS",
+                  resPath = '~/Documents/Research/betterResults/summary/',
+                  cachePath = './localCache/',
+                  judgeStyle = 'lenient',
+                  stratifyByEffectSize = FALSE)
+
 
   

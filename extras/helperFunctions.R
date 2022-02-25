@@ -161,6 +161,41 @@ getNegControlEstimates <- function(connection,
 #                                    21184, period_id = 9)
 
 
+###------
+
+## helper function to get exposure table
+getExposures <- function(connection, schema, savepath = './localCache/'){
+  if(!file.exists(file.path(savepath, 'exposures.rds'))){
+    sql = "SELECT * FROM @schema.EXPOSURE"
+    sql <- SqlRender::render(
+      sql,
+      schema = schema)
+    res = DatabaseConnector::querySql(connection, sql)
+    names(res) = tolower(names(res))
+    saveRDS(res, file.path(savepath, 'exposures.rds'))
+  }else{
+    res = readRDS(file.path(savepath, 'exposures.rds'))
+  }
+  res
+}
+
+## helper function to get analyses table
+getAnalyses <- function(connection, schema, savepath= './localCache/'){
+  if(!file.exists(file.path(savepath, 'analyses.rds'))){
+    sql = "SELECT * FROM @schema.ANALYSIS"
+    sql <- SqlRender::render(
+      sql,
+      schema = schema)
+    res = DatabaseConnector::querySql(connection, sql)
+    names(res) = tolower(names(res))
+    saveRDS(res, file.path(savepath, 'analyses.rds'))
+  }else{
+    res = readRDS(file.path(savepath, 'analyses.rds'))
+  }
+  res
+}
+
+
 ###----------
 ## helper function to check if a particular period summary file already exists in the savepath
 checkPeriodSummary <- function(savepath, database_id, method, 

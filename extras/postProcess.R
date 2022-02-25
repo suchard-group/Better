@@ -138,7 +138,8 @@ for(method in c('SCCS','HistoricalComparator')){
 postProcess(database_id = database_id, 
             method = method,
             resultsPath = resultspath,
-            savePath = savepath)
+            savePath = savepath,
+            maxCores = 8)
 
 }
 
