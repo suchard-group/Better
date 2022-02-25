@@ -6,7 +6,7 @@ source('./extras/postProcessUtils.R')
 ## run setup
 savepath = '~/Documents/Research/betterResults/summary'
 
-database_id = 'OptumDod'
+database_id = 'OptumEhr'
 #method = 'SCCS' 
 
 if(stringr::str_starts(database_id, 'IBM')){

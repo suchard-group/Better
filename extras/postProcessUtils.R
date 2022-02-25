@@ -256,7 +256,40 @@ getThresholdTable <- function(delta1 = c(0.80,0.90,0.95),
 ## 2 judging styles:
 ## (1) strict: if a signal isn't a "signal", or a non-signal isn't "futility", then WRONG
 ## (2) lenient: if a signal isn't a "futility", or a non-signal isn't "signal", then RIGHT
-judgeDecisions <- function(df, judgeStyle = 'strict'){
+
+## need to stratify by effect size as well
+
+## helper function to produce a table of effect sizes for all outcome_ids
+getEffectSizes <- function(IPCpath = './localCache/', cachePath = './localCache/'){
+  ## check if already saved
+  fname = 'effectSizes.rds'
+  if(file.exists(file.path(cachePath, fname))){
+    readRDS(file.path(cachePath, fname))
+  }else{
+    IPCs = readRDS(file.path(IPCpath, 'allIPCs.rds'))
+    NCs = unique(IPCs$NEGATIVE_CONTROL_ID)
+    res = IPCs %>% 
+      select(outcome_id = OUTCOME_ID, effect_size = EFFECT_SIZE)
+    res = bind_rows(res, data.frame(outcome_id = NCs, effect_size = 1))
+    saveRDS(res, file.path(cachePath, fname))
+    res
+  }
+}
+
+## main function: update with effect size stratify
+## UPDATE: add more judge style: 
+##         a H0 futility is correct if no signal (but not vice versa for H1 signal)
+judgeDecisions <- function(df, judgeStyle = 'strict', 
+                           cachePath = './localCache/'){
+  # judgeStyle: strict, H0neither, lenient
+  
+  # load effect size table first
+  effects = getEffectSizes(cachePath, cachePath)
+  
+  # read in effect size for all outcomes
+  df = df %>% left_join(effects)
+  
+  # then judge
   if(judgeStyle == 'strict'){
     df = df %>% 
       mutate(judge = if_else(negativeControl, 
@@ -264,6 +297,17 @@ judgeDecisions <- function(df, judgeStyle = 'strict'){
                              decision == 'signal'),
              adjustedJudge = if_else(negativeControl, 
                                      adjustedDecision == 'futility', 
+                                     adjustedDecision == 'signal'))
+  }else if(judgeStyle == 'H0neither'){
+    # more similar to the frequentist logic:
+    # if P1 > ..., then signal
+    # otherwise, treat it like H0 true decision
+    df = df %>% 
+      mutate(judge = if_else(negativeControl, 
+                             decision != 'signal', 
+                             decision == 'signal'),
+             adjustedJudge = if_else(negativeControl, 
+                                     adjustedDecision != 'signal', 
                                      adjustedDecision == 'signal'))
   }else{
     df = df %>% 
@@ -274,14 +318,18 @@ judgeDecisions <- function(df, judgeStyle = 'strict'){
                                      adjustedDecision != 'signal', 
                                      adjustedDecision != 'futility'))
   }
+  
+  # group and summarize: stratify by effect size here
+  # update fix: errorRate = 1-accuracy
   df %>% 
     group_by(database_id, method, analysis_id, exposure_id, prior_id, threshold_id,
-             negativeControl) %>%
-    summarize(errorRate = mean(judge), 
-              adjustedErrorRate = mean(adjustedJudge),
+             effect_size) %>%
+    summarize(errorRate = 1-mean(judge), 
+              adjustedErrorRate = 1-mean(adjustedJudge),
               neitherRate = mean(decision == 'neither'),
               adjustedNeitherRate = mean(adjustedDecision == 'neither'),
-              sampleSize = n())
+              sampleSize = n()) %>%
+    mutate(negativeControl = (effect_size == 1))
 }
 
 
