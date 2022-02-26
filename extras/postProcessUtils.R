@@ -333,6 +333,18 @@ judgeDecisions <- function(df, judgeStyle = 'strict',
 }
 
 
+## Feb 25 2022 update ------
+## function to do weighted average given error rate 
+weightedAverage <- function(m,n){
+  sum(m * n)/sum(n)
+}
+
+## function to get the rank of each character string within a whole vector
+getRank <- function(v){
+  sorted = sort(unique(v))
+  sapply(v, function(x) which(sorted==x)) %>% as.vector()
+}
+
 ##### Outdated slow functions of making decisions below--------------------
 ### saved for records....
 
