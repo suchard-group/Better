@@ -39,7 +39,9 @@ computeErrorRates <- function(database_id,
   
   # massage HistoricalComparator results a little...
   # RIGHT NOW: disregard results for "filtered" analyses (analysis_id: 13-24)
-  res = res %>% filter(analysis_id < 13)
+  if(method == 'HistoricalComparator'){
+    res = res %>% filter(analysis_id < 13)
+  }
   
   # read in prior table and thresholds table
   # and a bit of processing
@@ -460,7 +462,7 @@ cachepath = './localCache/'
 savepath = '~/Documents/Research/betterResults/'
 
 db = 'IBM_MDCD'
-mt = "HistoricalComparator" #"SCCS"
+mt = "SCCS" #"HistoricalComparator" 
 judgements = c('strict','lenient','H0neither')
 
 toSaveFile = TRUE
