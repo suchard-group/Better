@@ -159,6 +159,7 @@ getPeriodID <- function(fname){
 
 
 #### Feb 17 updated faster functions to make decisions and judge them---------------
+## March 2, update the earliest period_id with a decision
 
 ## function to get decisions (adjusted & unadjusted) based on d1 and d0 thresholds
 getOverallDecisions <- function(df, d1=0.8, d0=0.9){
@@ -181,25 +182,35 @@ getOverallDecisions <- function(df, d1=0.8, d0=0.9){
 }
 
 ## utils function that works with `getOverallDecisions`
+## March 2 update: add period_id for the decision 
+##                 (earliest month with decision, Inf if no decision is made)
 interpretDecision <- function(block){
   
   if(block[1,1] < Inf){
-    decision = list(decision='signal',contradict = as.logical(block[2,1]))
+    decision = list(decision='signal',
+                    contradict = as.logical(block[2,1]),
+                    timeToDecision = block[1,1])
   }else if(block[1,3] < Inf){
-    decision = list(decision='futility',contradict = as.logical(block[2,3]))
+    decision = list(decision='futility',
+                    contradict = as.logical(block[2,3]),
+                    timeToDecision = block[1,3])
   }else{
-    decision = list(decision='neither',contradict =FALSE)
+    decision = list(decision='neither',contradict =FALSE,
+                    timeToDecision = Inf)
   }
   
   if(block[1,2] < Inf){
     decision$adjustedDecision = 'signal'
     decision$adjustedContradict = as.logical(block[2,2])
+    decision$adjustedTimeToDecision = block[1,2]
   }else if(block[1,4] < Inf){
     decision$adjustedDecision = 'futility'
     decision$adjustedContradict = as.logical(block[2,4])
+    decision$adjustedTimeToDecision = block[1,4]
   }else{
     decision$adjustedDecision = 'neither'
     decision$adjustedContradict = FALSE
+    decision$adjustedTimeToDecision = Inf
   }
   decision
 }
