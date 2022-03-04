@@ -180,6 +180,9 @@ getExposures <- function(connection, schema, savepath = './localCache/'){
 }
 
 ## helper function to get analyses table
+## March 4: fix SCCS description name
+## "SCRI with prior control interval" --> "SCRI with pre-vaccination control interval"
+## "SCRI with posterior control interval" --> "SCRI with post-vaccination control interval"
 getAnalyses <- function(connection, schema, savepath= './localCache/'){
   if(!file.exists(file.path(savepath, 'analyses.rds'))){
     sql = "SELECT * FROM @schema.ANALYSIS"
@@ -192,7 +195,11 @@ getAnalyses <- function(connection, schema, savepath= './localCache/'){
   }else{
     res = readRDS(file.path(savepath, 'analyses.rds'))
   }
-  res
+  # March 4: fix design descriptions for SCCS
+  res$description[res$description == "SCRI with prior control interval"] = 
+    "SCRI with pre-vaccination control interval"
+  res$description[res$description == "SCRI with posterior control interval"] = 
+    "SCRI with post-vaccination control interval"
 }
 
 

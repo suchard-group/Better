@@ -10,9 +10,8 @@ source('./extras/helperFunctions.R')
 #     rates of contradictory decisions
 
 
-## TO DO
-## 1. for HC, need to filter out analyses 13-24 (those filterd things)
-##    since I didn't do them for most databases...
+## NOTE: for HC, filtered analyses 13-24 (those filterd things)
+##       since I didn't do them for most databases...
 
 computeErrorRates <- function(database_id,
                               method,
@@ -461,12 +460,13 @@ resultspath = '~/Documents/Research/betterResults/summary/'
 cachepath = './localCache/'
 savepath = '~/Documents/Research/betterResults/'
 
-db = 'IBM_MDCD'
-mt = "SCCS" #"HistoricalComparator" 
+db = 'CCAE'
+# mt = "SCCS" #"HistoricalComparator" 
+
+for(mt in c('SCCS',"HistoricalComparator")){
 judgements = c('strict','lenient','H0neither')
 
 toSaveFile = TRUE
-
 
 for(js in judgements){
   cat('Plotting with judging standard', js, '...\n')
@@ -509,6 +509,8 @@ for(js in judgements){
                     stratifyByPriors = FALSE,
                     saveResults = toSaveFile,
                     pWidth = 12)
+}
+
 }
 
 

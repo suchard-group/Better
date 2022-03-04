@@ -3,21 +3,6 @@
 #library(stringr)
 source('./extras/postProcessUtils.R')
 
-## run setup
-savepath = '~/Documents/Research/betterResults/summary'
-
-database_id = 'OptumEhr'
-#method = 'SCCS' 
-
-if(stringr::str_starts(database_id, 'IBM')){
-  resultspath = sprintf('~/Documents/Research/betterResults/betterResults-%s/',
-                        unlist(stringr::str_split(database_id, '_'))[2])
-}else{
-  resultspath = sprintf('~/Documents/Research/betterResults/betterResults-%s/',
-                        database_id)
-}
-
-
 
 ## main function for post processing
 ## (1) pull results for each database and method (optional choice on exposure_ids) 
@@ -132,6 +117,20 @@ postProcess <- function(database_id,
 
 #### RUN command to post process -------------
 library(doSNOW)
+
+## run setup
+savepath = '~/Documents/Research/betterResults/summary'
+
+database_id = 'MDCR'
+
+if(stringr::str_starts(database_id, 'IBM')){
+  resultspath = sprintf('~/Documents/Research/betterResults/betterResults-%s/',
+                        unlist(stringr::str_split(database_id, '_'))[2])
+}else{
+  resultspath = sprintf('~/Documents/Research/betterResults/betterResults-%s/',
+                        database_id)
+}
+
 
 for(method in c('SCCS','HistoricalComparator')){
 
