@@ -200,6 +200,8 @@ getAnalyses <- function(connection, schema, savepath= './localCache/'){
     "SCRI with pre-vaccination control interval"
   res$description[res$description == "SCRI with posterior control interval"] = 
     "SCRI with post-vaccination control interval"
+  
+  res
 }
 
 
