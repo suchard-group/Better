@@ -1,6 +1,6 @@
 # Copyright 2021 Observational Health Data Sciences and Informatics
 #
-# This file is part of Eumaeus
+# This file is part of `better`
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
   
   # Create study cohort table structure:
   sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "CreateCohortTable.sql",
-                                           packageName = "Eumaeus",
+                                           packageName = "better",
                                            dbms = connection@dbms,
                                            cohort_database_schema = cohortDatabaseSchema,
                                            cohort_table = cohortTable)
@@ -36,7 +36,7 @@
   for (i in 1:nrow(cohortsToCreate)) {
     ParallelLogger::logInfo(paste("Creating cohort:", cohortsToCreate$name[i]))
     sql <- SqlRender::loadRenderTranslateSql(sqlFilename = paste0(cohortsToCreate$name[i], ".sql"),
-                                             packageName = "Eumaeus",
+                                             packageName = "better",
                                              dbms = connection@dbms,
                                              cdm_database_schema = cdmDatabaseSchema,
                                              vocabulary_database_schema = vocabularyDatabaseSchema,
