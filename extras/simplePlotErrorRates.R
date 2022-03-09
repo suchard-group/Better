@@ -206,7 +206,7 @@ resultspath = '~/Documents/Research/betterResults/judged/'
 cachepath = './localCache/'
 savepath = '~/Documents/Research/betterResults/simpleErrorPlots/'
 
-db = 'CCAE'
+db = 'IBM_MDCD'
 mt = "SCCS"
 
 # SCCS: 2 & 4 (= TaR 1~28, age + season adjusted SCCS & SCRI with post control window )
@@ -217,8 +217,8 @@ simplePlotErrorRates(database_id = db, method = mt,
                      cachePath = cachepath,
                      judgeStyle = 'H0neither',
                      exposure_ids = NULL,
-                     analysis_ids = c(10,12),
-                     delta1 = 0.95,
+                     analysis_ids = c(2,4),
+                     delta1 = 0.8,
                      delta0 = 0.9,
                      prior_Sd = NULL,
                      returnResults = FALSE,

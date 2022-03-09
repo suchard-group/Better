@@ -2,6 +2,11 @@
 #          (stratified by effect size)
 #          time to claim signal for at least 80% (or some other number) of the positive controls
 
+# March 7: arrange priors by order of SD
+#          & change palette
+
+# March 8: try flipping coords for the finite signal time bar plot
+
 library(ggh4x)
 
 ## 1. a helper function to produce earliest period that reached a sensitivity level
@@ -128,7 +133,8 @@ plotEarliestTimeToSignal <- function(database_id,
                                      sensitivity = 0.8,
                                      posControlOnly = TRUE,
                                      baseExposures = TRUE,
-                                     pHeight = 8, pWidth = 12){
+                                     pHeight = 8, pWidth = 12,
+                                     usePalette = wes_palette("Darjeeling2")[2:3]){
   # first check if savePath is provided when saveResults=TRUE
   if(saveResults & is.null(savePath)){
     stop('Must provide a `savePath` when saveResults=TRUE!!!\n')
@@ -140,7 +146,7 @@ plotEarliestTimeToSignal <- function(database_id,
                                     resPath = resPath,
                                     cachePath = cachePath,
                                     savePath = savePath,
-                                    saveResults = TRUE,
+                                    saveResults = saveResults,
                                     returnResults = TRUE,
                                     sensitivity = sensitivity,
                                     posControlOnly = posControlOnly)
@@ -167,8 +173,9 @@ plotEarliestTimeToSignal <- function(database_id,
   
   # also prior table
   priors = readRDS(file.path(cachePath, 'priorTable.rds')) %>%
+    arrange(Sd) %>%
     mutate(priorLabel = sprintf('Mean=%s, SD=%s', Mean, Sd)) %>%
-    select(-Mean, -Sd)
+    select(-Mean)
   
   # ... and exposures table as well
   exposures = getExposures(NULL, NULL, savepath = cachePath) %>%
@@ -200,13 +207,12 @@ plotEarliestTimeToSignal <- function(database_id,
   if(plotType == 'timeDensity'){
     ## violin plot for the earliest periods
     ## one plot for each prior
-    pls = sort(priors$priorLabel)
+    pls = priors$priorLabel
     for(pl in pls){
       this.tts = tts %>% filter(priorLabel == pl)
-      print(
-      ggplot(this.tts, aes(y=timeToSignal, 
-                           x=as.factor(effect_size), 
-                           fill=Type)) +
+      pg = ggplot(this.tts, aes(y=timeToSignal, 
+                                x=as.factor(effect_size), 
+                                fill=Type)) +
         geom_violin(width = 1)+
         geom_vline(xintercept = c(1.5,2.5), color='gray40')+
         scale_y_continuous(breaks = seq(from=3, to=12, by=3)) +
@@ -221,35 +227,52 @@ plotEarliestTimeToSignal <- function(database_id,
               axis.ticks.x = element_blank(),
               strip.background = element_blank(),
               legend.position = 'bottom')
-      )
+      if(!is.null(usePalette)){
+        print(
+          pg + 
+            scale_fill_manual(values = usePalette)
+        )
+      }
+      
     }
   }else{
     # bar plot for rate of finite earliest times
     tts_counts = tts %>% 
       group_by(exposure_name, effect_size, priorLabel, d1Label, Type) %>%
       summarise(finiteRate = mean(timeToSignal < Inf))
-    print(
+    ## fix order of prior labels by re-leveling
+    tts_counts$priorLabel = factor(tts_counts$priorLabel, levels = priors$priorLabel)
+    # prior.labs <- priors$priorLabel
+    # names(prior.labs) <- as.character(priors$Sd)
+    pg = 
       ggplot(tts_counts, aes(y=finiteRate, 
                              x=as.factor(effect_size),
                              fill = Type)) +
         geom_bar(stat = 'identity', 
                  position = position_dodge()) +
         geom_vline(xintercept = c(1.5,2.5), color='gray40')+
-        scale_y_continuous(breaks = c(0,0.5,1)) +
+        scale_y_continuous(breaks = c(0.1,0.5,1)) +
+        coord_flip()+
         labs(x='Effect Size', 
              y=sprintf('Rate of reaching %.0f%% sensitivity before end', 
                        sensitivity * 100),
              fill='') +
         facet_nested(priorLabel + d1Label ~ exposure_name,
                      labeller = label_wrap_gen(width=15),
-                     nest_line = element_line(linetype = 2)) +
+                     nest_line = element_line(linetype = 1)) +
         theme_bw(base_size = 14)+
         theme(panel.grid.major.x = element_blank(),
-              axis.ticks.x = element_blank(),
+              #axis.ticks.x = element_blank(),
+              axis.ticks.y = element_blank(),
               strip.background = element_blank(),
               #panel.border = element_blank(),
               legend.position = 'bottom')
-    )
+    if(!is.null(usePalette)){
+      print(
+        pg + 
+          scale_fill_manual(values = usePalette)
+      )
+    }
   }
   
   if(saveResults){dev.off()}
@@ -267,8 +290,12 @@ savepath = '~/Documents/Research/betterResults/timeToSignal/'
 
 sensitivity_level = 0.5
 
-for(db in c('IBM_MDCD','CCAE','OptumEhr')){
-  for(mt in c('SCCS','HistoricalComparator')){
+databases = c('IBM_MDCD','CCAE','OptumEhr','OptumDod','MDCR')
+#databases = 'IBM_MDCD'
+methods = c('SCCS','HistoricalComparator')
+
+for(db in databases){
+  for(mt in methods){
     # ## generate and save summary only...
     # computeEarliestTimeToSignal(database_id = db, 
     #                             method = mt,
@@ -299,7 +326,8 @@ for(db in c('IBM_MDCD','CCAE','OptumEhr')){
                              sensitivity = sensitivity_level,
                              posControlOnly = TRUE,
                              baseExposures = TRUE,
-                             pHeight = 6, pWidth = 9)
+                             pHeight = 6, pWidth = 9,
+                             usePalette = wes_palette("Darjeeling2")[2:3])
     
     ## (2) rate of finite times
     plotEarliestTimeToSignal(database_id = db, 
@@ -313,7 +341,8 @@ for(db in c('IBM_MDCD','CCAE','OptumEhr')){
                              sensitivity = sensitivity_level,
                              posControlOnly = TRUE,
                              baseExposures = TRUE,
-                             pHeight = 12, pWidth = 12)
+                             pHeight = 12, pWidth = 8,
+                             usePalette = wes_palette("Darjeeling2")[2:3])
     
   }
 }
@@ -322,27 +351,27 @@ for(db in c('IBM_MDCD','CCAE','OptumEhr')){
 
 #### TESTING CODE BELOW; DON'T RUN --------
 
-db = 'IBM_MDCD'
-mt = "SCCS"
-if(mt == 'SCCS'){
-  analysesExclude = c(9:12, 15)
-}else{
-  analysesExclude = c(9:12)
-}
-
-
-plotEarliestTimeToSignal(database_id = db, 
-                         method = mt,
-                         analysesToExclude = analysesExclude,
-                         plotType = 'timeDensity',
-                         resPath = resultspath,
-                         cachePath = cachepath,
-                         savePath = savepath,
-                         saveResults = TRUE,
-                         sensitivity = 0.5,
-                         posControlOnly = TRUE,
-                         baseExposures = TRUE,
-                         pHeight = 6, pWidth = 9)
+# db = 'IBM_MDCD'
+# mt = "SCCS"
+# if(mt == 'SCCS'){
+#   analysesExclude = c(9:12, 15)
+# }else{
+#   analysesExclude = c(9:12)
+# }
+# 
+# 
+# plotEarliestTimeToSignal(database_id = db, 
+#                          method = mt,
+#                          analysesToExclude = analysesExclude,
+#                          plotType = 'timeDensity',
+#                          resPath = resultspath,
+#                          cachePath = cachepath,
+#                          savePath = savepath,
+#                          saveResults = TRUE,
+#                          sensitivity = 0.5,
+#                          posControlOnly = TRUE,
+#                          baseExposures = TRUE,
+#                          pHeight = 6, pWidth = 9)
 
 
 # db = 'IBM_MDCD'
