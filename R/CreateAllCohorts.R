@@ -23,12 +23,16 @@ createCohorts <- function(connectionDetails,
   connection <- DatabaseConnector::connect(connectionDetails)
   on.exit(DatabaseConnector::disconnect(connection))
   
-  ParallelLogger::logInfo("Creating base exposure cohorts")
+  
+  #ParallelLogger::logInfo("Creating base exposure cohorts")
+  ParallelLogger::logInfo("Creating base exposure cohorts and GBS cohort")
+  # Note: if we do this, then the GBS cohort is created here too
   .createCohorts(connection = connection,
                  cdmDatabaseSchema = cdmDatabaseSchema,
                  cohortDatabaseSchema = cohortDatabaseSchema,
                  cohortTable = cohortTable,
-                 outputFolder = outputFolder)
+                 outputFolder = outputFolder) 
+  
   
   ParallelLogger::logInfo("Creating derived exposure cohorts")
   exposuresOfInterest <- loadExposuresofInterest(exposureIds)
@@ -52,7 +56,7 @@ createCohorts <- function(connectionDetails,
   ParallelLogger::logInfo("Creating negative control outcome cohorts")
   negativeControls <- loadNegativeControls()
   sql <- SqlRender::loadRenderTranslateSql("NegativeControlOutcomes.sql",
-                                           "Eumaeus",
+                                           "better",
                                            dbms = connectionDetails$dbms,
                                            cdm_database_schema = cdmDatabaseSchema,
                                            cohort_database_schema = cohortDatabaseSchema,
@@ -106,7 +110,7 @@ deriveExposureCohorts <- function(row, connection, cohortDatabaseSchema, cohortT
     bothRow$shot <- "Both"
     
     sql <- SqlRender::loadRenderTranslateSql("DeriveExposureCohorts.sql",
-                                             "Eumaeus",
+                                             "better",
                                              dbms = connection@dbms,
                                              cohort_database_schema = cohortDatabaseSchema,
                                              cohort_table = cohortTable,
@@ -169,7 +173,7 @@ sampleComparatorCohorts <- function(row,
   sampleRandomCrudeComparatorRow$comparatorType <- "Random day crude"
   
   sql <- SqlRender::loadRenderTranslateSql("SampleComparators.sql",
-                                           "Eumaeus",
+                                           "better",
                                            dbms = connection@dbms,
                                            cdm_database_schema = cdmDatabaseSchema,
                                            cohort_database_schema = cohortDatabaseSchema,

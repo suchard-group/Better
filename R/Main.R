@@ -81,8 +81,8 @@ execute <- function(connectionDetails,
                     exposureIds = getExposuresOfInterest()$exposureId,
                     verifyDependencies = TRUE,
                     createCohorts = TRUE,
-                    synthesizePositiveControls = TRUE,
-                    runCohortMethod = TRUE,
+                    synthesizePositiveControls = FALSE, #keep this one FALSE always
+                    #runCohortMethod = TRUE,
                     runSccs = TRUE,
                     runCaseControl = TRUE,
                     runHistoricalComparator = TRUE,
@@ -125,22 +125,22 @@ execute <- function(connectionDetails,
                                maxCores = maxCores)
   }
   
-  if (runCohortMethod) {
-    ParallelLogger::logInfo("Running CohortMethod")
-    runCohortMethod(connectionDetails = connectionDetails,
-                    cdmDatabaseSchema = cdmDatabaseSchema,
-                    cohortDatabaseSchema = cohortDatabaseSchema,
-                    cohortTable = cohortTable,
-                    outputFolder = outputFolder,
-                    maxCores = maxCores)
-    ParallelLogger::logInfo("Running per-month PS CohortMethod")
-    runPerMonthCohortMethod(connectionDetails = connectionDetails,
-                            cdmDatabaseSchema = cdmDatabaseSchema,
-                            cohortDatabaseSchema = cohortDatabaseSchema,
-                            cohortTable = cohortTable,
-                            outputFolder = outputFolder,
-                            maxCores = maxCores)
-  }
+  # if (runCohortMethod) {
+  #   ParallelLogger::logInfo("Running CohortMethod")
+  #   runCohortMethod(connectionDetails = connectionDetails,
+  #                   cdmDatabaseSchema = cdmDatabaseSchema,
+  #                   cohortDatabaseSchema = cohortDatabaseSchema,
+  #                   cohortTable = cohortTable,
+  #                   outputFolder = outputFolder,
+  #                   maxCores = maxCores)
+  #   ParallelLogger::logInfo("Running per-month PS CohortMethod")
+  #   runPerMonthCohortMethod(connectionDetails = connectionDetails,
+  #                           cdmDatabaseSchema = cdmDatabaseSchema,
+  #                           cohortDatabaseSchema = cohortDatabaseSchema,
+  #                           cohortTable = cohortTable,
+  #                           outputFolder = outputFolder,
+  #                           maxCores = maxCores)
+  # }
   
   if (runSccs) {
     ParallelLogger::logInfo("Running SelfControlledCaseSeries")

@@ -59,7 +59,7 @@ addCohortNames <- function(data, outputFolder, IdColumnName = "cohortDefinitionI
 }
 
 loadCohortsToCreate <- function() {
-  pathToCsv <- system.file("settings", "CohortsToCreate.csv", package = "Eumaeus")
+  pathToCsv <- system.file("settings", "CohortsToCreate.csv", package = "better")
   cohortsToCreate <- readr::read_csv(pathToCsv, col_types = readr::cols())
   return(cohortsToCreate)
 }
@@ -71,7 +71,7 @@ loadExposureCohorts <- function(outputFolder) {
 }
 
 loadNegativeControls <- function() {
-  pathToCsv <- system.file("settings", "NegativeControls.csv", package = "Eumaeus")
+  pathToCsv <- system.file("settings", "NegativeControls.csv", package = "better")
   negativeControls <- readr::read_csv(pathToCsv, col_types = readr::cols())
   return(negativeControls)
 }
@@ -92,7 +92,7 @@ loadAdditionalConceptsToExclude <- function(outputFolder) {
 }
 
 loadExposuresofInterest <- function(exposureIds = NULL) {
-  pathToCsv <- system.file("settings", "ExposuresOfInterest.csv", package = "Eumaeus")
+  pathToCsv <- system.file("settings", "ExposuresOfInterest.csv", package = "better")
   # Excel date compatibility:
   exposuresOfInterest <- readr::read_csv(pathToCsv, col_types = readr::cols()) %>%
     mutate(startDate = as.Date(.data$startDate, format = "%d-%m-%Y"),
