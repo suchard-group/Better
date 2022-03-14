@@ -70,6 +70,13 @@ loadExposureCohorts <- function(outputFolder) {
   return(cohortsToCreate)
 }
 
+# add: function to load special outcomes of interest (e.g., GBS)
+loadOutcomesOfInterest <- function(){
+  pathToCsv <- system.file("settings", "outcomesOfInterest.csv", package = "better")
+  outcomesOfInterest <- readr::read_csv(pathToCsv, col_types = readr::cols())
+  return(outcomesOfInterest)
+}
+
 loadNegativeControls <- function() {
   pathToCsv <- system.file("settings", "NegativeControls.csv", package = "better")
   negativeControls <- readr::read_csv(pathToCsv, col_types = readr::cols())
