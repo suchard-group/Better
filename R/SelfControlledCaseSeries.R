@@ -32,6 +32,9 @@ runSccs <- function(connectionDetails,
   if (!file.exists(sccsSummaryFile)) {
     allControls <- loadAllControls(outputFolder)
     
+    # add: load outcomes of interest
+    outcomesOfIntereset <- loadOutcomesOfInterest()
+    
     exposureCohorts <- loadExposureCohorts(outputFolder) %>%
       filter(.data$sampled == FALSE & .data$comparator == FALSE)
     
@@ -41,9 +44,11 @@ runSccs <- function(connectionDetails,
     allEstimates <- list()
     # baseExposureId <- baseExposureIds[1]
     for (baseExposureId in baseExposureIds) {
+      # get exposureIds for the same base exposure
       exposures <- exposureCohorts %>%
         filter(.data$baseExposureId == !!baseExposureId) 
       
+      # get all controls for the same base exposure
       controls <- allControls %>%
         filter(.data$exposureId == baseExposureId)
       
@@ -65,7 +70,8 @@ runSccs <- function(connectionDetails,
                                             cohortDatabaseSchema = cohortDatabaseSchema,
                                             cohortTable = cohortTable,
                                             exposures = exposures,
-                                            outcomeIds = controls$outcomeId,
+                                            outcomeIds = c(controls$outcomeId, 
+                                                           outcomesOfIntereset$outcomeId), # add another outcome that is not a control
                                             periodFolder = periodFolder,
                                             startDate = controls$startDate[1],
                                             endDate = controls$endDate[1],
@@ -233,6 +239,9 @@ summarizeSccsAnalyses <- function(referenceTable, periodFolder) {
   result <- bind_rows(result)
   return(result)
 }
+
+# March 13 FAN: still work to do on this one
+# Q: how to create Bayesian analyses (with priors AND returns MCMC samples, or at least summaries??)
 
 createSccsAnalysesList <- function(startDate, endDate) {
   
