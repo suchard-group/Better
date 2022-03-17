@@ -61,8 +61,10 @@ runHistoricalComparator <- function(connectionDetails,
                              cohortTable = cohortTable,
                              startDate = controls$historyStartDate[1],
                              endDate = controls$historyEndDate[1],
-                             outcomeIds = c(controls$oldOutcomeId,outcomesOfInterest),
-                             newOutcomeIds = c(controls$outcomeId,outcomesOfInterest),
+                             # outcomeIds = c(controls$oldOutcomeId,outcomesOfInterest),
+                             # newOutcomeIds = c(controls$outcomeId,outcomesOfInterest),
+                             outcomeIds = outcomesOfInterest,
+                             newOutcomeIds = outcomesOfInterest,
                              ratesFile = historicRatesFile)
       }
       
@@ -82,7 +84,8 @@ runHistoricalComparator <- function(connectionDetails,
                                                               startDate = timePeriods$startDate[i],
                                                               endDate = timePeriods$endDate[i],
                                                               exposureId = exposureId,
-                                                              outcomeIds = c(controls$oldOutcomeId,outcomesOfInterest),
+                                                              #outcomeIds = c(controls$oldOutcomeId,outcomesOfInterest),
+                                                              outcomeIds = outcomesOfInterest,
                                                               ratesFile = historicRatesFile)
             periodEstimates[[length(periodEstimates) + 1]] <- estimates
           }
