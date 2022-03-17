@@ -1,6 +1,6 @@
 # Copyright 2021 Observational Health Data Sciences and Informatics
 #
-# This file is part of Eumaeus
+# This file is part of better
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -121,7 +121,7 @@ computeHistoricRates <- function(connectionDetails,
   
   ParallelLogger::logInfo("- Computing population incidence rates without anchoring")
   sql <- SqlRender::loadRenderTranslateSql("ComputePopulationIncidenceRate.sql",
-                                           "Eumaeus",
+                                           "better",
                                            dbms = connectionDetails$dbms,
                                            cdm_database_schema = cdmDatabaseSchema,
                                            cohort_database_schema = cohortDatabaseSchema,
@@ -138,7 +138,7 @@ computeHistoricRates <- function(connectionDetails,
   
   ParallelLogger::logInfo("- Computing population incidence rates anchoring on visits. Time-at-risk is 1-28 days")
   sql <- SqlRender::loadRenderTranslateSql("ComputePopulationIncidenceRate.sql",
-                                           "Eumaeus",
+                                           "better",
                                            dbms = connectionDetails$dbms,
                                            cdm_database_schema = cdmDatabaseSchema,
                                            cohort_database_schema = cohortDatabaseSchema,
@@ -158,7 +158,7 @@ computeHistoricRates <- function(connectionDetails,
   
   ParallelLogger::logInfo("- Computing population incidence rates anchoring on visits. Time-at-risk is 1-42 days")
   sql <- SqlRender::loadRenderTranslateSql("ComputePopulationIncidenceRate.sql",
-                                           "Eumaeus",
+                                           "better",
                                            dbms = connectionDetails$dbms,
                                            cdm_database_schema = cdmDatabaseSchema,
                                            cohort_database_schema = cohortDatabaseSchema,
@@ -178,7 +178,7 @@ computeHistoricRates <- function(connectionDetails,
   
   ParallelLogger::logInfo("- Computing population incidence rates anchoring on visits. Time-at-risk is 0-1 days")
   sql <- SqlRender::loadRenderTranslateSql("ComputePopulationIncidenceRate.sql",
-                                           "Eumaeus",
+                                           "better",
                                            dbms = connectionDetails$dbms,
                                            cdm_database_schema = cdmDatabaseSchema,
                                            cohort_database_schema = cohortDatabaseSchema,
@@ -343,7 +343,7 @@ computeHistoricalComparatorEstimates <- function(connectionDetails,
   for (i in 1:nrow(tars)) {
     ParallelLogger::logInfo(sprintf("- Using time-at-risk of %d-%d days", tars$start[i], tars$end[i]))
     sql <- SqlRender::loadRenderTranslateSql("ComputePopulationIncidenceRate.sql",
-                                             "Eumaeus",
+                                             "better",
                                              dbms = connectionDetails$dbms,
                                              cdm_database_schema = cdmDatabaseSchema,
                                              cohort_database_schema = cohortDatabaseSchema,
