@@ -339,8 +339,10 @@ exportLikelihoodProfiles <- function(outputFolder,
         if (length(profiles) > 0) {
           covariateIds <- as.numeric(names(profiles))
           exposureIds <- model$estimates$originalEraId[match(covariateIds, model$estimates$covariateId)]
-          points <- sapply(profiles, function(x) paste(round(as.numeric(names(x)), PROFILE_PRECISION), collapse = ";"))
-          values <- sapply(profiles, function(x) paste(round(x, PROFILE_PRECISION), collapse = ";"))
+          # points <- sapply(profiles, function(x) paste(round(as.numeric(names(x)), PROFILE_PRECISION), collapse = ";"))
+          # values <- sapply(profiles, function(x) paste(round(x, PROFILE_PRECISION), collapse = ";"))
+          points <- sapply(profiles, function(x) paste(round(x$point, PROFILE_PRECISION), collapse = ";")) %>% as.vector()
+          values <- sapply(profiles, function(x) paste(round(x$value, PROFILE_PRECISION), collapse = ";")) %>% as.vector()
           rows <- tibble(
             analysisId = as.numeric(gsub("/.*", "", gsub(".*Analysis_", "", modelFile))),
             exposureId = exposureIds,
