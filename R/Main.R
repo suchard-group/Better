@@ -161,15 +161,15 @@ execute <- function(connectionDetails,
             maxCores = maxCores)
   }
   
-  if (runCaseControl) {
-    ParallelLogger::logInfo("Running CaseControl")
-    runCaseControl(connectionDetails = connectionDetails,
-                   cdmDatabaseSchema = cdmDatabaseSchema,
-                   cohortDatabaseSchema = cohortDatabaseSchema,
-                   cohortTable = cohortTable,
-                   outputFolder = outputFolder,
-                   maxCores = maxCores)
-  }
+  # if (runCaseControl) {
+  #   ParallelLogger::logInfo("Running CaseControl")
+  #   runCaseControl(connectionDetails = connectionDetails,
+  #                  cdmDatabaseSchema = cdmDatabaseSchema,
+  #                  cohortDatabaseSchema = cohortDatabaseSchema,
+  #                  cohortTable = cohortTable,
+  #                  outputFolder = outputFolder,
+  #                  maxCores = maxCores)
+  # }
   
   if (runHistoricalComparator) {
     ParallelLogger::logInfo("Running HistoricalComparator")

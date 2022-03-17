@@ -36,6 +36,9 @@ runHistoricalComparator <- function(connectionDetails,
       distinct(.data$baseExposureId) %>%
       pull()
     
+    outcomesOfInterest <- loadOutcomesOfInterest() %>%
+      select(outcomeId) %>% pull()
+    
     allEstimates <- list()
     # baseExposureId <- baseExposureIds[1]
     for (baseExposureId in baseExposureIds) {
@@ -58,8 +61,8 @@ runHistoricalComparator <- function(connectionDetails,
                              cohortTable = cohortTable,
                              startDate = controls$historyStartDate[1],
                              endDate = controls$historyEndDate[1],
-                             outcomeIds = controls$oldOutcomeId,
-                             newOutcomeIds = controls$outcomeId,
+                             outcomeIds = c(controls$oldOutcomeId,outcomesOfInterest),
+                             newOutcomeIds = c(controls$outcomeId,outcomesOfInterest),
                              ratesFile = historicRatesFile)
       }
       
@@ -79,7 +82,7 @@ runHistoricalComparator <- function(connectionDetails,
                                                               startDate = timePeriods$startDate[i],
                                                               endDate = timePeriods$endDate[i],
                                                               exposureId = exposureId,
-                                                              outcomeIds = controls$outcomeId,
+                                                              outcomeIds = c(controls$oldOutcomeId,outcomesOfInterest),
                                                               ratesFile = historicRatesFile)
             periodEstimates[[length(periodEstimates) + 1]] <- estimates
           }
@@ -220,6 +223,9 @@ llr <- function(observed, expected) {
   return(result)
 }
 
+
+# below: core function to estimate RR using historical comparator
+# (right now: frequentist method)
 computeIrr <- function(outcomeId, ratesExposed, ratesBackground, adjusted = FALSE) {
   # outcomeId <- 432513        
   # print(outcomeId)
@@ -249,6 +255,7 @@ computeIrr <- function(outcomeId, ratesExposed, ratesBackground, adjusted = FALS
     estimateRow$expectedOutcomes <- NA
   } else {
     if (adjusted) {
+      # below: adjust on age and gender
       target <- target %>%
         mutate(stratumId = paste(.data$ageGroup, .data$gender),
                exposed = 1)
@@ -263,17 +270,21 @@ computeIrr <- function(outcomeId, ratesExposed, ratesBackground, adjusted = FALS
         summarize(expectedOutcomes = sum(.data$expectedOutcomes)) %>%
         pull()
       
+      # below: fit a (conditional?) Poisson regression to estimate relative rate ratio
       if (estimateRow$targetOutcomes > 0) {
         data <- bind_rows(target, comparator)
         cyclopsData <- Cyclops::createCyclopsData(cohortCount ~ exposed + strata(stratumId) + offset(log(personYears)), 
                                                   data = data, 
-                                                  modelType = "cpr")
-        fit <- Cyclops::fitCyclopsModel(cyclopsData)
+                                                  modelType = "cpr") 
+        # conditional poisson regression?? (or stratified...)
+        fit <- Cyclops::fitCyclopsModel(cyclopsData)  # here: can set `prior = ... ` within this function!
       } else {
         fit <- NULL
       }
       
     } else {
+      # below: no adjustment on age and gender?
+      
       expectedOutcomes <- estimateRow$targetYears * (estimateRow$comparatorOutcomes / estimateRow$comparatorYears)
       if (estimateRow$targetOutcomes > 0) {
         data <- tibble(cohortCount = c(estimateRow$targetOutcomes, estimateRow$comparatorOutcomes),
@@ -281,7 +292,7 @@ computeIrr <- function(outcomeId, ratesExposed, ratesBackground, adjusted = FALS
                        exposed = c(1, 0))
         cyclopsData <- Cyclops::createCyclopsData(cohortCount ~ exposed + offset(log(personYears)), 
                                                   data = data, 
-                                                  modelType = "pr")
+                                                  modelType = "pr") # fit a poisson regression with offset
         fit <- Cyclops::fitCyclopsModel(cyclopsData)
       } else {
         fit <- NULL
