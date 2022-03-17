@@ -14,7 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# March 16: add another control parameter: max. number of grid points for likelihood profiles
 PROFILE_PRECISION <- 5
+MAX_GRID <- 5000
+
 
 exportResults <- function(outputFolder,
                           connectionDetails,
@@ -125,16 +128,23 @@ exportOutcomes <- function(outputFolder, exportFolder) {
   fileName <- file.path(exportFolder, "negative_control_outcome.csv")
   readr::write_csv(negativeControl, fileName)
   
-  positiveControl <- loadAllControls(outputFolder) %>%
-    filter(.data$targetEffectSize > 1) %>%
-    transmute(outcomeId = .data$outcomeId,
-              outcomeName = .data$outcomeName,
-              exposureId = .data$exposureId,
-              negativeControlId = .data$oldOutcomeId,
-              effectSize = .data$targetEffectSize)
-  colnames(positiveControl) <- SqlRender::camelCaseToSnakeCase(colnames(positiveControl))
-  fileName <- file.path(exportFolder, "positive_control_outcome.csv")
-  readr::write_csv(positiveControl, fileName)
+  # positiveControl <- loadAllControls(outputFolder) %>%
+  #   filter(.data$targetEffectSize > 1) %>%
+  #   transmute(outcomeId = .data$outcomeId,
+  #             outcomeName = .data$outcomeName,
+  #             exposureId = .data$exposureId,
+  #             negativeControlId = .data$oldOutcomeId,
+  #             effectSize = .data$targetEffectSize)
+  # colnames(positiveControl) <- SqlRender::camelCaseToSnakeCase(colnames(positiveControl))
+  # fileName <- file.path(exportFolder, "positive_control_outcome.csv")
+  # readr::write_csv(positiveControl, fileName)
+  
+  # March 16: save special outcomes info, but NO positive controls
+  ParallelLogger::logInfo("- outcomes_of_interest table")
+  outcomesOfInterest <- loadOutcomesOfInterest()
+  colnames(outcomesOfInterest) <- SqlRender::camelCaseToSnakeCase(colnames(outcomesOfInterest))
+  fileName <- file.path(exportFolder, "outcomes_of_interest.csv")
+  readr::write_csv(outcomesOfInterest, fileName)
 }
 
 exportMetadata <- function(outputFolder,
@@ -224,59 +234,59 @@ exportLikelihoodProfiles <- function(outputFolder,
   masterProfileTable <- Andromeda::andromeda()
   batchSize <- 10000
   
-  ParallelLogger::logInfo("  - Adding CohortMethod profiles")
-  modelFiles <- list.files(file.path(outputFolder, "cohortMethod"), 
-                           pattern = "om_t[0-9]+_c[0-9]+_o[0-9]+.rds", 
-                           recursive = TRUE, 
-                           full.names = TRUE)
-  exposures <- loadExposureCohorts(outputFolder) 
-  mapping <- exposures %>%
-    filter(.data$sampled == FALSE) %>%
-    select(nonSampleExposureId = .data$exposureId, .data$baseExposureId, .data$shot, .data$comparator) %>%
-    inner_join(exposures %>%
-                 filter(.data$sampled == TRUE), 
-               by = c("baseExposureId", "shot", "comparator")) %>%
-    select(.data$nonSampleExposureId, .data$exposureId) 
-  starts <- seq(1, length(modelFiles), by = batchSize)
-  # modelFile = modelFiles[start]
-  extractCmProfile <- function(modelFile) {
-    model <- readRDS(modelFile)
-    profile <- model$logLikelihoodProfile
-    if (!is.null(profile)) {
-      row <- tibble(
-        analysisId = as.numeric(gsub("/.*", "", gsub(".*Analysis_", "", modelFile))),
-        exposureId = as.numeric(gsub("_.*", "", gsub(".*_t", "", modelFile))),
-        outcomeId = as.numeric(gsub("\\..*", "", gsub(".*_o", "", modelFile))),
-        periodId =  as.numeric(gsub("/.*", "", gsub(".*cmOutput_t", "", modelFile))),
-        point = paste(round(as.numeric(names(profile)), PROFILE_PRECISION), collapse = ";"),
-        value = paste(round(profile, PROFILE_PRECISION), collapse = ";")
-      )
-      return(row)
-    }
-    return(NULL)
-  }
-  
-  extractCmProfileBatch <- function(start) {
-    end <- min(length(modelFiles), start + batchSize - 1)
-    if (end > start) {
-      rows <- purrr::map_dfr(modelFiles[start:end], extractCmProfile)
-      if (nrow(rows) > 0) {
-        rows <- rows %>%
-          inner_join(mapping, by = "exposureId") %>%
-          select(-.data$exposureId) %>%
-          rename(exposureId = .data$nonSampleExposureId) %>%
-          mutate(databaseId = databaseId,
-                 method = "CohortMethod")
-        if (is.null(masterProfileTable$profiles)) {
-          masterProfileTable$profiles <- rows
-        } else {
-          Andromeda::appendToTable(masterProfileTable$profiles, rows)
-        }
-      }
-    }
-    return(NULL)
-  }
-  plyr::l_ply(starts, extractCmProfileBatch, .progress = "text")
+  # ParallelLogger::logInfo("  - Adding CohortMethod profiles")
+  # modelFiles <- list.files(file.path(outputFolder, "cohortMethod"), 
+  #                          pattern = "om_t[0-9]+_c[0-9]+_o[0-9]+.rds", 
+  #                          recursive = TRUE, 
+  #                          full.names = TRUE)
+  # exposures <- loadExposureCohorts(outputFolder) 
+  # mapping <- exposures %>%
+  #   filter(.data$sampled == FALSE) %>%
+  #   select(nonSampleExposureId = .data$exposureId, .data$baseExposureId, .data$shot, .data$comparator) %>%
+  #   inner_join(exposures %>%
+  #                filter(.data$sampled == TRUE), 
+  #              by = c("baseExposureId", "shot", "comparator")) %>%
+  #   select(.data$nonSampleExposureId, .data$exposureId) 
+  # starts <- seq(1, length(modelFiles), by = batchSize)
+  # # modelFile = modelFiles[start]
+  # extractCmProfile <- function(modelFile) {
+  #   model <- readRDS(modelFile)
+  #   profile <- model$logLikelihoodProfile
+  #   if (!is.null(profile)) {
+  #     row <- tibble(
+  #       analysisId = as.numeric(gsub("/.*", "", gsub(".*Analysis_", "", modelFile))),
+  #       exposureId = as.numeric(gsub("_.*", "", gsub(".*_t", "", modelFile))),
+  #       outcomeId = as.numeric(gsub("\\..*", "", gsub(".*_o", "", modelFile))),
+  #       periodId =  as.numeric(gsub("/.*", "", gsub(".*cmOutput_t", "", modelFile))),
+  #       point = paste(round(as.numeric(names(profile)), PROFILE_PRECISION), collapse = ";"),
+  #       value = paste(round(profile, PROFILE_PRECISION), collapse = ";")
+  #     )
+  #     return(row)
+  #   }
+  #   return(NULL)
+  # }
+  # 
+  # extractCmProfileBatch <- function(start) {
+  #   end <- min(length(modelFiles), start + batchSize - 1)
+  #   if (end > start) {
+  #     rows <- purrr::map_dfr(modelFiles[start:end], extractCmProfile)
+  #     if (nrow(rows) > 0) {
+  #       rows <- rows %>%
+  #         inner_join(mapping, by = "exposureId") %>%
+  #         select(-.data$exposureId) %>%
+  #         rename(exposureId = .data$nonSampleExposureId) %>%
+  #         mutate(databaseId = databaseId,
+  #                method = "CohortMethod")
+  #       if (is.null(masterProfileTable$profiles)) {
+  #         masterProfileTable$profiles <- rows
+  #       } else {
+  #         Andromeda::appendToTable(masterProfileTable$profiles, rows)
+  #       }
+  #     }
+  #   }
+  #   return(NULL)
+  # }
+  # plyr::l_ply(starts, extractCmProfileBatch, .progress = "text")
   
   ParallelLogger::logInfo("  - Adding HistoricalComparator profiles")
   historicComparatorEstimates <- loadEstimates(file.path(outputFolder, "hcSummary_withCvs.csv")) %>%
@@ -355,42 +365,42 @@ exportLikelihoodProfiles <- function(outputFolder,
   }
   plyr::l_ply(starts, extractSccsProfileBatch, .progress = "text")
   
-  ParallelLogger::logInfo("  - Adding CaseControl profiles")
-  modelFiles <- list.files(file.path(outputFolder, "caseControl"), 
-                           pattern = "model_e[0-9]+_o[0-9]+.rds", 
-                           recursive = TRUE, 
-                           full.names = TRUE)
-  starts <- seq(1, length(modelFiles), by = batchSize)
-  # modelFile = modelFiles[6000]
-  extractCcProfile <- function(modelFile) {
-    model <- readRDS(modelFile)
-    profile <- model$logLikelihoodProfile
-    if (!is.null(profile)) {
-      row <- tibble(
-        analysisId = as.numeric(gsub("/.*", "", gsub(".*Analysis_", "", modelFile))),
-        exposureId = as.numeric(gsub("_.*", "", gsub(".*_e", "", modelFile))),
-        outcomeId = as.numeric(gsub("\\..*", "", gsub(".*_o", "", modelFile))),
-        periodId =  as.numeric(gsub("/.*", "", gsub(".*ccOutput_t", "", modelFile))),
-        point = paste(round(as.numeric(names(profile)), PROFILE_PRECISION), collapse = ";"),
-        value = paste(round(profile, PROFILE_PRECISION), collapse = ";")
-      )
-      return(row)
-    }
-    return(NULL)
-  }
-  
-  extractCcProfileBatch <- function(start) {
-    end <- min(length(modelFiles), start + batchSize - 1)
-    if (end > start) {
-      rows <- purrr::map_dfr(modelFiles[start:end], extractCcProfile)
-      rows <- rows %>%
-        mutate(databaseId = databaseId,
-               method = "CaseControl")
-      Andromeda::appendToTable(masterProfileTable$profiles, rows)
-    }
-    return(NULL)
-  }
-  plyr::l_ply(starts, extractCcProfileBatch, .progress = "text")
+  # ParallelLogger::logInfo("  - Adding CaseControl profiles")
+  # modelFiles <- list.files(file.path(outputFolder, "caseControl"), 
+  #                          pattern = "model_e[0-9]+_o[0-9]+.rds", 
+  #                          recursive = TRUE, 
+  #                          full.names = TRUE)
+  # starts <- seq(1, length(modelFiles), by = batchSize)
+  # # modelFile = modelFiles[6000]
+  # extractCcProfile <- function(modelFile) {
+  #   model <- readRDS(modelFile)
+  #   profile <- model$logLikelihoodProfile
+  #   if (!is.null(profile)) {
+  #     row <- tibble(
+  #       analysisId = as.numeric(gsub("/.*", "", gsub(".*Analysis_", "", modelFile))),
+  #       exposureId = as.numeric(gsub("_.*", "", gsub(".*_e", "", modelFile))),
+  #       outcomeId = as.numeric(gsub("\\..*", "", gsub(".*_o", "", modelFile))),
+  #       periodId =  as.numeric(gsub("/.*", "", gsub(".*ccOutput_t", "", modelFile))),
+  #       point = paste(round(as.numeric(names(profile)), PROFILE_PRECISION), collapse = ";"),
+  #       value = paste(round(profile, PROFILE_PRECISION), collapse = ";")
+  #     )
+  #     return(row)
+  #   }
+  #   return(NULL)
+  # }
+  # 
+  # extractCcProfileBatch <- function(start) {
+  #   end <- min(length(modelFiles), start + batchSize - 1)
+  #   if (end > start) {
+  #     rows <- purrr::map_dfr(modelFiles[start:end], extractCcProfile)
+  #     rows <- rows %>%
+  #       mutate(databaseId = databaseId,
+  #              method = "CaseControl")
+  #     Andromeda::appendToTable(masterProfileTable$profiles, rows)
+  #   }
+  #   return(NULL)
+  # }
+  # plyr::l_ply(starts, extractCcProfileBatch, .progress = "text")
   
   ParallelLogger::logInfo("- likelihood_profile table")
   fileName <- file.path(exportFolder, "likelihood_profile.csv")
@@ -436,6 +446,12 @@ computeHcProfile <- function(row) {
     
     profile <- bind_rows(profile, ll) %>% 
       arrange(.data$point)
+    
+    ## March: stop if grid length > MAX_GRID
+    if(length(profile$point) > MAX_GRID){
+      break
+    }
+    
     deltaX <- profile$point[2:nrow(profile)] - profile$point[1:(nrow(profile) - 1)]
     deltaY <- profile$value[2:nrow(profile)] - profile$value[1:(nrow(profile) - 1)]
     slopes <- deltaY / deltaX
@@ -493,51 +509,51 @@ exportMainResults <- function(outputFolder,
            oneSidedP = (1 - pchisq(2 * .data$llr, df = 1))/2) %>%
     select(all_of(columns))
   
-  ParallelLogger::logInfo("  - Adding cohort method estimates")
-  exposures <- loadExposureCohorts(outputFolder) 
-  mapping <- exposures %>%
-    filter(.data$sampled == FALSE) %>%
-    select(nonSampleExposureId = .data$exposureId, .data$baseExposureId, .data$shot, .data$comparator) %>%
-    inner_join(exposures %>%
-                 filter(.data$sampled == TRUE), 
-               by = c("baseExposureId", "shot", "comparator")) %>%
-    select(.data$nonSampleExposureId, .data$exposureId) 
-  
-  cohortMethodEstimates <- loadEstimates(file.path(outputFolder, "cmSummary_withCvs.csv")) %>%
-    inner_join(mapping, by = "exposureId") %>%
-    mutate(databaseId = !!databaseId,
-           method = "CohortMethod",
-           periodId = .data$seqId,
-           exposureId = .data$nonSampleExposureId,
-           exposureSubjects = .data$target,
-           exposureOutcomes = .data$eventsTarget,
-           exposureDays = .data$targetDays,
-           counterfactualSubjects = .data$comparator,
-           counterfactualOutcomes = .data$eventsComparator,
-           counterfactualDays = .data$comparatorDays,
-           ci95Lb = .data$ci95lb,
-           ci95Ub = .data$ci95ub,
-           llr = if_else(!is.na(.data$logRr) & .data$logRr < 0, 0, .data$llr),
-           oneSidedP = 1 - pnorm(.data$logRr/.data$seLogRr)) %>%
-    select(all_of(columns))
-  
-  ParallelLogger::logInfo("  - Adding case-control estimates")
-  caseControlEstimates <- loadEstimates(file.path(outputFolder, "ccSummary_withCvs.csv")) %>%
-    mutate(databaseId = !!databaseId,
-           method = "CaseControl",
-           periodId = .data$seqId,
-           exposureSubjects = .data$exposedCases + .data$exposedControls,
-           exposureOutcomes = .data$exposedCases,
-           exposureDays = NA,
-           counterfactualSubjects = (.data$cases + .data$controls) - (.data$exposedCases + .data$exposedControls),
-           counterfactualOutcomes = .data$cases - .data$exposedCases,
-           counterfactualDays = NA,
-           ci95Lb = .data$ci95lb,
-           ci95Ub = .data$ci95ub,
-           llr = if_else(!is.na(.data$logRr) & .data$logRr < 0, 0, .data$llr),
-           oneSidedP = 1 - pnorm(.data$logRr/.data$seLogRr)) %>%
-    select(all_of(columns))
-  
+  # ParallelLogger::logInfo("  - Adding cohort method estimates")
+  # exposures <- loadExposureCohorts(outputFolder) 
+  # mapping <- exposures %>%
+  #   filter(.data$sampled == FALSE) %>%
+  #   select(nonSampleExposureId = .data$exposureId, .data$baseExposureId, .data$shot, .data$comparator) %>%
+  #   inner_join(exposures %>%
+  #                filter(.data$sampled == TRUE), 
+  #              by = c("baseExposureId", "shot", "comparator")) %>%
+  #   select(.data$nonSampleExposureId, .data$exposureId) 
+  # 
+  # cohortMethodEstimates <- loadEstimates(file.path(outputFolder, "cmSummary_withCvs.csv")) %>%
+  #   inner_join(mapping, by = "exposureId") %>%
+  #   mutate(databaseId = !!databaseId,
+  #          method = "CohortMethod",
+  #          periodId = .data$seqId,
+  #          exposureId = .data$nonSampleExposureId,
+  #          exposureSubjects = .data$target,
+  #          exposureOutcomes = .data$eventsTarget,
+  #          exposureDays = .data$targetDays,
+  #          counterfactualSubjects = .data$comparator,
+  #          counterfactualOutcomes = .data$eventsComparator,
+  #          counterfactualDays = .data$comparatorDays,
+  #          ci95Lb = .data$ci95lb,
+  #          ci95Ub = .data$ci95ub,
+  #          llr = if_else(!is.na(.data$logRr) & .data$logRr < 0, 0, .data$llr),
+  #          oneSidedP = 1 - pnorm(.data$logRr/.data$seLogRr)) %>%
+  #   select(all_of(columns))
+  # 
+  # ParallelLogger::logInfo("  - Adding case-control estimates")
+  # caseControlEstimates <- loadEstimates(file.path(outputFolder, "ccSummary_withCvs.csv")) %>%
+  #   mutate(databaseId = !!databaseId,
+  #          method = "CaseControl",
+  #          periodId = .data$seqId,
+  #          exposureSubjects = .data$exposedCases + .data$exposedControls,
+  #          exposureOutcomes = .data$exposedCases,
+  #          exposureDays = NA,
+  #          counterfactualSubjects = (.data$cases + .data$controls) - (.data$exposedCases + .data$exposedControls),
+  #          counterfactualOutcomes = .data$cases - .data$exposedCases,
+  #          counterfactualDays = NA,
+  #          ci95Lb = .data$ci95lb,
+  #          ci95Ub = .data$ci95ub,
+  #          llr = if_else(!is.na(.data$logRr) & .data$logRr < 0, 0, .data$llr),
+  #          oneSidedP = 1 - pnorm(.data$logRr/.data$seLogRr)) %>%
+  #   select(all_of(columns))
+  # 
   ParallelLogger::logInfo("  - Adding SCCS / SCRI estimates")
   sccsEstimates <- loadEstimates(file.path(outputFolder, "sccsSummary_withCvs.csv")) %>%
     mutate(databaseId = !!databaseId,
@@ -555,103 +571,110 @@ exportMainResults <- function(outputFolder,
            oneSidedP = 1 - pnorm(.data$logRr/.data$seLogRr)) %>%
     select(all_of(columns))
   
+  # estimates <- bind_rows(historicComparatorEstimates,
+  #                        cohortMethodEstimates,
+  #                        caseControlEstimates,
+  #                        sccsEstimates)
+  
   estimates <- bind_rows(historicComparatorEstimates,
-                         cohortMethodEstimates,
-                         caseControlEstimates,
                          sccsEstimates)
   
-  ParallelLogger::logInfo("  - Performing empirical calibration on estimates using leave-one-out")
-  # Try to reuse previous calibration to save time:
+  # March 16: do NOT calibrate for now... and only save uncalibrated estimates
   fileName <- file.path(exportFolder, "estimate.csv")
-  if (file.exists(fileName)) {
-    estimatesWithCalibration <- readr::read_csv(fileName, col_types = readr::cols(), guess_max = 1e6)
-    colnames(estimatesWithCalibration) <- SqlRender::snakeCaseToCamelCase(colnames(estimatesWithCalibration))
-    newGroups <- estimates %>%
-      anti_join(select(estimatesWithCalibration, 
-                       .data$exposureId, 
-                       .data$outcomeId, 
-                       .data$periodId,
-                       .data$method,
-                       .data$analysisId,
-                       .data$logRr,
-                       .data$seLogRr),
-                by = c("method", "analysisId", "exposureId", "outcomeId", "periodId", "logRr", "seLogRr")) %>%
-      distinct(.data$exposureId, 
-               .data$periodId,
-               .data$method,
-               .data$analysisId)
-    
-    newEstimates <- estimates %>%
-      inner_join(newGroups, by = c("method", "analysisId", "exposureId", "periodId"))
-    
-    oldEstimatesWithCalibration <- estimatesWithCalibration %>%
-      inner_join(select(estimates, 
-                        .data$exposureId, 
-                        .data$outcomeId, 
-                        .data$periodId,
-                        .data$method,
-                        .data$analysisId,
-                        .data$logRr,
-                        .data$seLogRr),
-                 by = c("method", "analysisId", "exposureId", "outcomeId", "periodId", "logRr", "seLogRr")) %>%
-      anti_join(newGroups, by = c("method", "analysisId", "exposureId", "periodId"))
-    
-    if (nrow(newEstimates) + nrow(oldEstimatesWithCalibration) != nrow(estimates)) {
-      stop("Error reusing calibration")
-    }
-  } else {
-    newEstimates <- estimates
-    oldEstimatesWithCalibration <- tibble()
-  }
+  readr::write_csv(estimates, fileName)
   
-  if (nrow(newEstimates) > 0) { 
-    exposures <- loadExposureCohorts(outputFolder) %>%
-      select(.data$exposureId, .data$baseExposureId)
-    
-    allControls <- loadAllControls(outputFolder) %>%
-      select(baseExposureId = .data$exposureId, .data$outcomeId, .data$oldOutcomeId, .data$targetEffectSize, .data$trueEffectSize) %>%
-      inner_join(exposures, by = "baseExposureId") %>%
-      select(-.data$baseExposureId)
-    
-    newEstimates <- newEstimates %>%
-      inner_join(allControls, by = c("exposureId", "outcomeId"))
-    
-    threads <- min(8, maxCores)
-    cluster <- ParallelLogger::makeCluster(threads)
-    ParallelLogger::clusterRequire(cluster, "dplyr")
-    ParallelLogger::logInfo("Loading master profile table in each thread")
-    profileMasterTableFile <- file.path(outputFolder, "llProfileTable.zip")
-    # perThreadGlobalVariables = new.env()
-    # perThreadGlobalVariables$profileMasterTable <- Andromeda::loadAndromeda(profileMasterTableFile)
-    invisible(ParallelLogger::clusterApply(cluster,
-                                           rep(profileMasterTableFile, threads),
-                                           Eumaeus:::loadProfileMasterTable))
-    subsets <- split(newEstimates,
-                     paste(newEstimates$exposureId, newEstimates$method, newEstimates$analysisId, newEstimates$periodId))
-    rm(newEstimates)  # Free up memory
-    results <- ParallelLogger::clusterApply(cluster,
-                                            subsets,
-                                            Eumaeus:::calibrate)
-
-    ParallelLogger::stopCluster(cluster)
-    rm(subsets)  # Free up memory
-    columns <- c(columns, c("calibratedRr", "calibratedCi95Lb", "calibratedCi95Ub", "calibratedLogRr", "calibratedSeLogRr", 
-                            "calibratedP", "calibratedOneSidedP", "calibratedLlr"))
-    results <- bind_rows(results) %>%
-      select(all_of(columns))
-    
-    results <- enforceMinCellValue(results, "exposureSubjects", minCellCount)
-    results <- enforceMinCellValue(results, "counterfactualSubjects", minCellCount)
-    # results <- enforceMinCellValue(results, "exposureOutcomes", minCellCount)
-    results <- enforceMinCellValue(results, "counterfactualOutcomes", minCellCount)
-    
-    estimatesWithCalibration <- bind_rows(oldEstimatesWithCalibration, results)
-    colnames(estimatesWithCalibration) <- SqlRender::camelCaseToSnakeCase(colnames(estimatesWithCalibration))
-    readr::write_csv(estimatesWithCalibration, fileName)
-    rm(results)  # Free up memory
-    rm(estimatesWithCalibration)
-    rm(oldEstimatesWithCalibration)
-  }
+  # ParallelLogger::logInfo("  - Performing empirical calibration on estimates using leave-one-out")
+  # # Try to reuse previous calibration to save time:
+  # fileName <- file.path(exportFolder, "estimate.csv")
+  # if (file.exists(fileName)) {
+  #   estimatesWithCalibration <- readr::read_csv(fileName, col_types = readr::cols(), guess_max = 1e6)
+  #   colnames(estimatesWithCalibration) <- SqlRender::snakeCaseToCamelCase(colnames(estimatesWithCalibration))
+  #   newGroups <- estimates %>%
+  #     anti_join(select(estimatesWithCalibration, 
+  #                      .data$exposureId, 
+  #                      .data$outcomeId, 
+  #                      .data$periodId,
+  #                      .data$method,
+  #                      .data$analysisId,
+  #                      .data$logRr,
+  #                      .data$seLogRr),
+  #               by = c("method", "analysisId", "exposureId", "outcomeId", "periodId", "logRr", "seLogRr")) %>%
+  #     distinct(.data$exposureId, 
+  #              .data$periodId,
+  #              .data$method,
+  #              .data$analysisId)
+  #   
+  #   newEstimates <- estimates %>%
+  #     inner_join(newGroups, by = c("method", "analysisId", "exposureId", "periodId"))
+  #   
+  #   oldEstimatesWithCalibration <- estimatesWithCalibration %>%
+  #     inner_join(select(estimates, 
+  #                       .data$exposureId, 
+  #                       .data$outcomeId, 
+  #                       .data$periodId,
+  #                       .data$method,
+  #                       .data$analysisId,
+  #                       .data$logRr,
+  #                       .data$seLogRr),
+  #                by = c("method", "analysisId", "exposureId", "outcomeId", "periodId", "logRr", "seLogRr")) %>%
+  #     anti_join(newGroups, by = c("method", "analysisId", "exposureId", "periodId"))
+  #   
+  #   if (nrow(newEstimates) + nrow(oldEstimatesWithCalibration) != nrow(estimates)) {
+  #     stop("Error reusing calibration")
+  #   }
+  # } else {
+  #   newEstimates <- estimates
+  #   oldEstimatesWithCalibration <- tibble()
+  # }
+  # 
+  # if (nrow(newEstimates) > 0) { 
+  #   exposures <- loadExposureCohorts(outputFolder) %>%
+  #     select(.data$exposureId, .data$baseExposureId)
+  #   
+  #   allControls <- loadAllControls(outputFolder) %>%
+  #     select(baseExposureId = .data$exposureId, .data$outcomeId, .data$oldOutcomeId, .data$targetEffectSize, .data$trueEffectSize) %>%
+  #     inner_join(exposures, by = "baseExposureId") %>%
+  #     select(-.data$baseExposureId)
+  #   
+  #   newEstimates <- newEstimates %>%
+  #     inner_join(allControls, by = c("exposureId", "outcomeId"))
+  #   
+  #   threads <- min(8, maxCores)
+  #   cluster <- ParallelLogger::makeCluster(threads)
+  #   ParallelLogger::clusterRequire(cluster, "dplyr")
+  #   ParallelLogger::logInfo("Loading master profile table in each thread")
+  #   profileMasterTableFile <- file.path(outputFolder, "llProfileTable.zip")
+  #   # perThreadGlobalVariables = new.env()
+  #   # perThreadGlobalVariables$profileMasterTable <- Andromeda::loadAndromeda(profileMasterTableFile)
+  #   invisible(ParallelLogger::clusterApply(cluster,
+  #                                          rep(profileMasterTableFile, threads),
+  #                                          Eumaeus:::loadProfileMasterTable))
+  #   subsets <- split(newEstimates,
+  #                    paste(newEstimates$exposureId, newEstimates$method, newEstimates$analysisId, newEstimates$periodId))
+  #   rm(newEstimates)  # Free up memory
+  #   results <- ParallelLogger::clusterApply(cluster,
+  #                                           subsets,
+  #                                           Eumaeus:::calibrate)
+  # 
+  #   ParallelLogger::stopCluster(cluster)
+  #   rm(subsets)  # Free up memory
+  #   columns <- c(columns, c("calibratedRr", "calibratedCi95Lb", "calibratedCi95Ub", "calibratedLogRr", "calibratedSeLogRr", 
+  #                           "calibratedP", "calibratedOneSidedP", "calibratedLlr"))
+  #   results <- bind_rows(results) %>%
+  #     select(all_of(columns))
+  #   
+  #   results <- enforceMinCellValue(results, "exposureSubjects", minCellCount)
+  #   results <- enforceMinCellValue(results, "counterfactualSubjects", minCellCount)
+  #   # results <- enforceMinCellValue(results, "exposureOutcomes", minCellCount)
+  #   results <- enforceMinCellValue(results, "counterfactualOutcomes", minCellCount)
+  #   
+  #   estimatesWithCalibration <- bind_rows(oldEstimatesWithCalibration, results)
+  #   colnames(estimatesWithCalibration) <- SqlRender::camelCaseToSnakeCase(colnames(estimatesWithCalibration))
+  #   readr::write_csv(estimatesWithCalibration, fileName)
+  #   rm(results)  # Free up memory
+  #   rm(estimatesWithCalibration)
+  #   rm(oldEstimatesWithCalibration)
+  # }
 }
 
 loadProfileMasterTable <- function(profileMasterTableFile) {
