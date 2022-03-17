@@ -1,6 +1,6 @@
 # Copyright 2021 Observational Health Data Sciences and Informatics
 #
-# This file is part of Eumaeus
+# This file is part of better
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ exportAnalyses <- function(outputFolder, exportFolder) {
   ParallelLogger::logInfo("Exporting analyses")
   ParallelLogger::logInfo("- analysis table")
   
-  pathToCsv <- system.file("settings", "Analyses.csv", package = "Eumaeus")
+  pathToCsv <- system.file("settings", "Analyses.csv", package = "better")
   analysis <- readr::read_csv(pathToCsv, col_types = readr::cols())
   colnames(analysis) <- SqlRender::camelCaseToSnakeCase(colnames(analysis))
   fileName <- file.path(exportFolder, "analysis.csv")
@@ -171,7 +171,7 @@ exportMetadata <- function(outputFolder,
                      vocabularyVersion = vocabularyVersion,
                      minObsPeriodDate = observationPeriodRange$minDate,
                      maxObsPeriodDate = observationPeriodRange$maxDate,
-                     studyPackageVersion = utils::packageVersion("Eumaeus"),
+                     studyPackageVersion = utils::packageVersion("better"),
                      isMetaAnalysis = 0)
   colnames(database) <- SqlRender::camelCaseToSnakeCase(colnames(database))
   fileName <- file.path(exportFolder, "database.csv")
@@ -310,6 +310,11 @@ exportLikelihoodProfiles <- function(outputFolder,
         select(-.data$targetOutcomes, -.data$expectedOutcomes, -.data$irr) %>%
         mutate(databaseId = databaseId,
                method = "HistoricalComparator")
+      if (is.null(masterProfileTable$profiles)) {
+        masterProfileTable$profiles <- rows
+      } else {
+        Andromeda::appendToTable(masterProfileTable$profiles, rows)
+      }
       Andromeda::appendToTable(masterProfileTable$profiles, rows)
     }
     return(NULL)
@@ -334,8 +339,10 @@ exportLikelihoodProfiles <- function(outputFolder,
         if (length(profiles) > 0) {
           covariateIds <- as.numeric(names(profiles))
           exposureIds <- model$estimates$originalEraId[match(covariateIds, model$estimates$covariateId)]
-          points <- sapply(profiles, function(x) paste(round(as.numeric(names(x)), PROFILE_PRECISION), collapse = ";"))
-          values <- sapply(profiles, function(x) paste(round(x, PROFILE_PRECISION), collapse = ";"))
+          # points <- sapply(profiles, function(x) paste(round(as.numeric(names(x)), PROFILE_PRECISION), collapse = ";"))
+          # values <- sapply(profiles, function(x) paste(round(x, PROFILE_PRECISION), collapse = ";"))
+          points <- sapply(profiles, function(x) paste(round(x$point, PROFILE_PRECISION), collapse = ";")) %>% as.vector()
+          values <- sapply(profiles, function(x) paste(round(x$value, PROFILE_PRECISION), collapse = ";")) %>% as.vector()
           rows <- tibble(
             analysisId = as.numeric(gsub("/.*", "", gsub(".*Analysis_", "", modelFile))),
             exposureId = exposureIds,
@@ -648,13 +655,13 @@ exportMainResults <- function(outputFolder,
   #   # perThreadGlobalVariables$profileMasterTable <- Andromeda::loadAndromeda(profileMasterTableFile)
   #   invisible(ParallelLogger::clusterApply(cluster,
   #                                          rep(profileMasterTableFile, threads),
-  #                                          Eumaeus:::loadProfileMasterTable))
+  #                                          better:::loadProfileMasterTable))
   #   subsets <- split(newEstimates,
   #                    paste(newEstimates$exposureId, newEstimates$method, newEstimates$analysisId, newEstimates$periodId))
   #   rm(newEstimates)  # Free up memory
   #   results <- ParallelLogger::clusterApply(cluster,
   #                                           subsets,
-  #                                           Eumaeus:::calibrate)
+  #                                           better:::calibrate)
   # 
   #   ParallelLogger::stopCluster(cluster)
   #   rm(subsets)  # Free up memory

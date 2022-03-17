@@ -1,6 +1,6 @@
 # Copyright 2021 Observational Health Data Sciences and Informatics
 #
-# This file is part of Eumaeus
+# This file is part of better
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ generateHcDiagnostics <- function(outputFolder,
     computeRatesForPeriod <- function(i) {
       ParallelLogger::logInfo(sprintf("- Computing rates for period from %s to %s", format(periods$startDate[i]), format(periods$endDate[i])))
       sql <- SqlRender::loadRenderTranslateSql("ComputePopulationIncidenceRate.sql",
-                                               "Eumaeus",
+                                               "better",
                                                dbms = connectionDetails$dbms,
                                                cdm_database_schema = cdmDatabaseSchema,
                                                cohort_database_schema = cohortDatabaseSchema,
