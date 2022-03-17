@@ -81,6 +81,7 @@ execute <- function(connectionDetails,
                     exposureIds = getExposuresOfInterest()$exposureId,
                     verifyDependencies = TRUE,
                     createCohorts = TRUE,
+                    createAllControls = TRUE,
                     #synthesizePositiveControls = FALSE, #keep this one FALSE always
                     #runCohortMethod = TRUE,
                     runSccs = TRUE,
@@ -126,13 +127,15 @@ execute <- function(connectionDetails,
   # }
   
   # create a allControls.csv file here...
-  ParallelLogger::logInfo("Creating all controls file using negative controls")
-  createAllControlsFile(connectionDetails = connectionDetails,
-                        cdmDatabaseSchema = cdmDatabaseSchema,
-                        cohortDatabaseSchema = cohortDatabaseSchema,
-                        cohortTable = cohortTable,
-                        outputFolder = outputFolder,
-                        maxCores = maxCores)
+  if(createAllControls){
+    ParallelLogger::logInfo("Creating all controls file using negative controls")
+    createAllControlsFile(connectionDetails = connectionDetails,
+                          cdmDatabaseSchema = cdmDatabaseSchema,
+                          cohortDatabaseSchema = cohortDatabaseSchema,
+                          cohortTable = cohortTable,
+                          outputFolder = outputFolder,
+                          maxCores = maxCores)
+  }
   
   # if (runCohortMethod) {
   #   ParallelLogger::logInfo("Running CohortMethod")
