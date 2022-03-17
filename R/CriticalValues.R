@@ -1,6 +1,6 @@
 # Copyright 2021 Observational Health Data Sciences and Informatics
 #
-# This file is part of Eumaeus
+# This file is part of better
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,18 +21,18 @@ computeCriticalValues <- function(outputFolder, maxCores) {
   
   computeCvsIncrementally(estimatesFileName = file.path(outputFolder, "hcSummary.csv"), 
                           estimatesWithCvsFileName = file.path(outputFolder, "hcSummary_withCvs.csv"),
-                          cvFunction = Eumaeus:::computeHistoricalComparatorCv, 
+                          cvFunction = better:::computeHistoricalComparatorCv, 
                           cluster = cluster) 
   
-  computeCvsIncrementally(estimatesFileName = file.path(outputFolder, "ccSummary.csv"), 
-                          estimatesWithCvsFileName = file.path(outputFolder, "ccSummary_withCvs.csv"),
-                          cvFunction = computeCaseControlCv, 
-                          cluster = cluster) 
+  # computeCvsIncrementally(estimatesFileName = file.path(outputFolder, "ccSummary.csv"), 
+  #                         estimatesWithCvsFileName = file.path(outputFolder, "ccSummary_withCvs.csv"),
+  #                         cvFunction = computeCaseControlCv, 
+  #                         cluster = cluster) 
   
-  computeCvsIncrementally(estimatesFileName = file.path(outputFolder, "cmSummary.csv"), 
-                          estimatesWithCvsFileName = file.path(outputFolder, "cmSummary_withCvs.csv"),
-                          cvFunction = computeCohortMethodCv, 
-                          cluster = cluster) 
+  # computeCvsIncrementally(estimatesFileName = file.path(outputFolder, "cmSummary.csv"), 
+  #                         estimatesWithCvsFileName = file.path(outputFolder, "cmSummary_withCvs.csv"),
+  #                         cvFunction = computeCohortMethodCv, 
+  #                         cluster = cluster) 
   
   computeCvsIncrementally(estimatesFileName = file.path(outputFolder, "sccsSummary.csv"), 
                           estimatesWithCvsFileName = file.path(outputFolder, "sccsSummary_withCvs.csv"),
