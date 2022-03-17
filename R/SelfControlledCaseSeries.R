@@ -70,8 +70,9 @@ runSccs <- function(connectionDetails,
                                             cohortDatabaseSchema = cohortDatabaseSchema,
                                             cohortTable = cohortTable,
                                             exposures = exposures,
-                                            outcomeIds = c(controls$outcomeId, 
-                                                           outcomesOfIntereset$outcomeId), # add another outcome that is not a control
+                                            # outcomeIds = c(controls$outcomeId, 
+                                            #                outcomesOfIntereset$outcomeId), # add another outcome that is not a control
+                                            outcomeIds = outcomesOfIntereset$outcomeId,
                                             periodFolder = periodFolder,
                                             startDate = controls$startDate[1],
                                             endDate = controls$endDate[1],
