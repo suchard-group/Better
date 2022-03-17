@@ -84,7 +84,7 @@ execute <- function(connectionDetails,
                     #synthesizePositiveControls = FALSE, #keep this one FALSE always
                     #runCohortMethod = TRUE,
                     runSccs = TRUE,
-                    runCaseControl = TRUE,
+                    #runCaseControl = TRUE,
                     runHistoricalComparator = TRUE,
                     generateDiagnostics = TRUE,
                     computeCriticalValues = TRUE,
