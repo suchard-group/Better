@@ -154,7 +154,11 @@ computeHistoricRates <- function(connectionDetails,
                                            tar_end = 28)
   DatabaseConnector::executeSql(connection, sql)
   ratesVisit1_28 <- DatabaseConnector::renderTranslateQuerySql(connection, "SELECT * FROM #rates;", snakeCaseToCamelCase = TRUE)
-  ratesVisit1_28$tar <- "1-28"
+  if(nrow(ratesVisit1_28)>0){
+    ratesVisit1_28$tar <- "1-28"
+  }else{
+    ratesVisit1_28 = NULL
+  }
   
   ParallelLogger::logInfo("- Computing population incidence rates anchoring on visits. Time-at-risk is 1-42 days")
   sql <- SqlRender::loadRenderTranslateSql("ComputePopulationIncidenceRate.sql",
@@ -174,7 +178,12 @@ computeHistoricRates <- function(connectionDetails,
                                            tar_end = 42)
   DatabaseConnector::executeSql(connection, sql)
   ratesVisit1_42 <- DatabaseConnector::renderTranslateQuerySql(connection, "SELECT * FROM #rates;", snakeCaseToCamelCase = TRUE)
-  ratesVisit1_42$tar <- "1-42"
+  if(nrow(ratesVisit1_42) > 0){
+    ratesVisit1_42$tar <-  "1-42"
+  }else{
+    ratesVisit1_42 = NULL
+  }
+  
   
   ParallelLogger::logInfo("- Computing population incidence rates anchoring on visits. Time-at-risk is 0-1 days")
   sql <- SqlRender::loadRenderTranslateSql("ComputePopulationIncidenceRate.sql",
@@ -194,7 +203,12 @@ computeHistoricRates <- function(connectionDetails,
                                            tar_end = 1)
   DatabaseConnector::executeSql(connection, sql)
   ratesVisit0_1 <- DatabaseConnector::renderTranslateQuerySql(connection, "SELECT * FROM #rates;", snakeCaseToCamelCase = TRUE)
-  ratesVisit0_1$tar <- "0-1"
+  if(nrow(ratesVisit0_1) > 0){
+    ratesVisit0_1$tar <- "0-1"
+  }else{
+    ratesVisit0_1 = NULL
+  }
+  
 
   sql <- "TRUNCATE TABLE #rates; DROP TABLE #rates;"
   DatabaseConnector::renderTranslateExecuteSql(connection, sql, progressBar = FALSE, reportOverallTime = FALSE)
