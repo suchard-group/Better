@@ -25,6 +25,7 @@ simplePlotErrorRates <- function(database_id,
   # open up saved judged file (using the most fine-grained file for now)
   fname = sprintf('%s-%s-%s-errorRates-%s.rds', 
                   database_id, method, judgeStyle, 'boxplots')
+  #cat('filepath = ',file.path(resPath, fname),'.\n')
   judged = readRDS(file.path(resPath, fname)) %>% ungroup()
   
   # massage HistoricalComparator results a little...
@@ -198,57 +199,141 @@ simplePlotErrorRates <- function(database_id,
 }
 
 
-
-
-### TEST CODE; DON'T RUN -----
-
+### Run code to produce plots
 resultspath = '~/Documents/Research/betterResults/judged/'
 cachepath = './localCache/'
 savepath = '~/Documents/Research/betterResults/simpleErrorPlots/'
 
-db = 'IBM_MDCD'
-mt = "SCCS"
+databases = 'IBM_MDCD'
+methods = c('SCCS','HistoricalComparator')
 
-# SCCS: 2 & 4 (= TaR 1~28, age + season adjusted SCCS & SCRI with post control window )
+for(db in databases){
+  for(mt in methods){
+    if(mt == 'SCCS'){aids = c(2,4)}
+    if(mt == 'HistoricalComparator'){aids = c(2,6)}
+    
+    # prior sd on x-axis
+    simplePlotErrorRates(database_id = db, method = mt, 
+                         resPath = resultspath, 
+                         cachePath = cachepath,
+                         judgeStyle = 'H0neither',
+                         exposure_ids = NULL,
+                         analysis_ids = aids,
+                         delta1 = 0.8,
+                         delta0 = 0.9,
+                         prior_Sd = NULL,
+                         returnResults = FALSE,
+                         savePath = savepath,
+                         saveResults = FALSE,
+                         fnameSuffix = '',
+                         usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)],
+                         pHeight = 7)
+    
+    # delta1 on x-axis
+    simplePlotErrorRates(database_id = db, method = mt, 
+                         resPath = resultspath, 
+                         cachePath = cachepath,
+                         judgeStyle = 'H0neither',
+                         exposure_ids = NULL,
+                         analysis_ids = aids,
+                         delta1 = NULL,
+                         delta0 = 0.9,
+                         prior_Sd = 1.5,
+                         returnResults = FALSE,
+                         savePath = savepath,
+                         saveResults = FALSE,
+                         fnameSuffix = '',
+                         usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)],
+                         pHeight = 7)
+    
+    # delta0 on x-axis
+    simplePlotErrorRates(database_id = db, method = mt, 
+                         resPath = resultspath, 
+                         cachePath = cachepath,
+                         judgeStyle = 'H0neither',
+                         exposure_ids = NULL,
+                         analysis_ids = aids,
+                         delta1 = 0.95,
+                         delta0 = NULL,
+                         prior_Sd = 1.5,
+                         returnResults = FALSE,savePath = savepath,
+                         saveResults = FALSE,
+                         fnameSuffix = '',
+                         usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)],
+                         pHeight = 7) 
+  }
+}
 
-# x-axis: prior sds
-simplePlotErrorRates(database_id = db, method = mt, 
-                     resPath = resultspath, 
-                     cachePath = cachepath,
-                     judgeStyle = 'H0neither',
-                     exposure_ids = NULL,
-                     analysis_ids = c(2,4),
-                     delta1 = 0.8,
-                     delta0 = 0.9,
-                     prior_Sd = NULL,
-                     returnResults = FALSE,
-                     usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)])
 
-# x-axis: delta1
-simplePlotErrorRates(database_id = db, method = mt, 
-                     resPath = resultspath, 
-                     cachePath = cachepath,
-                     judgeStyle = 'H0neither',
-                     exposure_ids = NULL,
-                     analysis_ids = c(6,8),
-                     delta1 = NULL,
-                     delta0 = 0.9,
-                     prior_Sd = 1.5,
-                     returnResults = FALSE,
-                     usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)])
 
-# x-axis: delta0
-simplePlotErrorRates(database_id = db, method = mt, 
-                     resPath = resultspath, 
-                     cachePath = cachepath,
-                     judgeStyle = 'H0neither',
-                     exposure_ids = NULL,
-                     analysis_ids = c(10,12),
-                     delta1 = 0.95,
-                     delta0 = NULL,
-                     prior_Sd = 1.5,
-                     returnResults = FALSE,
-                     usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)]) 
-## this one: supposed to have no change by delta0 with 'H0neither'
+
+### TEST CODE; DON'T RUN -----
+
+# resultspath = '~/Documents/Research/betterResults/judged/'
+# cachepath = './localCache/'
+# savepath = '~/Documents/Research/betterResults/simpleErrorPlots/'
+# 
+# db = 'IBM_MDCD'
+# mt = "SCCS"
+# aids = c(2,4)
+# 
+# # SCCS: 2 & 4 (= TaR 1~28, age + season adjusted SCCS & SCRI with post control window )
+# # HC: 2 & 6 (= TaR 1~28, age + season adjusted using TaR after historic visit & using entire historic period)
+# 
+# # x-axis: prior sds
+# simplePlotErrorRates(database_id = db, method = mt, 
+#                      resPath = resultspath, 
+#                      cachePath = cachepath,
+#                      judgeStyle = 'H0neither',
+#                      exposure_ids = NULL,
+#                      analysis_ids = c(2,4),
+#                      delta1 = 0.8,
+#                      delta0 = 0.9,
+#                      prior_Sd = NULL,
+#                      returnResults = FALSE,
+#                      usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)])
+# ## test saving plot
+# simplePlotErrorRates(database_id = db, method = mt, 
+#                      resPath = resultspath, 
+#                      cachePath = cachepath,
+#                      judgeStyle = 'H0neither',
+#                      exposure_ids = NULL,
+#                      analysis_ids = c(2,4),
+#                      delta1 = 0.8,
+#                      delta0 = 0.9,
+#                      prior_Sd = NULL,
+#                      returnResults = FALSE,
+#                      savePath = savepath,
+#                      saveResults = FALSE,
+#                      fnameSuffix = '',
+#                      usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)],
+#                      pHeight = 7)
+# 
+# # x-axis: delta1
+# simplePlotErrorRates(database_id = db, method = mt, 
+#                      resPath = resultspath, 
+#                      cachePath = cachepath,
+#                      judgeStyle = 'H0neither',
+#                      exposure_ids = NULL,
+#                      analysis_ids = c(6,8),
+#                      delta1 = NULL,
+#                      delta0 = 0.9,
+#                      prior_Sd = 1.5,
+#                      returnResults = FALSE,
+#                      usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)])
+# 
+# # x-axis: delta0
+# simplePlotErrorRates(database_id = db, method = mt, 
+#                      resPath = resultspath, 
+#                      cachePath = cachepath,
+#                      judgeStyle = 'H0neither',
+#                      exposure_ids = NULL,
+#                      analysis_ids = c(10,12),
+#                      delta1 = 0.95,
+#                      delta0 = NULL,
+#                      prior_Sd = 1.5,
+#                      returnResults = FALSE,
+#                      usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)]) 
+# ## this one: supposed to have no change by delta0 with 'H0neither'
 
 
