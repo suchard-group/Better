@@ -92,7 +92,7 @@ calibrateNull <- function(database_id,
                           exposure_id,
                           prior_id,
                           resPath,
-                          cachPath,
+                          cachePath,
                           searchRange = c(-2,2),
                           samps = NULL,
                           delta1 = 0.95,
@@ -109,7 +109,7 @@ calibrateNull <- function(database_id,
   # load samples if not provided as input
   if(is.null(samps)){
     subdir = paste0('samples-',database_id)
-    dbname = elseif(database_id %in% c('MDCD','MDCR'),
+    dbname = ifelse(database_id %in% c('MDCD','MDCR'),
                     paste0('IBM_',database_id),
                     database_id)
     samps = list()
@@ -124,8 +124,11 @@ calibrateNull <- function(database_id,
         analysis_id
       )
       fpath = file.path(resPath, subdir, fname)
+      #cat(fpath)
+      
       # read in if file exists
       if(file.exists(fpath)){
+        cat(sprintf('Reading file at path %s.....\n', fpath))
         this.samps = readRDS(fpath)
         if(useAdjusted){
           this.samps = this.samps[[prior_id]]$adjustedPostSamps
@@ -151,7 +154,7 @@ calibrateNull <- function(database_id,
     mes = sprintf('Num. of negative controls for analysis %s, exposure %s and prior %s is smaller than minimum %s!\n',
                   analysis_id, exposure_id, prior_id, minOutcomes)
     cat(mes)
-    return()
+    return(list(samps=samps))
   }else{
     #samps
     
@@ -165,9 +168,11 @@ calibrateNull <- function(database_id,
       
       # if range too small, stop...
       if(en - st < tol){
-        cat('Search grid gets too narrow before convergence. Interpret with caution!!\n')
-        h = elseif(abs(stError) < abs(enError), st, en)
-        type1 = elseif(abs(stError) < abs(enError), stError, enError) + alpha
+        mes = sprintf('Search grid range [%.4f, %.4f] gets too narrow before convergence. Interpret with caution!!\n',
+                      st, en)
+        cat(mes)
+        h = ifelse(abs(stError) < abs(enError), st, en)
+        type1 = ifelse(abs(stError) < abs(enError), stError, enError) + alpha
         break
       }
 
@@ -181,12 +186,12 @@ calibrateNull <- function(database_id,
         }else{
           en = mid
         }
-      }else if(abs(stError - alpha) <= tol){
+      }else if(abs(stError) <= tol){
         ## use `st` as answer
         h = st
         type1 = stError + alpha
         break
-      }else if(abs(enError - alpha) <= tol){
+      }else if(abs(enError) <= tol){
         ## use `en` as answer
         h = en
         type1 = enError + alpha
@@ -196,12 +201,16 @@ calibrateNull <- function(database_id,
         mes = sprintf('At st=%.3f, en=%.3f, Type I errors are %.4f and %.4f. Running failed!\n\n',
                       st, en, stError+alpha, enError+alpha)
         cat(mes)
+        h = ifelse(abs(stError) < abs(enError), st, en)
+        type1 = ifelse(abs(stError) < abs(enError), stError, enError) + alpha
         break
       }
     }
     
     # return result
-    return(list(h = h, type1 = type1))
+    mes = sprintf('\nSearch finished with h=%.3f and Type I error = %.4f.\n', h, type1)
+    cat(mes)
+    return(list(samps = samps, h = h, type1 = type1))
   }
 }
 
@@ -209,6 +218,16 @@ calibrateNull <- function(database_id,
 
 
 ## try it
-resultspath = "/Volumes/WD-Drive/betterResults-likelihoodProfiles/samples-MDCD" 
+resultspath = "/Volumes/WD-Drive/betterResults-likelihoodProfiles/" 
+cachepath = './localCache/'
+nullRes = 
+  calibrateNull(database_id = 'MDCD',
+              method = 'SCCS',
+              analysis_id = 15,
+              exposure_id = 211983,
+              prior_id = 1,
+              resPath = resultspath,
+              cachePath = cachepath,
+              tol = 0.001)
 
 
