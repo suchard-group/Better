@@ -247,7 +247,25 @@ calibrateNull <- function(database_id,
     # evaluate type2 error rate with the found threshold if...
     if(evalType2){
       type2 = computeType2(pcSamps, h, delta1)
+      mes = sprintf('Type II error after calibration = %.4f\n', type2)
+      cat(mes)
+    }else{
+      # placeholder if type2 not evaluated
+      type2 = NA
     }
+    
+    # obtain uncalibrated error rates as well
+    untype1 = computeTypeI(samps, 0, delta1)
+    if(evalType2){
+      untype2 = computeType2(pcSamps, 0, delta1)
+      mes = sprintf('\nWithout calibration, Type I error = %.4f, Type II error = %.4f.\n', 
+                    untype1, untype2)
+    }else{
+      untype2 = NA
+      mes = sprintf('\nWithout calibration, Type I error = %.4f.\n', 
+                    untype1)
+    }
+    cat(mes)
     
     # return result with a summary data frame
     summ = data.frame(database_id = database_id, 
@@ -255,9 +273,11 @@ calibrateNull <- function(database_id,
                       exposure_id = exposure_id, prior_id = prior_id, 
                       threshold = h, delta1 = delta1, alpha = alpha,
                       type1 = type1, type2 = type2,
+                      uncalibratedType1 = untype1, uncalibratedType2 = untype2,
                       adjusted = useAdjusted)
     
-    return(list(samps = samps, h = h, type1 = type1))
+    return(list(ncSamps = samps, h = h, type1 = type1, type2 = type2,
+                summary = summ))
   }
 }
 
@@ -275,6 +295,7 @@ nullRes =
               prior_id = 1,
               resPath = resultspath,
               cachePath = cachepath,
-              tol = 0.001)
+              tol = 0.001,
+              evalType2 = TRUE)
 
 
