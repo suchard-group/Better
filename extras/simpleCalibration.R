@@ -8,6 +8,24 @@ library(tidyverse)
 
 # function 1 -----
 # using default threshold 0 (testing if beta > 0)
+# March 30: update with Type 2 error evaluation too
+#           while also reporting the actual Type 1 error...
+
+
+## smaller helper func: compute F1 score 
+## (a classification metric -- assumes EQUAL importance of precision and recall)
+## (supposedly, higher --> better)
+computeF1 <- function(type1, type2){
+  if(is.na(type2)){
+    f1 = NA
+  }else{
+    f1 = 2*((1-type1) * (1-type2))/(1-type1 + 1-type2)
+  }
+  f1
+}
+
+
+# main function for delta1 "calibration"
 calibrateByDelta1 <- function(database_id,
                               method,
                               analysis_id,
@@ -17,7 +35,8 @@ calibrateByDelta1 <- function(database_id,
                               summ = NULL,
                               alpha = 0.05,
                               minOutcomes = 5,
-                              useAdjusted = FALSE){
+                              useAdjusted = FALSE,
+                              evalType2 = TRUE){
   # if summ is provided, directly query from given dataframe
   # otherwise, load it from saved summary file
   if(is.null(summ)){
@@ -49,23 +68,60 @@ calibrateByDelta1 <- function(database_id,
     p1s = p1s %>% ungroup() %>% select(maxP1) %>% pull()
     calibratedThres = quantile(p1s, 1-alpha) %>% as.numeric()
     
+    # evaluate the actual type1 error rate using calibrated threshold
+    type1 = mean(p1s > calibratedThres)
+    untype1 = mean(p1s > (1-alpha)) # an "uncalibrated" version
+    
+    # evaluate type 2 error as well if...
+    if(evalType2){
+      # get relevant rows for PCs first
+      pc.dat = summ %>% 
+        filter(analysis_id == !!analysis_id, 
+               exposure_id == !!exposure_id,
+               prior_id == !! prior_id,
+               negativeControl == FALSE)
+      if(useAdjusted){
+        p1s = dat %>% group_by(outcome_id) %>%
+          summarize(maxP1 = max(adjustedP1))
+      }else{
+        p1s = dat %>% group_by(outcome_id) %>%
+          summarize(maxP1 = max(P1))
+      }
+      # evaluate type 2 error rates
+      type2 = 1 - mean(p1s > calibratedThres)
+      untype2 = 1 - mean(p1s > (1-alpha))
+    }else{
+      type2 = NA
+      untype2 = NA
+    }
+    
+    # compute F1 score (because why not...)
+    f1 = computeF1(type1, type2)
+    unf1 = computeF1(untype1, untype2)
+    
+    # return result as a one-row data frame to allow batch run...
     res = data.frame(database_id = database_id, method = method, analysis_id = analysis_id,
                      exposure_id = exposure_id, prior_id = prior_id, 
                      calibratedDelta1 = calibratedThres, alpha = alpha,
+                     type1 = type1, type2 = type2,
+                     uncalibratedType1 = untype1, uncalibratedType2 = untype2,
+                     f1 = f1, uncalibratedF1 = unf1,
                      adjusted = useAdjusted)
     return(res)
   }
 }
 
 ## try it ------
-# resultspath = '~/Documents/Research/betterResults/summary'
-# calibrateByDelta1(database_id = 'CCAE',
-#                   method = 'SCCS',
-#                   analysis_id = 1,
-#                   exposure_id = 21184,
-#                   prior_id = 2,
-#                   resPath = resultspath,
-#                   useAdjusted = TRUE)
+resultspath = '~/Documents/Research/betterResults/summary'
+calibrateByDelta1(database_id = 'CCAE',
+                  method = 'SCCS',
+                  analysis_id = 1,
+                  exposure_id = 21184,
+                  prior_id = 2,
+                  resPath = resultspath,
+                  useAdjusted = TRUE,
+                  evalType2 = TRUE)
+
 
 
 # function 2 -------
@@ -100,17 +156,6 @@ computeType2 <- function(samps, h, delta1 = 0.95){
   1 - mean(decs)
 }
 
-## another smaller helper func: compute F1 score 
-## (a classification metric -- assumes EQUAL importance of precision and recall)
-## (supposedly, higher --> better)
-computeF1 <- function(type1, type2){
-  if(is.na(type2)){
-    f1 = NA
-  }else{
-    f1 = 2*((1-type1) * (1-type2))/(1-type1 + 1-type2)
-  }
-  f1
-}
   
 ## use binary search to determine a proper threshold to achieve Type I error rate
 # technically, should always set `useAdjusted = FALSE`!!!
