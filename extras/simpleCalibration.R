@@ -99,6 +99,18 @@ computeType2 <- function(samps, h, delta1 = 0.95){
   # return (1 - rateOfSignal) as Type 2 error rate
   1 - mean(decs)
 }
+
+## another smaller helper func: compute F1 score 
+## (a classification metric -- assumes EQUAL importance of precision and recall)
+## (supposedly, higher --> better)
+computeF1 <- function(type1, type2){
+  if(is.na(type2)){
+    f1 = NA
+  }else{
+    f1 = 2*((1-type1) * (1-type2))/(1-type1 + 1-type2)
+  }
+  f1
+}
   
 ## use binary search to determine a proper threshold to achieve Type I error rate
 # technically, should always set `useAdjusted = FALSE`!!!
@@ -267,6 +279,17 @@ calibrateNull <- function(database_id,
     }
     cat(mes)
     
+    # get F1 score too
+    if(evalType2){
+      f1 = computeF1(type1, type2)
+      unf1 = computeF1(untype1, untype2)
+      mes = sprintf('With calibration, F1 score = %.4f;\nwithout calibration, F1 score = %.4f.\n',
+                    f1, unf1)
+      cat(mes)
+    }else{
+      f1 = NA; unf1 = NA
+    }
+    
     # return result with a summary data frame
     summ = data.frame(database_id = database_id, 
                       method = method, analysis_id = analysis_id,
@@ -274,6 +297,7 @@ calibrateNull <- function(database_id,
                       threshold = h, delta1 = delta1, alpha = alpha,
                       type1 = type1, type2 = type2,
                       uncalibratedType1 = untype1, uncalibratedType2 = untype2,
+                      f1 = f1, uncalibratedf1 = unf1,
                       adjusted = useAdjusted)
     
     return(list(ncSamps = samps, h = h, type1 = type1, type2 = type2,
@@ -295,7 +319,7 @@ nullRes =
               prior_id = 1,
               resPath = resultspath,
               cachePath = cachepath,
-              tol = 0.001,
+              tol = 0.004,
               evalType2 = TRUE)
 
 
