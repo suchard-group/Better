@@ -49,7 +49,7 @@ calibrateByDelta1 <- function(database_id,
     p1s = p1s %>% ungroup() %>% select(maxP1) %>% pull()
     calibratedThres = quantile(p1s, 1-alpha) %>% as.numeric()
     
-    res = data.frame(database_id, method = method, analysis_id = analysis_id,
+    res = data.frame(database_id = database_id, method = method, analysis_id = analysis_id,
                      exposure_id = exposure_id, prior_id = prior_id, 
                      calibratedDelta1 = calibratedThres, alpha = alpha,
                      adjusted = useAdjusted)
@@ -69,6 +69,8 @@ calibrateByDelta1 <- function(database_id,
 
 
 # function 2 -------
+
+
 ## smaller helper function to compute type 1 error rate from 
 ## a named list of post samples
 ## name: negative control outcome id
@@ -83,9 +85,24 @@ computeTypeI <- function(samps, h, delta1 = 0.95){
   decs = lapply(samps, decideOneOutcome, h = h, delta1 = delta1) %>% unlist()
   mean(decs)
 }
+
+## March 30 update: add function to eval Type 2 error rate from calibrated threshold too!
+## a smaller helper function for Type 2 error
+computeType2 <- function(samps, h, delta1 = 0.95){
+  ## yet another smaller helper function for ONE outcome only
+  decideOneOutcome <- function(oneSamp, h, delta1 = 0.95){
+    postProbs = lapply(oneSamp, function(x) mean(x > h)) %>% unlist()
+    max(postProbs) > delta1
+  }
+  
+  decs = lapply(samps, decideOneOutcome, h = h, delta1 = delta1) %>% unlist()
+  # return (1 - rateOfSignal) as Type 2 error rate
+  1 - mean(decs)
+}
   
 ## use binary search to determine a proper threshold to achieve Type I error rate
 # technically, should always set `useAdjusted = FALSE`!!!
+## March 30 update: (optional) eval Type 2 error rate from calibrated threshold too!
 calibrateNull <- function(database_id,
                           method,
                           analysis_id,
@@ -99,7 +116,8 @@ calibrateNull <- function(database_id,
                           alpha = 0.05,
                           tol = 0.002,
                           minOutcomes = 5,
-                          useAdjusted = FALSE){
+                          useAdjusted = FALSE,
+                          evalType2 = TRUE){
   
   # load IPC table to obtain NC ids
   NCs = readRDS(file.path(cachePath, 'allIPCs.rds'))$NEGATIVE_CONTROL_ID %>% 
@@ -113,6 +131,9 @@ calibrateNull <- function(database_id,
                     paste0('IBM_',database_id),
                     database_id)
     samps = list()
+    if(evalType2){
+      pcSamps = list()
+    }
     ## read files in by period
     for(pid in 1:12){
       fname = sprintf(
@@ -145,6 +166,19 @@ calibrateNull <- function(database_id,
           }
           samps[[nc]][[as.character(pid)]] = this.samps[nc,]
         }
+        
+        ## save positive controls if...
+        if(evalType2){
+          this.PCs = rownames(this.samps)[!rownames(this.samps) %in% NCs]
+          for(pc in this.PCs){
+            # add this period samples to the named list for positive controls
+            # name: PC id
+            if(!pc %in% names(pcSamps)){
+              pcSamps[[pc]] = list()
+            }
+            pcSamps[[pc]][[as.character(pid)]] = this.samps[pc,]
+          }
+        }
       }
     }
   }
@@ -154,11 +188,10 @@ calibrateNull <- function(database_id,
     mes = sprintf('Num. of negative controls for analysis %s, exposure %s and prior %s is smaller than minimum %s!\n',
                   analysis_id, exposure_id, prior_id, minOutcomes)
     cat(mes)
-    return(list(samps=samps))
+    return(NULL)
   }else{
-    #samps
-    
-    ## do binary search 
+
+    ## do binary search for desired threshold
     st = searchRange[1]
     en = searchRange[2]
     type1 = NULL
@@ -207,9 +240,23 @@ calibrateNull <- function(database_id,
       }
     }
     
-    # return result
+    # report search result
     mes = sprintf('\nSearch finished with h=%.3f and Type I error = %.4f.\n', h, type1)
     cat(mes)
+    
+    # evaluate type2 error rate with the found threshold if...
+    if(evalType2){
+      type2 = computeType2(pcSamps, h, delta1)
+    }
+    
+    # return result with a summary data frame
+    summ = data.frame(database_id = database_id, 
+                      method = method, analysis_id = analysis_id,
+                      exposure_id = exposure_id, prior_id = prior_id, 
+                      threshold = h, delta1 = delta1, alpha = alpha,
+                      type1 = type1, type2 = type2,
+                      adjusted = useAdjusted)
+    
     return(list(samps = samps, h = h, type1 = type1))
   }
 }
