@@ -17,11 +17,15 @@ library(wesanderson)
 ## smaller helper func: compute F1 score 
 ## (a classification metric -- assumes EQUAL importance of precision and recall)
 ## (supposedly, higher --> better)
-computeF1 <- function(type1, type2){
+## fix F1 score bug: need number of NCs and IPCs
+computeF1 <- function(type1, type2, nn, np){
   if(is.na(type2)){
     f1 = NA
   }else{
-    f1 = 2*((1-type1) * (1-type2))/(1-type1 + 1-type2)
+    R = 1-type2
+    P = (1-type2) * np/((1-type2) * np + type1 * nn)
+    f1 = 2*(R*P)/(R + P)
+    # f1 = 2*((1-type1) * (1-type2))/(1-type1 + 1-type2)
   }
   f1
 }

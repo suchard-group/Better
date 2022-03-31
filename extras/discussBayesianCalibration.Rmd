@@ -85,6 +85,6 @@ However, we also have estimated systematic error distributions from negative con
 
 3. F1 score
 $$
-F1 = \frac{1}{1/P + 1/R} = \frac{2 P \times R}{P + R},
+F_1 = \frac{2}{1/P + 1/R} = \frac{2 P \times R}{P + R},
 $$
-where $P = $ precision, $R = $ recall
+where $P = \frac{TP}{TP+FP}$ precision, $R = 1 - \text{type 2 error}$ recall. 
