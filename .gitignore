@@ -24,5 +24,12 @@ Documents/*.tex
 Documents/*.log
 Documents/*.docx
 
+# all compiled files in extras or docs
+extras/*.html
+extras/*.docx
+extras/*.pdf
+docs/*.docx
+
+
 # eumaeus credentials
 extras/credentials.R
