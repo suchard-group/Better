@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-```{r source functions, echo=FALSE}
+```{r source functions, echo=FALSE, message=FALSE, warning=FALSE}
 source('simpleCalibration.R')
 ```
 
@@ -88,3 +88,88 @@ $$
 F_1 = \frac{2}{1/P + 1/R} = \frac{2 P \times R}{P + R},
 $$
 where $P = \frac{TP}{TP+FP}$ precision, $R = 1 - \text{type 2 error}$ recall. 
+
+
+## Examples
+
+```{r paths and other setup, echo=FALSE}
+summarypath = '~/Documents/Research/betterResults/summary'
+samplepath = "/Volumes/WD-Drive/betterResults-likelihoodProfiles/"
+cachepath = '../localCache/'
+
+db = 'MDCD'
+eid = 211983
+aid = 2
+pid = 1
+tolerance = 0.004
+
+```
+
+
+#### Example 1: with de-biasing/adjustment, `Historical Comparator` design
+
+```{r ex1, results='hide'}
+res1 = plotCalibration(database_id = db,
+                method = 'HistoricalComparator', # 'SCCS'
+                analysis_id = aid,
+                exposure_id = eid,
+                prior_id = pid,
+                summaryPath = summarypath,
+                samplePath = samplepath,
+                cachePath = cachepath,
+                tol = tolerance,
+                useAdjusted = list(delta1 = TRUE, null=TRUE))
+```
+
+
+
+#### Example 2: without de-biasing/adjustment, `Historical Comparator` design
+
+
+```{r ex2, results='hide'}
+res2 = plotCalibration(database_id = db,
+                method = 'HistoricalComparator', # 'SCCS'
+                analysis_id = aid,
+                exposure_id = eid,
+                prior_id = pid,
+                summaryPath = summarypath,
+                samplePath = samplepath,
+                cachePath = cachepath,
+                tol = tolerance,
+                useAdjusted = list(delta1 = FALSE, null=FALSE))
+```
+
+#### Example 3: with de-biasing/adjustment, `SCCS` design
+
+```{r ex3, results='hide'}
+res3 = plotCalibration(database_id = db,
+                method = 'SCCS',
+                analysis_id = aid,
+                exposure_id = eid,
+                prior_id = pid,
+                summaryPath = summarypath,
+                samplePath = samplepath,
+                cachePath = cachepath,
+                tol = tolerance,
+                useAdjusted = list(delta1 = TRUE, null=TRUE))
+```
+
+#### Example 4: without de-biasing/adjustment, `SCCS` design
+```{r ex4, results='hide'}
+res4 = plotCalibration(database_id = db,
+                method = 'SCCS',
+                analysis_id = aid,
+                exposure_id = eid,
+                prior_id = pid,
+                summaryPath = summarypath,
+                samplePath = samplepath,
+                cachePath = cachepath,
+                tol = tolerance,
+                useAdjusted = list(delta1 = FALSE, null=FALSE))
+```
+
+## Discussion
+
+1. How to justify changing $h$? 
+
+2. This whole thing is retrospective calibration --- can't really do this in practice, and it also suffers the pre-schedule problem of MaxSPRT.

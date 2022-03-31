@@ -1,8 +1,9 @@
 # March 25
 # code to do Bayesian "calibration"
 
-library(tidyverse)
-library(ggplot2)
+suppressPackageStartupMessages(library(tidyverse))
+
+suppressPackageStartupMessages(library(ggplot2))
 library(wesanderson)
 
 # 1. with fixed threshold (between H0 and H1), find delta1 threshold to achieve Type I error rate
@@ -492,16 +493,16 @@ plotCalibration <- function(database_id,
 }
 
 ## test it ------
-summarypath = '~/Documents/Research/betterResults/summary'
-samplepath = "/Volumes/WD-Drive/betterResults-likelihoodProfiles/"
-cachepath = './localCache/'
-plotCalibration(database_id = 'MDCD',
-                method = 'HistoricalComparator', # 'SCCS'
-                analysis_id = 2,
-                exposure_id = 211983,
-                prior_id = 1,
-                summaryPath = summarypath,
-                samplePath = samplepath,
-                cachePath = cachepath,
-                tol = 0.004,
-                useAdjusted = list(delta1 = TRUE, null=TRUE))
+# summarypath = '~/Documents/Research/betterResults/summary'
+# samplepath = "/Volumes/WD-Drive/betterResults-likelihoodProfiles/"
+# cachepath = './localCache/'
+# plotCalibration(database_id = 'MDCD',
+#                 method = 'HistoricalComparator', # 'SCCS'
+#                 analysis_id = 2,
+#                 exposure_id = 211983,
+#                 prior_id = 1,
+#                 summaryPath = summarypath,
+#                 samplePath = samplepath,
+#                 cachePath = cachepath,
+#                 tol = 0.004,
+#                 useAdjusted = list(delta1 = TRUE, null=TRUE))
