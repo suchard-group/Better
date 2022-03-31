@@ -90,12 +90,13 @@ calibrateByDelta1 <- function(database_id,
                prior_id == !! prior_id,
                negativeControl == FALSE)
       if(useAdjusted){
-        p1s = dat %>% group_by(outcome_id) %>%
+        p1s = pc.dat %>% group_by(outcome_id) %>%
           summarize(maxP1 = max(adjustedP1))
       }else{
-        p1s = dat %>% group_by(outcome_id) %>%
+        p1s = pc.dat %>% group_by(outcome_id) %>%
           summarize(maxP1 = max(P1))
       }
+      p1s = p1s %>% ungroup() %>% select(maxP1) %>% pull()
       # evaluate type 2 error rates
       type2 = 1 - mean(p1s > calibratedThres)
       untype2 = 1 - mean(p1s > (1-alpha))
@@ -105,8 +106,10 @@ calibrateByDelta1 <- function(database_id,
     }
     
     # compute F1 score (because why not...)
-    f1 = computeF1(type1, type2)
-    unf1 = computeF1(untype1, untype2)
+    np = length(unique(pc.dat$outcome_id))
+    nn = length(unique(pc.dat$outcome_id))
+    f1 = computeF1(type1, type2, nn, np)
+    unf1 = computeF1(untype1, untype2, nn, np)
     
     # return result as a one-row data frame to allow batch run...
     res = data.frame(database_id = database_id, method = method, analysis_id = analysis_id,
@@ -335,8 +338,9 @@ calibrateNull <- function(database_id,
     
     # get F1 score too
     if(evalType2){
-      f1 = computeF1(type1, type2)
-      unf1 = computeF1(untype1, untype2)
+      nn = length(samps); np = length(pcSamps)
+      f1 = computeF1(type1, type2, nn, np)
+      unf1 = computeF1(untype1, untype2, nn, np)
       mes = sprintf('With calibration, F1 score = %.4f;\nwithout calibration, F1 score = %.4f.\n',
                     f1, unf1)
       cat(mes)
@@ -488,16 +492,16 @@ plotCalibration <- function(database_id,
 }
 
 ## test it ------
-# summarypath = '~/Documents/Research/betterResults/summary'
-# samplepath = "/Volumes/WD-Drive/betterResults-likelihoodProfiles/" 
-# cachepath = './localCache/'
-# plotCalibration(database_id = 'MDCD',
-#                 method = 'HistoricalComparator', # 'SCCS'
-#                 analysis_id = 2,
-#                 exposure_id = 211983,
-#                 prior_id = 1,
-#                 summaryPath = summarypath,
-#                 samplePath = samplepath,
-#                 cachePath = cachepath,
-#                 tol = 0.004,
-#                 useAdjusted = list(delta1 = TRUE, null=TRUE))
+summarypath = '~/Documents/Research/betterResults/summary'
+samplepath = "/Volumes/WD-Drive/betterResults-likelihoodProfiles/"
+cachepath = './localCache/'
+plotCalibration(database_id = 'MDCD',
+                method = 'HistoricalComparator', # 'SCCS'
+                analysis_id = 2,
+                exposure_id = 211983,
+                prior_id = 1,
+                summaryPath = summarypath,
+                samplePath = samplepath,
+                cachePath = cachepath,
+                tol = 0.004,
+                useAdjusted = list(delta1 = TRUE, null=TRUE))
