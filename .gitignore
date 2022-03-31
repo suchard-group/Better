@@ -30,6 +30,8 @@ extras/*.docx
 extras/*.pdf
 docs/*.docx
 
-
 # eumaeus credentials
 extras/credentials.R
+
+# irrelevant stuff
+extras/check_legendhtn_age_groups.R
