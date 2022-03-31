@@ -2,6 +2,8 @@
 # code to do Bayesian "calibration"
 
 library(tidyverse)
+library(ggplot2)
+library(wesanderson)
 
 # 1. with fixed threshold (between H0 and H1), find delta1 threshold to achieve Type I error rate
 # 2. with fixed delta1 threshold, find threshold (between H0 and H1) to achieve Type I error rate
@@ -40,7 +42,10 @@ calibrateByDelta1 <- function(database_id,
   # if summ is provided, directly query from given dataframe
   # otherwise, load it from saved summary file
   if(is.null(summ)){
-    fname = sprintf('AllSummary-%s-%s.rds', database_id, method)
+    if(database_id == 'MDCD'){db_name = 'IBM_MDCD'}
+    fname = sprintf('AllSummary-%s-%s.rds', db_name, method)
+    # cat(file.path(resPath, fname))
+    # cat('\n')
     summ = readRDS(file.path(resPath, fname))
   }
   
@@ -105,22 +110,22 @@ calibrateByDelta1 <- function(database_id,
                      calibratedDelta1 = calibratedThres, alpha = alpha,
                      type1 = type1, type2 = type2,
                      uncalibratedType1 = untype1, uncalibratedType2 = untype2,
-                     f1 = f1, uncalibratedF1 = unf1,
+                     f1 = f1, uncalibratedf1 = unf1,
                      adjusted = useAdjusted)
     return(res)
   }
 }
 
 ## try it ------
-resultspath = '~/Documents/Research/betterResults/summary'
-calibrateByDelta1(database_id = 'CCAE',
-                  method = 'SCCS',
-                  analysis_id = 1,
-                  exposure_id = 21184,
-                  prior_id = 2,
-                  resPath = resultspath,
-                  useAdjusted = TRUE,
-                  evalType2 = TRUE)
+# resultspath = '~/Documents/Research/betterResults/summary'
+# calibrateByDelta1(database_id = 'CCAE',
+#                   method = 'SCCS',
+#                   analysis_id = 1,
+#                   exposure_id = 21184,
+#                   prior_id = 2,
+#                   resPath = resultspath,
+#                   useAdjusted = TRUE,
+#                   evalType2 = TRUE)
 
 
 
@@ -354,17 +359,141 @@ calibrateNull <- function(database_id,
 
 
 ## try it
-resultspath = "/Volumes/WD-Drive/betterResults-likelihoodProfiles/" 
-cachepath = './localCache/'
-nullRes = 
-  calibrateNull(database_id = 'MDCD',
-              method = 'SCCS',
-              analysis_id = 15,
-              exposure_id = 211983,
-              prior_id = 1,
-              resPath = resultspath,
-              cachePath = cachepath,
-              tol = 0.004,
-              evalType2 = TRUE)
+# resultspath = "/Volumes/WD-Drive/betterResults-likelihoodProfiles/" 
+# cachepath = './localCache/'
+# nullRes = 
+#   calibrateNull(database_id = 'MDCD',
+#               method = 'SCCS',
+#               analysis_id = 15,
+#               exposure_id = 211983,
+#               prior_id = 1,
+#               resPath = resultspath,
+#               cachePath = cachepath,
+#               tol = 0.004,
+#               evalType2 = TRUE)
 
 
+
+# 3. plot calibration (with one exampple) ------------
+# (1) compare type1 and type2 error rates (calibrate hypothesis or decision threshold)
+# (2) compare F1 scores
+plotCalibration <- function(database_id,
+                            method,
+                            analysis_id,
+                            exposure_id,
+                            prior_id,
+                            summaryPath,
+                            samplePath,
+                            cachePath,
+                            searchRange = c(-2,2),
+                            samps = NULL,
+                            delta1 = 0.95,
+                            alpha = 0.05,
+                            tol = 0.002,
+                            minOutcomes = 5,
+                            useAdjusted = list(delta1 = TRUE, null=FALSE)){
+  # calibrate Delta1
+  caliDelta = #invisible(
+    calibrateByDelta1(database_id, method, analysis_id, exposure_id, prior_id,
+                                resPath = summaryPath,
+                                alpha = alpha, minOutcomes = minOutcomes, 
+                                useAdjusted = useAdjusted$delta1, evalType2 = TRUE)
+  #)
+  
+  # calibrate null threshold
+  caliThres = #invisible(
+    calibrateNull(database_id, method, analysis_id, exposure_id, prior_id,
+                            resPath = samplePath, cachePath = cachePath, 
+                            searchRange = searchRange, 
+                            delta1 = delta1,alpha = alpha, tol = tol, 
+                            minOutcomes = minOutcomes, useAdjusted = useAdjusted$null, 
+                            evalType2 = TRUE)
+  #)
+  summ = caliThres$summary
+  h = caliThres$h
+  
+  # generate figure caption (with info)
+  analysis_name = readRDS(file.path(cachePath,'analyses.rds')) %>%
+    filter(method == !!method, analysis_id == !!analysis_id) %>%
+    select(description, time_at_risk) %>%
+    mutate(description_text = sprintf('%s, time at risk = %s days', description, time_at_risk)) %>%
+    select(description_text) %>% pull() %>% as.character()
+  
+  prior_name = readRDS(file.path(cachePath,'priorTable.rds')) %>%
+    filter(prior_id == !!prior_id) %>%
+    mutate(priorLabel = sprintf('Mean=%s, SD=%.1f', Mean, Sd)) %>%
+    select(priorLabel) %>% pull() %>% as.character()
+  
+  exposure_name = readRDS(file.path(cachePath,'exposures.rds')) %>%
+    filter(exposure_id == !!exposure_id) %>%
+    select(exposure_name) %>% pull() %>% as.character()
+   
+  capt = sprintf('%s\nDatabase: %s\nExposure: %s\nPrior:%s\nalpha=%.2f',
+                 analysis_name, database_id, exposure_name, prior_name, alpha)
+  
+  # 1. Type 1 and Type 2 errors
+  # re-arrange data frame
+  h.panel = sprintf('Hypothesis threshold: h=%.3f', h)
+  delta.panel = sprintf('Decision threshold: delta1=%.3f', caliDelta$calibratedDelta1)
+  errorDat = data.frame(error = c(caliDelta$type1, caliDelta$uncalibratedType1,
+                                  caliDelta$type2, caliDelta$uncalibratedType2,
+                                  summ$type1, summ$uncalibratedType1,
+                                  summ$type2, summ$uncalibratedType2),
+                        errorType = rep(c('Type 1','Type 1', 
+                                          'Type 2', 'Type 2'), 2),
+                        calibrate = rep(c('Calibrated','Uncalibrated'), 4),
+                        method = rep(c(delta.panel,h.panel), each = 4))
+  
+  # make plot
+  p1 = ggplot(data=errorDat, aes(x=errorType, y=error, fill=calibrate)) +
+    geom_bar(stat='identity', position = position_dodge()) +
+    geom_hline(yintercept = 0.05, color = 'gray60', 
+               size = 1, linetype=2)+
+    scale_y_continuous(limits = c(0,1))+
+    labs(x='', y='error rate', caption = capt, fill='')+
+    facet_grid(.~method) +
+    scale_fill_manual(values = wes_palette("Darjeeling2")[c(2,4)]) +
+    theme_bw(base_size = 13)
+  
+  print(p1)
+  
+  # 2. F1 scores
+  # re-arrange to data frame
+  f1Dat = data.frame(f1 = c(caliDelta$f1, caliDelta$uncalibratedf1,
+                               summ$f1, summ$uncalibratedf1),
+                     method = rep(c('Decision', 'Hypothesis'), each = 2),
+                     calibrate = rep(c('Calibrated','Uncalibrated'), 2))
+  
+  # plot
+  p2 = ggplot(data=f1Dat, aes(x=method, y=f1, fill=calibrate)) +
+    geom_bar(stat='identity', position = position_dodge()) +
+    # geom_hline(yintercept = 0.05, color = 'gray60', 
+    #            size = 1, linetype=2)+
+    scale_y_continuous(limits = c(0,1))+
+    labs(x='Calibrate on...', y='F1 score', caption = capt, fill='')+
+    scale_fill_manual(values = wes_palette("Darjeeling2")[c(2,4)]) +
+    theme_bw(base_size = 13)
+  
+  print(p2)
+  
+  # return summary results
+  return(list(caliDelta = caliDelta,
+              caliThresSumm = summ))
+    
+  
+}
+
+## test it ------
+# summarypath = '~/Documents/Research/betterResults/summary'
+# samplepath = "/Volumes/WD-Drive/betterResults-likelihoodProfiles/" 
+# cachepath = './localCache/'
+# plotCalibration(database_id = 'MDCD',
+#                 method = 'HistoricalComparator', # 'SCCS'
+#                 analysis_id = 2,
+#                 exposure_id = 211983,
+#                 prior_id = 1,
+#                 summaryPath = summarypath,
+#                 samplePath = samplepath,
+#                 cachePath = cachepath,
+#                 tol = 0.004,
+#                 useAdjusted = list(delta1 = TRUE, null=TRUE))

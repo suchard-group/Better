@@ -1,0 +1,90 @@
+---
+title: "Bayesian Calibration Discussion"
+author: "Fan Bu"
+date: "3/30/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r source functions, echo=FALSE}
+source('simpleCalibration.R')
+```
+
+
+## Setup
+
+Hypotheses:
+$$
+H_0: \beta \leq h \quad \text{  v.s. } \quad H_1: \beta > h.
+$$
+Usually $h=0$, but can change the hypothesis threshold $h$ value for "calibration" as $\beta$ may be a biased estimand.
+
+What actually happens in our Bayesian sequential test, given a decision threshold $\delta_1$:
+
+1. For analysis time point $t=1:T$, compute 
+$$
+p_{1t,o} = P(\beta_t > h \mid \text{data at time } t),
+$$
+for each specific negative control outcome $o$. 
+
+2. Across all time points $t$, $H_1$ will be claimed true for outcome $o$ if $\max(p_{1t,o}) > \delta_1$.
+
+3. Type I error rate $e_1$ is estimated as the proportion among all $o$'s for which $\max(p_{1t,o}) > \delta_1$.
+
+
+## How to calibrate
+
+To calibrate, we want to limit Type I error rate such that $e_1 \leq \alpha$ --- or, practically, we would prefer that $e_1 \approx \alpha$. 
+
+Two thresholds to potentially calibrate on:
+
+1. Hypothesis threshold $h$ --- i.e., change the hypotheses we practically test to correct for systematic error in order to test the hypotheses we actually want
+
+2. Decision threshold $\delta1$ --- i.e., change the Bayesian decision rule to attain a desired overall (Type I) error rate
+
+
+However, we also have estimated systematic error distributions from negative control analyses, and we can de-bias (or "adjust") the posterior samples accordingly. Thus, there are in fact **four** variations we can potentially do:
+
+1. Calibrate w.r.t. hypothesis threshold $h$, **with** de-biasing/adjustment
+
+2. Calibrate w.r.t. hypothesis threshold $h$, **without** de-biasing/adjustment
+
+3. Calibrate w.r.t. decision threshold $\delta1$, **with** de-biasing/adjustment
+
+4. Calibrate w.r.t. decision threshold $\delta1$, **without** de-biasing/adjustment
+
+
+### Brief description: calibrating $h$
+
+1. Choose a reasonable value for $\delta1$ (e.g., $0.95$) and $\alpha$ (e.g., $0.05$)
+
+2. Access all adjusted/unadjusted posterior samples for all negative control outcomes (for a specific analysis design and exposure etc.)
+
+3. Use binary search (within a pre-specified search range) to find a proper $h$ value such that $e_1$ (estimated Type I error rate for these outcomes) gets very close to $\alpha$
+
+4. Retain the $h$ value and do further evaluation (e.g., Type 2 error rate) on it
+
+### Breif description: calibrating $\delta_1$
+
+1. Set $h=0$ (probably much more reasonable if using de-biased/adjusted estimates) and choose $\alpha$ (e.g., $0.05$)
+
+2. Find $mp_{o} = \max(p_{1t,o})$'s for all the negative control outcomes of interest (for a specific analysis design and exposure etc.)
+
+3. Set $\delta_1$ as the $1-\alpha$ quantile of all $mp_{o}$ values
+
+4. Retain the $\delta_1$ value and do further evaluation (e.g., Type 2 error rate) on it
+
+### Metrics
+
+1. Type I error (error rates on negative controls)
+
+2. Type II error (error rates on positive controls)
+
+3. F1 score
+$$
+F1 = \frac{1}{1/P + 1/R} = \frac{2 P \times R}{P + R},
+$$
+where $P = $ precision, $R = $ recall
