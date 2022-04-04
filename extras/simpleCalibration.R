@@ -47,7 +47,7 @@ calibrateByDelta1 <- function(database_id,
   # if summ is provided, directly query from given dataframe
   # otherwise, load it from saved summary file
   if(is.null(summ)){
-    if(database_id == 'MDCD'){db_name = 'IBM_MDCD'}
+    db_name = ifelse(database_id == 'MDCD', 'IBM_MDCD', database_id)
     fname = sprintf('AllSummary-%s-%s.rds', db_name, method)
     # cat(file.path(resPath, fname))
     # cat('\n')
@@ -386,6 +386,7 @@ calibrateNull <- function(database_id,
 # 3. plot calibration (with one exampple) ------------
 # (1) compare type1 and type2 error rates (calibrate hypothesis or decision threshold)
 # (2) compare F1 scores
+## add option to only return data frames used for plotting, but not show plots
 plotCalibration <- function(database_id,
                             method,
                             analysis_id,
@@ -400,7 +401,8 @@ plotCalibration <- function(database_id,
                             alpha = 0.05,
                             tol = 0.002,
                             minOutcomes = 5,
-                            useAdjusted = list(delta1 = TRUE, null=FALSE)){
+                            useAdjusted = list(delta1 = TRUE, null=FALSE),
+                            showPlots = TRUE){
   # calibrate Delta1
   caliDelta = #invisible(
     calibrateByDelta1(database_id, method, analysis_id, exposure_id, prior_id,
@@ -464,7 +466,10 @@ plotCalibration <- function(database_id,
     scale_fill_manual(values = wes_palette("Darjeeling2")[c(2,4)]) +
     theme_bw(base_size = 13)
   
-  print(p1)
+  if(showPlots){
+    print(p1)
+  }
+  
   
   # 2. F1 scores
   # re-arrange to data frame
@@ -483,11 +488,16 @@ plotCalibration <- function(database_id,
     scale_fill_manual(values = wes_palette("Darjeeling2")[c(2,4)]) +
     theme_bw(base_size = 13)
   
-  print(p2)
+  if(showPlots){
+    print(p2)
+  }
   
   # return summary results
   return(list(caliDelta = caliDelta,
-              caliThresSumm = summ))
+              caliThresSumm = summ,
+              errorDat = errorDat,
+              f1Dat = f1Dat,
+              caption = capt))
     
   
 }
@@ -506,3 +516,59 @@ plotCalibration <- function(database_id,
 #                 cachePath = cachepath,
 #                 tol = 0.004,
 #                 useAdjusted = list(delta1 = TRUE, null=TRUE))
+
+
+
+
+# 4. additional function to present two sets of plots side-by-side (left: un-adjusted; right: adjusted)
+plotSideBySide <- function(adjLst, unadjLst, plotToShow = 'both'){
+  adjErrorDat = adjLst$errorDat %>% mutate(adjLabel = 'With bias adjustment')
+  adjF1Dat = adjLst$f1Dat %>% mutate(adjLabel = 'With bias adjustment')
+  
+  unadjErrorDat = unadjLst$errorDat %>% mutate(adjLabel = 'Without bias adjustment')
+  unadjF1Dat = unadjLst$f1Dat %>% mutate(adjLabel = 'Without bias adjustment')
+  
+  errorDat = rbind(adjErrorDat, unadjErrorDat)
+  f1Dat = rbind(adjF1Dat, unadjF1Dat)
+  
+  capt = unadjLst$caption
+  
+  p1 = ggplot(data=errorDat, aes(x=errorType, y=error, fill=calibrate)) +
+    geom_bar(stat='identity', position = position_dodge()) +
+    geom_hline(yintercept = 0.05, color = 'gray60', 
+               size = 1, linetype=2)+
+    scale_y_continuous(limits = c(0,1))+
+    labs(x='', y='error rate', caption = capt, fill='')+
+    facet_grid(.~adjLabel + method) +
+    scale_fill_manual(values = wes_palette("Darjeeling2")[c(2,4)]) +
+    theme_bw(base_size = 13)
+  
+  #print(p1)
+  
+  p2 = ggplot(data=f1Dat, aes(x=method, y=f1, fill=calibrate)) +
+    geom_bar(stat='identity', position = position_dodge()) +
+    scale_y_continuous(limits = c(0,1))+
+    labs(x='Calibrate on...', y='F1 score', caption = capt, fill='')+
+    facet_grid(.~adjLabel) +
+    scale_fill_manual(values = wes_palette("Darjeeling2")[c(2,4)]) +
+    theme_bw(base_size = 13)
+  
+  #print(p2)
+  
+  if(plotToShow == 'both'){
+    print(p1)
+    print(p2)
+  }else if(plotToShow == 'error'){
+    print(p1)
+  }else if(plotToShow == 'f1'){
+    print(p2)
+  }else{
+    # if "neither", then return the data frames used for plotting
+    return(list(errorDat = errorDat, 
+                f1Dat = f1Dat))
+  }
+}
+
+
+
+

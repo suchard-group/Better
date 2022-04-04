@@ -92,23 +92,25 @@ where $P = \frac{TP}{TP+FP}$ precision, $R = 1 - \text{type 2 error}$ recall.
 
 ## Examples
 
+
 ```{r paths and other setup, echo=FALSE}
 summarypath = '~/Documents/Research/betterResults/summary'
 samplepath = "/Volumes/WD-Drive/betterResults-likelihoodProfiles/"
 cachepath = '../localCache/'
 
-db = 'MDCD'
-eid = 211983
+db = 'CCAE'
+eid = 211981
 aid = 2
 pid = 1
 tolerance = 0.004
 
 ```
 
+<!-- #### Example 1: without de-biasing/adjustment, `Historical Comparator` design -->
 
-#### Example 1: with de-biasing/adjustment, `Historical Comparator` design
+#### Example 1: `Historical Comparator` design, with or without de-biasing/adjustment
 
-```{r ex1, results='hide'}
+```{r ex1, results='hide', cache=TRUE}
 res1 = plotCalibration(database_id = db,
                 method = 'HistoricalComparator', # 'SCCS'
                 analysis_id = aid,
@@ -118,15 +120,13 @@ res1 = plotCalibration(database_id = db,
                 samplePath = samplepath,
                 cachePath = cachepath,
                 tol = tolerance,
-                useAdjusted = list(delta1 = TRUE, null=TRUE))
+                useAdjusted = list(delta1 = FALSE, null=FALSE), 
+                showPlots = FALSE)
 ```
 
+<!-- #### Example 2: with de-biasing/adjustment, `Historical Comparator` design -->
 
-
-#### Example 2: without de-biasing/adjustment, `Historical Comparator` design
-
-
-```{r ex2, results='hide'}
+```{r ex2, results='hide',cache=TRUE}
 res2 = plotCalibration(database_id = db,
                 method = 'HistoricalComparator', # 'SCCS'
                 analysis_id = aid,
@@ -136,12 +136,24 @@ res2 = plotCalibration(database_id = db,
                 samplePath = samplepath,
                 cachePath = cachepath,
                 tol = tolerance,
-                useAdjusted = list(delta1 = FALSE, null=FALSE))
+                useAdjusted = list(delta1 = TRUE, null=TRUE),
+                showPlots = FALSE)
 ```
 
-#### Example 3: with de-biasing/adjustment, `SCCS` design
+```{r ex1 and ex2 errors, fig.width=13, fig.height=5}
+plotSideBySide(res2, res1, plotToShow = 'error')
+```
 
-```{r ex3, results='hide'}
+```{r ex1 and ex2 f1 scores, fig.width=7, fig.height=4}
+plotSideBySide(res2, res1, plotToShow = 'f1')
+```
+
+
+
+<!-- #### Example 3: with de-biasing/adjustment, `SCCS` design -->
+#### Example 2: `SCCS` design, with or without de-biasing/adjustment
+
+```{r ex3, results='hide',cache=TRUE}
 res3 = plotCalibration(database_id = db,
                 method = 'SCCS',
                 analysis_id = aid,
@@ -151,11 +163,12 @@ res3 = plotCalibration(database_id = db,
                 samplePath = samplepath,
                 cachePath = cachepath,
                 tol = tolerance,
-                useAdjusted = list(delta1 = TRUE, null=TRUE))
+                useAdjusted = list(delta1 = TRUE, null=TRUE),
+                showPlots = FALSE)
 ```
 
-#### Example 4: without de-biasing/adjustment, `SCCS` design
-```{r ex4, results='hide'}
+<!-- #### Example 4: without de-biasing/adjustment, `SCCS` design -->
+```{r ex4, results='hide',cache=TRUE}
 res4 = plotCalibration(database_id = db,
                 method = 'SCCS',
                 analysis_id = aid,
@@ -165,11 +178,20 @@ res4 = plotCalibration(database_id = db,
                 samplePath = samplepath,
                 cachePath = cachepath,
                 tol = tolerance,
-                useAdjusted = list(delta1 = FALSE, null=FALSE))
+                useAdjusted = list(delta1 = FALSE, null=FALSE),
+                showPlots = FALSE)
+```
+
+```{r ex3 and ex4 errors, fig.width=13, fig.height=5}
+plotSideBySide(res3, res4, plotToShow = 'error')
+```
+
+```{r ex3 and ex4 f1 scores, fig.width=7, fig.height=4}
+plotSideBySide(res3, res4, plotToShow = 'f1')
 ```
 
 ## Discussion
 
-1. How to justify changing $h$? 
+1. How to justify changing $h$? Is changing the hypothesis mid-through the anlaysis a valid thing to do? 
 
-2. This whole thing is retrospective calibration --- can't really do this in practice, and it also suffers the pre-schedule problem of MaxSPRT.
+2. This whole procedure is retrospective calibration --- can't really do this in practice, and it actually suffers the same pre-schedule problem of MaxSPRT.
