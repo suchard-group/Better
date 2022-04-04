@@ -16,6 +16,8 @@ errorReportSql.txt
 
 # all my local cache files
 localCache/*
+extras/*_cache/
+extras/*_files/
 
 # all compiled docs in Documents
 Documents/*.html
