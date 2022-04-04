@@ -196,15 +196,25 @@ multiGBSAnalyses <- function(connection,
                              minNCs = 5,
                              savepath = 'localCache/testResults/',
                              sampspath = 'localCache/sampleSaves/',
-                             removeTempSummary = TRUE){
+                             maxCores = 4){
+  # create paths if...
+  if(!dir.exists(savepath)){
+    dir.create(savepath)
+  }
+  if(!dir.exists(sampspath)){
+    dir.create(sampspath)
+  }
+  
   # generate prior table
   priorTable = getPriorTable(priors = priors, default = TRUE)
-  prior_ids = priorTable$prior_id
+  #prior_ids = priorTable$prior_id
   
   # save prior table if it doesn't already exist in the results folder
   if (!file.exists(file.path(savepath, 'priorTable.rds'))) {
     saveRDS(priorTable, file.path(savepath, 'priorTable.rds'))
   }
+  
+  
   
   # obtain LPs
   LPs = getGBSLikelihoodProfiles(database_id, method, 
@@ -216,6 +226,7 @@ multiGBSAnalyses <- function(connection,
   # get NC estimates
   ncfname = 'CompNegControls.rds'
   if(file.exists(file.path(cachePath,ncfname))){
+    cat(file.path(cachePath,ncfname))
     NCestimates = readRDS(file.path(cachePath,ncfname))
   }else{
     sql <-  "SELECT database_id,
@@ -247,8 +258,88 @@ multiGBSAnalyses <- function(connection,
   
   # go through analyses and then go through periods
   ## function to process a bunch of periods for one analysis type
-  runPeriods <- function(aid){
-    for(pid in )
+  runPeriods <- function(aid, saveResults = TRUE){
+    
+    # first check if results are already available
+    if(saveResults){
+      sampsFname = sprintf("%s_%s_%s_analysis%s_samples.rds",
+                           database_id, method, exposure_id, aid)
+      summsFname = sprintf("%s_%s_%s_analysis%s_summary.rds",
+                           database_id, method, exposure_id, aid)
+      if(file.exists(file.path(sampspath, sampsFname)) & file.exists(file.path(savepath, summsFname))){
+        summs = readRDS(file.path(savepath, summsFname))
+        return(summs)
+      }
+    }
+    
+    # if results not saved in local path, need to run analyses
+    summs = NULL
+    samps = list()
+    for(pid in period_ids){
+      # run analysis for this period_id
+      res.p = oneGBSAnalysis(database_id = database_id,
+                             method = method,
+                             exposure_id = exposure_id,
+                             analysis_id = aid,
+                             period_id = pid,
+                             priorMeans = priors$Mean,
+                             priorSds = priors$Sd,
+                             numsamps = numsamps,
+                             thin = thin,
+                             minNCs = minNCs,
+                             savedEstimates = NCestimates,
+                             savedLPs = LPs)
+      # get summary and add period_id info
+      summ.p = summarizeAllPriors(res.p, getCI = returnCIs)
+      if(nrow(summ.p) > 0){
+        summ.p$period_id = pid
+      }
+      summs = rbind(summs, summ.p)
+      # get posterior samples and save it to the list
+      samps.p = getSamplesFromOneAnalysis(res.p)
+      if(!is.null(samps.p)){
+        samps[[as.character(pid)]] = samps.p
+      }
+    }
+    
+    # add analysis_id info
+    if(nrow(summs) > 0){
+      summs$analysis_id = aid
+    }
+    
+    # save results to local file
+    if(saveResults){
+      #sampsFname = sprintf("%s_%s_%s_analysis%s_samples.rds")
+      saveRDS(samps, file.path(sampspath, sampsFname))
+      saveRDS(summs, file.path(savepath, summsFname))
+    }
+    
+    return(summs)
   }
   
+  ## run things in parallel...
+  cluster = ParallelLogger::makeCluster(min(4, maxCores))
+  allSummary = ParallelLogger::clusterApply(cluster,
+                                            x = analysis_ids,
+                                            fun = runPeriods,
+                                            saveResults = TRUE)
+  ParallelLogger::stopCluster(cluster)
+  allSummary = bind_rows(allSummary)
+  
+  return(allSummary)
 }
+
+# try it...
+LPpath = '~/Documents/Research/better_gbs/Results_CCAE/'
+LPfname = 'likelihood_profile.csv'
+savepath = '~/Documents/Research/better_gbs/summary'
+sampspath = '~/Documents/Research/better_gbs/samples'
+allRes = multiGBSAnalyses(connection, 'eumaeus',
+                          database_id = 'CCAE', method = 'HistoricalComparator',
+                          exposure_id = 211981, analysis_ids = 2,
+                          period_ids = c(1:12),
+                          LPpath = LPpath,
+                          LPfname = LPfname,
+                          savepath = savepath,
+                          sampspath = sampspath,
+                          maxCores = 1)

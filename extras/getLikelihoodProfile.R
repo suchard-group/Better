@@ -262,7 +262,7 @@ getGBSLikelihoodProfiles <- function(database_id,
     LPs = LPs %>% filter(analysis_id %in% analyses)
   }
   if(!is.null(periods)){
-    LPs = LPs %>% filter(periods_id %in% periods)
+    LPs = LPs %>% filter(period_id %in% periods)
   }
   
   # upper case colnames so can re-use `selectLikelihoodProfileEntry`
