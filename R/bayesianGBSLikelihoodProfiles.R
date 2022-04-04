@@ -3,9 +3,9 @@
 # (similar to `bayesianWithLikelihoodProfiles.R`)
 
 library(EvidenceSynthesis)
-source('./extras/getLikelihoodProfile.R')
-source('./extras/fitNegativeControlDistribution.R')
-source('./extras/helperFunctions.R')
+# source('./extras/getLikelihoodProfile.R')
+# source('./extras/fitNegativeControlDistribution.R')
+# source('./extras/helperFunctions.R')
 
 
 # 1. run one analysis (database, exposure, method, analysis, etc.) for GBS
@@ -319,6 +319,7 @@ multiGBSAnalyses <- function(connection,
   
   ## run things in parallel...
   cluster = ParallelLogger::makeCluster(min(4, maxCores))
+  ParallelLogger::clusterRequire(cluster, 'better')
   allSummary = ParallelLogger::clusterApply(cluster,
                                             x = analysis_ids,
                                             fun = runPeriods,
@@ -330,16 +331,17 @@ multiGBSAnalyses <- function(connection,
 }
 
 # try it...
-LPpath = '~/Documents/Research/better_gbs/Results_CCAE/'
-LPfname = 'likelihood_profile.csv'
-savepath = '~/Documents/Research/better_gbs/summary'
-sampspath = '~/Documents/Research/better_gbs/samples'
-allRes = multiGBSAnalyses(connection, 'eumaeus',
-                          database_id = 'CCAE', method = 'HistoricalComparator',
-                          exposure_id = 211981, analysis_ids = 2,
-                          period_ids = c(1:12),
-                          LPpath = LPpath,
-                          LPfname = LPfname,
-                          savepath = savepath,
-                          sampspath = sampspath,
-                          maxCores = 1)
+# LPpath = '~/Documents/Research/better_gbs/Results_CCAE/'
+# LPfname = 'likelihood_profile.csv'
+# savepath = '~/Documents/Research/better_gbs/summary'
+# sampspath = '~/Documents/Research/better_gbs/samples'
+# allRes = multiGBSAnalyses(connection, 'eumaeus',
+#                           database_id = 'CCAE', method = 'HistoricalComparator',
+#                           exposure_id = 211981, 
+#                           analysis_ids = c(1:12),
+#                           period_ids = c(1:12),
+#                           LPpath = LPpath,
+#                           LPfname = LPfname,
+#                           savepath = savepath,
+#                           sampspath = sampspath,
+#                           maxCores = 4)
