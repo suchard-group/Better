@@ -15,7 +15,6 @@ getLikelihoodProfile <- function(connection,
                                  exposure_id, 
                                  outcome_id,
                                  analysis_id,
-                                 period_id,
                                  method = "SCCS", # default to SCCS for our purposes
                                  plot=FALSE){
   
@@ -255,7 +254,7 @@ getGBSLikelihoodProfiles <- function(database_id,
   }
   
   LPs = read_csv(fpath) %>% 
-    filter(database_id = !!database_id, method == !!method)
+    filter(database_id == !!database_id, method == !!method)
   if(!is.null(exposures)){
     LPs = LPs %>% filter(exposure_id %in% exposures)
   }

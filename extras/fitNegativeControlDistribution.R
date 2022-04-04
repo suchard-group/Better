@@ -9,6 +9,8 @@
 # (return numeric(0) if no negative controls results exist for required analysis)
 
 # Feb 2022 update: make use of pre-pulled estimates if available 
+# April 2022: (1) use pre-saved NC estimates and filter on db, method, exposure, etc.
+#             (2) force a `minNCs` -- if num. of NCs < minNCs, then don't fit null at all!
 fitNegativeControlDistribution <- function(connection,
                                            schema,
                                            database_id,
@@ -20,7 +22,8 @@ fitNegativeControlDistribution <- function(connection,
                                            outcomeToExclude=NULL,
                                            numsamps = 10000,
                                            thin = 10,
-                                           plot = FALSE){
+                                           plot = FALSE,
+                                           minNCs = 0){
   # outcomeToExclude: one or more (negative) outcomes to NOT include
   # numsamps: total num of posterior samples to acquire (default = 10)
   # thin: thinning iters (default = 10)
@@ -54,20 +57,25 @@ fitNegativeControlDistribution <- function(connection,
     cat('Negative controls estimates pulled...\n')
   }else{
     estimates = savedEstimates %>%
-      filter(ANALYSIS_ID == analysis_id, 
+      filter(DATABASE_ID == database_id,
+             METHOD == method,
+             EXPOSURE_ID == exposure_id,
+             ANALYSIS_ID == analysis_id, 
              PERIOD_ID == period_id)
   }
   
   
   # check if anything returned
-  if(nrow(estimates) == 0){
+  # check if minNCs number of estimates is available
+  if(nrow(estimates) <= minNCs){
     res = numeric(0)
   }else{
     if(!is.null(outcomeToExclude)){
       estimates = estimates %>% filter(!OUTCOME_ID %in% outcomeToExclude)
     }
-    if(nrow(estimates) == 0){
+    if(nrow(estimates) <= minNCs){
       # if after exclusion, nothing, return empty
+      ParallelLogger::logInfo(sprintf('Minimum %s of negative control estimates not available!\n'))
       res = numeric(0)
     }else{
       # otherwise, fit a systematic error (normal) distribution with MCMC
