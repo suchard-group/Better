@@ -48,7 +48,15 @@ oneGBSAnalysis <- function(database_id,
   }
   
   # get null distribution
-  null = fitNegativeControlDistribution(NULL, NULL, database_id, 
+  # engineer database name a little bit
+  # as MDCD and MDCR and OptumEhr have different ids across files
+  if(database_id %in% c('MDCD', 'MDCR')){
+    database_id2 = paste0('IBM_', database_id)
+  }
+  if(database_id == 'OptumEHR'){
+    database_id2 = 'OptumEhr'
+  }
+  null = fitNegativeControlDistribution(NULL, NULL, database_id2, 
                                         method, exposure_id, 
                                         analysis_id, period_id, 
                                         savedEstimates = savedEstimates,
