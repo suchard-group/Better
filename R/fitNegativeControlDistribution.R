@@ -68,6 +68,7 @@ fitNegativeControlDistribution <- function(connection,
   # check if anything returned
   # check if minNCs number of estimates is available
   if(nrow(estimates) <= minNCs){
+    ParallelLogger::logInfo(sprintf('Minimum %s of negative control estimates not available!\n'))
     res = numeric(0)
   }else{
     if(!is.null(outcomeToExclude)){

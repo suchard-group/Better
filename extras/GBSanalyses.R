@@ -33,6 +33,7 @@ allRes = better::multiGBSAnalyses(connection, 'eumaeus',
                           sampspath = sampspath,
                           maxCores = 4)
 
+
 # run for multiple methods & exposures----------
 database = 'CCAE'
 expos = c(211981, 211982, 211983) # Zoster 1st, 2nd and either dose
@@ -47,6 +48,9 @@ logFile = sprintf('log-%s.txt', database)
 errorFile = sprintf('errorReport-%s.txt', database)
 ParallelLogger::addDefaultFileLogger(file.path(savepath, logFile))
 ParallelLogger::addDefaultErrorReportLogger(file.path(savepath, errorFile))
+on.exit(ParallelLogger::unregisterLogger("DEFAULT_FILE_LOGGER", silent = TRUE))
+on.exit(ParallelLogger::unregisterLogger("DEFAULT_ERRORREPORT_LOGGER", silent = TRUE), add = TRUE)
+
 
 for(method in methods){
   for(exposure in expos){
