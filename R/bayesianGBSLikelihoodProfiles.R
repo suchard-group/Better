@@ -100,9 +100,9 @@ oneGBSAnalysis <- function(database_id,
                                    postSamps = samps, adjustedPostSamps = adjSamps,
                                    postMean = mean(samps), postMAP = getMAP(samps), 
                                    postMedian = median(samps),
-                                   adjustedPostMean = mean(adjSamps), 
+                                   adjustedPostMean = mean(adjSamps,na.rm = TRUE), 
                                    adjustedPostMAP = getMAP(adjSamps),
-                                   adjustedPostMedian = median(adjSamps))
+                                   adjustedPostMedian = median(adjSamps,na.rm = TRUE))
   }
   
   # message
@@ -136,12 +136,14 @@ summarizeOnePrior <- function(res, getCI = TRUE) {
     prefix = ifelse(s == 'postSamps', '', 'adjusted')
     # 95% credible intervals
     if (getCI) {
-      res[[paste0(prefix, 'CI95_lb')]] = quantile(res[[s]], 0.025) %>% as.numeric()
-      res[[paste0(prefix, 'CI95_ub')]] = quantile(res[[s]], 0.975) %>% as.numeric()
+      res[[paste0(prefix, 'CI95_lb')]] = quantile(res[[s]], 0.025, na.rm = TRUE) %>% 
+        as.numeric()
+      res[[paste0(prefix, 'CI95_ub')]] = quantile(res[[s]], 0.975, na.rm = TRUE) %>% 
+        as.numeric()
     }
     # posterior hypothesis probs
-    res[[paste0(prefix, 'P1')]] = mean(res[[s]] > 0)
-    res[[paste0(prefix, 'P0')]] = mean(res[[s]] <= 0)
+    res[[paste0(prefix, 'P1')]] = mean(res[[s]] > 0, na.rm=TRUE)
+    res[[paste0(prefix, 'P0')]] = mean(res[[s]] <= 0,na.rm = TRUE)
     
     # remove the samples
     res[[s]] = NULL
