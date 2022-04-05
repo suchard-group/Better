@@ -52,9 +52,10 @@ oneGBSAnalysis <- function(database_id,
   # as MDCD and MDCR and OptumEhr have different ids across files
   if(database_id %in% c('MDCD', 'MDCR')){
     database_id2 = paste0('IBM_', database_id)
-  }
-  if(database_id == 'OptumEHR'){
+  }else if(database_id == 'OptumEHR'){
     database_id2 = 'OptumEhr'
+  }else{
+    database_id2 = database_id
   }
   null = fitNegativeControlDistribution(NULL, NULL, database_id2, 
                                         method, exposure_id, 
