@@ -68,7 +68,8 @@ fitNegativeControlDistribution <- function(connection,
   # check if anything returned
   # check if minNCs number of estimates is available
   if(nrow(estimates) <= minNCs){
-    ParallelLogger::logInfo(sprintf('Minimum %s of negative control estimates not available!\n'))
+    ParallelLogger::logInfo(sprintf('Minimum %s of negative control estimates not available!\n',
+                                    minNCs))
     res = numeric(0)
   }else{
     if(!is.null(outcomeToExclude)){
@@ -76,7 +77,8 @@ fitNegativeControlDistribution <- function(connection,
     }
     if(nrow(estimates) <= minNCs){
       # if after exclusion, nothing, return empty
-      ParallelLogger::logInfo(sprintf('Minimum %s of negative control estimates not available!\n'))
+      ParallelLogger::logInfo(sprintf('Minimum %s of negative control estimates not available!\n',
+                                      minNCs))
       res = numeric(0)
     }else{
       # otherwise, fit a systematic error (normal) distribution with MCMC
