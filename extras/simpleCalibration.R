@@ -107,10 +107,15 @@ calibrateByDelta1 <- function(database_id,
     }
     
     # compute F1 score (because why not...)
-    np = length(unique(pc.dat$outcome_id))
-    nn = length(unique(pc.dat$outcome_id))
-    f1 = computeF1(type1, type2, nn, np)
-    unf1 = computeF1(untype1, untype2, nn, np)
+    if(evalType2){
+      np = length(unique(pc.dat$outcome_id))
+      nn = length(unique(dat$outcome_id))
+      f1 = computeF1(type1, type2, nn, np)
+      unf1 = computeF1(untype1, untype2, nn, np)
+    }else{
+      f1 = NA
+      unf1 = NA
+    }
     
     # return result as a one-row data frame to allow batch run...
     res = data.frame(database_id = database_id, method = method, analysis_id = analysis_id,
