@@ -63,8 +63,8 @@ calibrateByDelta1 <- function(database_id,
   
   # check if total num. of NCs meet `minOutcomes`
   if(nrow(dat) == 0 || length(unique(dat$outcome_id)) < minOutcomes){
-    mes = sprintf('Num. of negative controls for analysis %s, exposure %s and prior %s is smaller than minimum %s!\n',
-                  analysis_id, exposure_id, prior_id, minOutcomes)
+    mes = sprintf('Num. of negative controls for %s analysis %s, exposure %s and prior %s is smaller than minimum %s!\n',
+                  method, analysis_id, exposure_id, prior_id, minOutcomes)
     cat(mes)
     return(NULL)
   }else{
@@ -107,10 +107,16 @@ calibrateByDelta1 <- function(database_id,
     }
     
     # compute F1 score (because why not...)
-    np = length(unique(pc.dat$outcome_id))
-    nn = length(unique(pc.dat$outcome_id))
-    f1 = computeF1(type1, type2, nn, np)
-    unf1 = computeF1(untype1, untype2, nn, np)
+    if(evalType2){
+      np = length(unique(pc.dat$outcome_id))
+      nn = length(unique(dat$outcome_id))
+      f1 = computeF1(type1, type2, nn, np)
+      unf1 = computeF1(untype1, untype2, nn, np)
+    }else{
+      f1 = NA
+      unf1 = NA
+    }
+    
     
     # return result as a one-row data frame to allow batch run...
     res = data.frame(database_id = database_id, method = method, analysis_id = analysis_id,
