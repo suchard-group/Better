@@ -194,4 +194,6 @@ plotSideBySide(res3, res4, plotToShow = 'f1')
 
 1. How to justify changing $h$? Is changing the hypothesis mid-through the anlaysis a valid thing to do? 
 
-2. This whole procedure is retrospective calibration --- can't really do this in practice, and it actually suffers the same pre-schedule problem of MaxSPRT.
+2. How to interpret Bayesian estimates (with/without adjustments) after the "calibration"?
+
+3. This whole procedure is retrospective calibration --- can't really do this in practice, and it actually suffers the same pre-schedule problem of MaxSPRT.
