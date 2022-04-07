@@ -17,26 +17,27 @@ allRes = pullGBSResults(database_id = db,
                         resultsPath = resultspath)
 
 # produce some examples first -----
-exRes1 = allRes %>% 
-  filter(method == 'HistoricalComparator',
-         analysis_id == 2,
-         exposure_id == 211981,
-         prior_id == 1)
-decision1.1 = getOverallDecisions(exRes1, d1 = 0.954, d0 = 0.9, withEstimates = TRUE)
-decision1.2 = getOverallDecisions(exRes1, d1 = 0.999, d0 = 0.9, withEstimates = TRUE)
-
-exRes2 = allRes %>% 
-  filter(method == 'SCCS',
-         analysis_id == 2,
-         exposure_id == 211981,
-         prior_id == 1)
-decision2.1 = getOverallDecisions(exRes1, d1 = 0.977, d0 = 0.9, withEstimates = TRUE)
-decision2.2 = getOverallDecisions(exRes1, d1 = 0.994, d0 = 0.9, withEstimates = TRUE)
+# exRes1 = allRes %>% 
+#   filter(method == 'HistoricalComparator',
+#          analysis_id == 2,
+#          exposure_id == 211981,
+#          prior_id == 1)
+# decision1.1 = getOverallDecisions(exRes1, d1 = 0.954, d0 = 0.9, withEstimates = TRUE)
+# decision1.2 = getOverallDecisions(exRes1, d1 = 0.999, d0 = 0.9, withEstimates = TRUE)
+# 
+# exRes2 = allRes %>% 
+#   filter(method == 'SCCS',
+#          analysis_id == 2,
+#          exposure_id == 211981,
+#          prior_id == 1)
+# decision2.1 = getOverallDecisions(exRes1, d1 = 0.977, d0 = 0.9, withEstimates = TRUE)
+# decision2.2 = getOverallDecisions(exRes1, d1 = 0.994, d0 = 0.9, withEstimates = TRUE)
 ## none of the results are significant!!
 
 
 # function to mass-produce decisions
 getAllDecisionsWithCalibration <- function(res,
+                                           savePath = NULL,
                                            calibrate = TRUE,
                                            estimatesPath = NULL,
                                            alpha = 0.05,
@@ -87,7 +88,8 @@ getAllDecisionsWithCalibration <- function(res,
              method = me, 
              analysis_id = aid,
              exposure_id = expo, 
-             prior_id = prid)
+             prior_id = prid,
+             delta1 = d1)
     
     return(decision)
   }
@@ -106,7 +108,21 @@ getAllDecisionsWithCalibration <- function(res,
   resls = ParallelLogger::clusterApply(cluster, chunks, decideChunk,
                                stopOnError = FALSE, progressBar = TRUE)
   ParallelLogger::stopCluster(cluster)
-  AllDec = bind_rows(resls)
+  AllDec = bind_rows(resls) %>% 
+    arrange(exposure_id, method, analysis_id) %>%
+    relocate(exposure_id, method, analysis_id, prior_id, decision, timeToDecision, 
+             estimate, finalEstimate, everything())
+  
+  # save results to file
+  if(!is.null(savePath)){
+    if(!dir.exists(savePath)){
+      dir.create(savePath)
+    }
+    saveName = sprintf('%s-cablibrate%s-adjust%s-%s.csv',
+                       database_id, calibrate, adjust, estimateType)
+    #saveRDS(AllDec, file.path(savePath, saveName))
+    write_csv(AllDec, file.path(savePath, saveName))
+  }
   
   return(AllDec)
 }
@@ -114,9 +130,13 @@ getAllDecisionsWithCalibration <- function(res,
 
 ## try batch processing
 estimatespath = '~/Documents/Research/betterResults/summary/'
+savepath = '~/Documents/Research/better_gbs/test/'
+
 AllDecAdj = getAllDecisionsWithCalibration(allRes %>% filter(!is.na(adjustedPostMean)),
+                                           savePath = savepath,
                                            calibrate = TRUE,
                                            estimatesPath = estimatespath,
+                                           estimateType = 'Median',
                                            maxCores = 1)
 
-calibrateByDelta1('CCAE', 'HistoricalComparator', 1,1,1, estimatespath, useAdjusted = TRUE)
+
