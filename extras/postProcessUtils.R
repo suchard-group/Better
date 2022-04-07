@@ -140,6 +140,40 @@ getPeriodID <- function(fname){
   as.numeric(chunks[2])
 }
 
+# 04/06/2022: GBS specific functions
+pullGBSResultsOneExpo <- function(database_id, 
+                                  method, 
+                                  exposure_id, 
+                                  resultsPath){
+  fname = sprintf('AllSummary-%s-%s-%s.rds', 
+                  database_id, method, exposure_id)
+  fpath = file.path(resultsPath, fname)
+  if(!file.exists(fpath)){
+    mes = sprintf('Summary file at %s does NOT exist! Skipped', fpath)
+    cat(mes)
+    return(NULL)
+  }
+  readRDS(fpath)
+}
+
+pullGBSResults <- function(database_id, 
+                           methods, 
+                           exposure_ids, 
+                           resultsPath){
+  df = NULL
+  for(me in methods){
+    for(expo in exposure_ids){
+      df = rbind(df, 
+                 pullGBSResultsOneExpo(database_id = database_id,
+                                       method = me,
+                                       exposure_id = expo,
+                                       resultsPath = resultsPath))
+    }
+  }
+  
+  df
+}
+
 #### examples tried ------------
 # ## try it
 # IPCs = readRDS('./localCache/allIPCs.rds')
