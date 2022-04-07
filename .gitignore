@@ -4,6 +4,10 @@
 # Example code in package build process
 *-Ex.R
 
+# irrelevant R files
+extras/check_legendhtn_age_groups.R
+extras/tryPrallelProcess.R
+
 # R data files from past sessions
 .Rdata
 .Rproj.user
@@ -16,6 +20,8 @@ errorReportSql.txt
 
 # all my local cache files
 localCache/*
+extras/*_cache/
+extras/*_files/
 
 # all compiled docs in Documents
 Documents/*.html
@@ -23,6 +29,8 @@ Documents/*.pdf
 Documents/*.tex
 Documents/*.log
 Documents/*.docx
+docs/BETTER-protocol-BEST-copied.docx
+extras/*.html
 
 # eumaeus credentials
 extras/credentials.R

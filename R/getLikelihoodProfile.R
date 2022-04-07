@@ -15,7 +15,6 @@ getLikelihoodProfile <- function(connection,
                                  exposure_id, 
                                  outcome_id,
                                  analysis_id,
-                                 period_id,
                                  method = "SCCS", # default to SCCS for our purposes
                                  plot=FALSE){
   
@@ -233,3 +232,41 @@ selectLikelihoodProfileEntry <- function(df,
 #                                    21184, 9,
 #                                    outcome_id = 10109,
 #                                    analysis_id = 1, plot=TRUE)
+
+
+# April 2022
+# function to get all likelihood profiles for one database and method
+# given local `likelihood_profile.csv` file
+# (optional: can subset on exposures, analyses, periods)
+# (used for GBS analyses)
+getGBSLikelihoodProfiles <- function(database_id,
+                                     method,
+                                     savepath,
+                                     fname,
+                                     exposures = NULL,
+                                     analyses = NULL,
+                                     periods = NULL){
+  fpath = file.path(savepath, fname)
+  if(!file.exists(fpath)){
+    ParallelLogger::logInfo(sprintf('Likelihood profiles at %s does not exist!\n',
+                                    fpath))
+    return(data.frame())
+  }
+  
+  LPs = read_csv(fpath) %>% 
+    filter(database_id == !!database_id, method == !!method)
+  if(!is.null(exposures)){
+    LPs = LPs %>% filter(exposure_id %in% exposures)
+  }
+  if(!is.null(analyses)){
+    LPs = LPs %>% filter(analysis_id %in% analyses)
+  }
+  if(!is.null(periods)){
+    LPs = LPs %>% filter(period_id %in% periods)
+  }
+  
+  # upper case colnames so can re-use `selectLikelihoodProfileEntry`
+  names(LPs) = toupper(names(LPs))
+  return(LPs)
+}
+

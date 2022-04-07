@@ -40,10 +40,13 @@ addCohortNames <- function(data, outputFolder, IdColumnName = "cohortDefinitionI
   
   negativeControls <- loadNegativeControls()
   exposureCohorts <- loadExposureCohorts(outputFolder)
+  baseCohorts <- loadCohortsToCreate()
   idToName <- tibble(cohortId = c(exposureCohorts$exposureId,
-                                  negativeControls$outcomeId),
+                                  negativeControls$outcomeId,
+                                  baseCohorts$cohortId),
                      cohortName = c(as.character(exposureCohorts$exposureName),
-                                    as.character(negativeControls$outcomeName))) %>%
+                                    as.character(negativeControls$outcomeName),
+                                    as.character(baseCohorts$name))) %>%
     distinct(.data$cohortId, .data$cohortName)
   colnames(idToName)[1] <- IdColumnName
   colnames(idToName)[2] <- nameColumnName
@@ -113,6 +116,7 @@ loadExposuresofInterest <- function(exposureIds = NULL) {
   }
   return(exposuresOfInterest)
 }
+
 
 loadEstimates <- function(fileName) {
   estimates <- readr::read_csv(fileName, col_types = readr::cols(), guess_max = 1e4)

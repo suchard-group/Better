@@ -140,6 +140,43 @@ getPeriodID <- function(fname){
   as.numeric(chunks[2])
 }
 
+# 04/06/2022: GBS specific functions
+pullGBSResultsOneExpo <- function(database_id, 
+                                  method, 
+                                  exposure_id, 
+                                  resultsPath){
+  fname = sprintf('AllSummary-%s-%s-%s.rds', 
+                  database_id, method, exposure_id)
+  fpath = file.path(resultsPath, fname)
+  if(!file.exists(fpath)){
+    mes = sprintf('Summary file at %s does NOT exist! Skipped', fpath)
+    cat(mes)
+    return(NULL)
+  }
+  readRDS(fpath) %>% 
+    mutate(database_id = database_id,
+           method = method,
+           exposure_id = exposure_id)
+}
+
+pullGBSResults <- function(database_id, 
+                           methods, 
+                           exposure_ids, 
+                           resultsPath){
+  df = NULL
+  for(me in methods){
+    for(expo in exposure_ids){
+      df = rbind(df, 
+                 pullGBSResultsOneExpo(database_id = database_id,
+                                       method = me,
+                                       exposure_id = expo,
+                                       resultsPath = resultsPath))
+    }
+  }
+  
+  df
+}
+
 #### examples tried ------------
 # ## try it
 # IPCs = readRDS('./localCache/allIPCs.rds')
@@ -162,7 +199,9 @@ getPeriodID <- function(fname){
 ## March 2, update the earliest period_id with a decision
 
 ## function to get decisions (adjusted & unadjusted) based on d1 and d0 thresholds
-getOverallDecisions <- function(df, d1=0.8, d0=0.9){
+getOverallDecisions <- function(df, d1=0.8, d0=0.9, 
+                                withEstimates = FALSE,
+                                estimateType = 'Mean'){
   
   nr = nrow(df)
   
@@ -178,7 +217,15 @@ getOverallDecisions <- function(df, d1=0.8, d0=0.9){
                      })
   res = cbind(signals, futilities)
   res[2,] = as.logical(res[2,]) != (res[1,] < Inf)
-  interpretDecision(res) %>% as.data.frame()
+  
+  # 04/06/2022 update: (optional)
+  if(withEstimates){
+    interpretDecisionWithEstimates(res, df, estimateType) %>% 
+      as.data.frame()
+  }else{
+    interpretDecision(res) %>% as.data.frame()
+  }
+  
 }
 
 ## utils function that works with `getOverallDecisions`
@@ -212,6 +259,64 @@ interpretDecision <- function(block){
     decision$adjustedContradict = FALSE
     decision$adjustedTimeToDecision = Inf
   }
+  decision
+}
+
+## 04/06/2022: for GBS results, 
+## make decisions along with estimates
+interpretDecisionWithEstimates <- function(block, df, 
+                                           estimateType = 'Mean'){
+  
+  if(block[1,1] < Inf){
+    decision = list(decision='signal',
+                    contradict = as.logical(block[2,1]),
+                    timeToDecision = block[1,1])
+  }else if(block[1,3] < Inf){
+    decision = list(decision='futility',
+                    contradict = as.logical(block[2,3]),
+                    timeToDecision = block[1,3])
+  }else{
+    decision = list(decision='neither',contradict =FALSE,
+                    timeToDecision = Inf)
+  }
+  
+  if(block[1,2] < Inf){
+    decision$adjustedDecision = 'signal'
+    decision$adjustedContradict = as.logical(block[2,2])
+    decision$adjustedTimeToDecision = block[1,2]
+  }else if(block[1,4] < Inf){
+    decision$adjustedDecision = 'futility'
+    decision$adjustedContradict = as.logical(block[2,4])
+    decision$adjustedTimeToDecision = block[1,4]
+  }else{
+    decision$adjustedDecision = 'neither'
+    decision$adjustedContradict = FALSE
+    decision$adjustedTimeToDecision = Inf
+  }
+  
+  # add estimates
+  est = sprintf('post%s', estimateType)
+  adjEst = sprintf('adjustedPost%s', estimateType)
+  ## 1. time at decision estimates
+  if(decision$timeToDecision < Inf){
+    derow = which(df$period_id == decision$timeToDecision)
+    decision$estimate = df[derow, est]
+  }else{
+    decision$estimate = NA
+  }
+  if(decision$adjustedTimeToDecision < Inf){
+    derow = which(df$period_id == decision$adjustedTimeToDecision)
+    decision$adjustedEstimate = df[derow, adjEst]
+  }else{
+    decision$adjustedEstimate = NA
+  }
+  
+  ## 2. final estimates
+  nr = nrow(df)
+  decision$finalEstimate = df[nr,est]
+  decision$adjustedFinalEstimate = df[nr,adjEst]
+  
+  # return
   decision
 }
 

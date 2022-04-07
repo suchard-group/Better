@@ -42,6 +42,10 @@ allNegControls = allNegControls %>%
 allNegControls %>% filter(!is.na(log_rr) & !is.na(se_log_rr)) %>% count()
 # 738460 with estimates
 
+compNegControls  = allNegControls %>% filter(!is.na(log_rr) & !is.na(se_log_rr))
+names(compNegControls) = toupper(names(compNegControls))
+saveRDS(compNegControls, './localCache/CompNegControls.rds')
+
 ### save a summary too
 ### count how many results are available for each existing analysis 
 ### (that there is ANY neg control result at all)

@@ -56,6 +56,7 @@ getThisIPCs <- function(exposure_id, negControl_id, IPCtable){
 
 ## a little helper function to get maximum density estimate from samples
 getMAP <- function(x){
+  if(any(is.na(x))){return(NA)}
   dens = density(x)
   dens$x[which.max(dens$y)]
 }
