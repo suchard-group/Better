@@ -63,8 +63,8 @@ runHistoricalComparator <- function(connectionDetails,
                              endDate = controls$historyEndDate[1],
                              # outcomeIds = c(controls$oldOutcomeId,outcomesOfInterest),
                              # newOutcomeIds = c(controls$outcomeId,outcomesOfInterest),
-                             outcomeIds = outcomesOfInterest,
-                             newOutcomeIds = outcomesOfInterest,
+                             outcomeIds = c(outcomesOfInterest),
+                             newOutcomeIds = c(outcomesOfInterest),
                              ratesFile = historicRatesFile)
       }
       
@@ -85,7 +85,8 @@ runHistoricalComparator <- function(connectionDetails,
                                                               endDate = timePeriods$endDate[i],
                                                               exposureId = exposureId,
                                                               #outcomeIds = c(controls$oldOutcomeId,outcomesOfInterest),
-                                                              outcomeIds = outcomesOfInterest,
+                                                              outcomeIds = c(outcomesOfInterest),
+                                                              useOutcomes = c(outcomesOfInterest),
                                                               ratesFile = historicRatesFile)
             periodEstimates[[length(periodEstimates) + 1]] <- estimates
           }
@@ -256,7 +257,7 @@ computeIrr <- function(outcomeId, ratesExposed, ratesBackground, adjusted = FALS
   estimateRow <- bind_cols(summarize(target, 
                                      targetSubjects = as.numeric(sum(.data$personCount)),
                                      targetOutcomes = as.numeric(sum(.data$cohortCount)),
-                                     targetYears = sum(.data$personYears)),
+                                     targetYears = sum(.data$personYears)), # will return 0s if target is empty
                            summarize(comparator, 
                                      comparatorSubjects = as.numeric(sum(.data$personCount)),
                                      comparatorOutcomes = as.numeric(sum(.data$cohortCount)),
@@ -288,7 +289,9 @@ computeIrr <- function(outcomeId, ratesExposed, ratesBackground, adjusted = FALS
         pull()
       
       # below: fit a (conditional?) Poisson regression to estimate relative rate ratio
-      if (estimateRow$targetOutcomes > 0) {
+      #if (estimateRow$targetOutcomes > 0) {
+      if(estimateRow$targetYears > 0 && estimateRow$comparatorYears > 0){
+        # make sure the cumulated exposure personYears > 0
         data <- bind_rows(target, comparator)
         cyclopsData <- Cyclops::createCyclopsData(cohortCount ~ exposed + strata(stratumId) + offset(log(personYears)), 
                                                   data = data, 
@@ -303,7 +306,8 @@ computeIrr <- function(outcomeId, ratesExposed, ratesBackground, adjusted = FALS
       # below: no adjustment on age and gender?
       
       expectedOutcomes <- estimateRow$targetYears * (estimateRow$comparatorOutcomes / estimateRow$comparatorYears)
-      if (estimateRow$targetOutcomes > 0) {
+      #if (estimateRow$targetOutcomes > 0) {
+      if(estimateRow$targetYears > 0 && estimateRow$comparatorYears > 0){
         data <- tibble(cohortCount = c(estimateRow$targetOutcomes, estimateRow$comparatorOutcomes),
                        personYears = c(estimateRow$targetYears, estimateRow$comparatorYears),
                        exposed = c(1, 0))
@@ -335,6 +339,8 @@ computeIrr <- function(outcomeId, ratesExposed, ratesBackground, adjusted = FALS
   return(estimateRow)
 }
 
+# April 7: try to query more cohorts in the `ratesExposed` table to fix subjectsCount bug
+# (archived, no longer used...)
 computeHistoricalComparatorEstimates <- function(connectionDetails,
                                                  cdmDatabaseSchema,
                                                  cohortDatabaseSchema,
@@ -343,6 +349,7 @@ computeHistoricalComparatorEstimates <- function(connectionDetails,
                                                  endDate,
                                                  exposureId,
                                                  outcomeIds,
+                                                 useOutcomes,
                                                  ratesFile) {
   start <- Sys.time()
   historicRates <- readRDS(ratesFile)
@@ -356,13 +363,13 @@ computeHistoricalComparatorEstimates <- function(connectionDetails,
                      startAnalysisId = c(1, 5, 9))
   for (i in 1:nrow(tars)) {
     ParallelLogger::logInfo(sprintf("- Using time-at-risk of %d-%d days", tars$start[i], tars$end[i]))
-    sql <- SqlRender::loadRenderTranslateSql("ComputePopulationIncidenceRate.sql",
+    sqlStatement <- SqlRender::loadRenderTranslateSql("ComputePopulationIncidenceRate.sql",
                                              "better",
                                              dbms = connectionDetails$dbms,
                                              cdm_database_schema = cdmDatabaseSchema,
                                              cohort_database_schema = cohortDatabaseSchema,
                                              cohort_table = cohortTable,
-                                             cohort_ids = unique(outcomeIds),
+                                             cohort_ids = unique(outcomeIds),#unique(useOutcomes),
                                              start_date = format(startDate, "%Y%m%d"),
                                              end_date = format(endDate, "%Y%m%d"),
                                              washout_period = 365,
@@ -371,8 +378,46 @@ computeHistoricalComparatorEstimates <- function(connectionDetails,
                                              tar_start = tars$start[i],
                                              tar_end = tars$end[i],
                                              exposure_id = exposureId)
-    DatabaseConnector::executeSql(connection, sql)
-    ratesExposed <- DatabaseConnector::renderTranslateQuerySql(connection, "SELECT * FROM #rates;", snakeCaseToCamelCase = TRUE)
+
+    DatabaseConnector::executeSql(connection, sqlStatement)
+    ratesExposed <- DatabaseConnector::renderTranslateQuerySql(connection, "SELECT * FROM #rates;", 
+                                                               snakeCaseToCamelCase = TRUE)
+    ratesReference <- DatabaseConnector::renderTranslateQuerySql(connection, "SELECT * FROM #reference_rates;", 
+                                                                 snakeCaseToCamelCase = TRUE)
+    # backgroundRates = DatabaseConnector::renderTranslateQuerySql(connection, "SELECT * FROM #background_time;", 
+    #                                                              snakeCaseToCamelCase = TRUE)
+    
+    # April 7 Fan: attempt at fixing `ratesExposed problems` 
+    # -- it doesn't have any entry at all if there is no event for an outcome...
+    # if(nrow(ratesExposed) > 0){
+    #   # if there is nothing at all.... then give up for now!
+    #   # only try the fix when there are some rows in there...
+    #   ageGender_old = ratesExposed %>% group_by(ageGroup, gender) %>% 
+    #     summarise(personCount = max(personCount), personYears= max(personYears)) %>% 
+    #     ungroup()
+    #   ageGender = ratesReference
+    #   for(oid in outcomeIds){
+    #     if(ratesExposed %>% filter(outcomeId == oid) %>% nrow() == 0){
+    #       # put in a zero cohortCount and zero cohortPersonCount placeholder for this outcome
+    #       rates.o = ratesExposed %>% filter(outcomeId == oid) %>% 
+    #         right_join(ageGender) %>% 
+    #         mutate(outcomeId = oid, cohortCount = 0, cohortPersonCount = 0)
+    #       ratesExposed = rbind(ratesExposed, rates.o)
+    #     }
+    #   }
+    # }
+    
+    # April 8 fix: use the ratesReference to fill in the zero-count ratesExposed sections
+    for(oid in outcomeIds){
+      if(ratesExposed %>% filter(outcomeId == oid) %>% nrow() == 0){
+        # put in a zero cohortCount and zero cohortPersonCount placeholder for this outcome
+        rates.o = ratesExposed %>% filter(outcomeId == oid) %>% 
+          right_join(ratesReference) %>% 
+          mutate(outcomeId = oid, cohortCount = 0, cohortPersonCount = 0)
+        ratesExposed = rbind(ratesExposed, rates.o)
+      }
+    }
+    
     
     # Unadjusted, no anchoring
     ratesBackground <- historicRates %>%
@@ -405,6 +450,13 @@ computeHistoricalComparatorEstimates <- function(connectionDetails,
   }
   sql <- "TRUNCATE TABLE #rates; DROP TABLE #rates;"
   DatabaseConnector::renderTranslateExecuteSql(connection, sql, progressBar = FALSE, reportOverallTime = FALSE)
+  
+  sql <- "TRUNCATE TABLE #background_time;DROP TABLE #background_time;"
+  DatabaseConnector::renderTranslateExecuteSql(connection, sql, progressBar = FALSE, reportOverallTime = FALSE)
+  
+  sql <- "TRUNCATE TABLE #reference_rates;DROP TABLE #reference_rates;"
+  DatabaseConnector::renderTranslateExecuteSql(connection, sql, progressBar = FALSE, reportOverallTime = FALSE)
+  
   
   estimates <- estimates %>%
     mutate(exposureId = !!exposureId)
