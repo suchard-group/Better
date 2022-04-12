@@ -590,5 +590,117 @@ plotSideBySide <- function(adjLst, unadjLst, plotToShow = 'both'){
 }
 
 
+# April 12: plot distribution of biases (as in negative control estimates)
+getBiases <- function(database_id,
+                      method,
+                      analysis_id,
+                      exposure_id,
+                      prior_id,
+                      resPath,
+                      summ = NULL,
+                      minOutcomes = 5,
+                      estimateType = 'Mean',
+                      source = 'Bayesian'){
+  
+  # load from summary files
+  # can take Bayesian results OR EUMAEUS results
+  if(source == 'Bayesian'){
+    if(is.null(summ)){
+      db_name = ifelse(database_id == 'MDCD', 'IBM_MDCD', database_id)
+      fname = sprintf('AllSummary-%s-%s.rds', db_name, method)
+      # cat(file.path(resPath, fname))
+      # cat('\n')
+      summ = readRDS(file.path(resPath, fname))
+    }
+    
+    # get relevant rows for NCs
+    dat  = summ %>% 
+      filter(analysis_id == !!analysis_id, 
+             exposure_id == !!exposure_id,
+             prior_id == !! prior_id,
+             negativeControl == TRUE)
+    
+    # check if has minOutcomes of results
+    if(nrow(dat) == 0 || length(unique(dat$outcome_id)) < minOutcomes){
+      mes = sprintf('Num. of negative controls for analysis %s, exposure %s and prior %s is smaller than minimum %s!\n',
+                    analysis_id, exposure_id, prior_id, minOutcomes)
+      cat(mes)
+      return(NULL)
+    }
+    
+    # get latest period results
+    maxPeriod = max(dat$period_id)
+    dat = dat %>% filter(period_id == maxPeriod)
+    
+    # select relevant estimates by name
+    estName = paste0('post',estimateType)
+    estimates = dat %>% select(!!estName) %>% pull()
+  }else{
+    # if using EUMAEUS results
+    # load from local save...
+    allNCs = readRDS(file.path(resPath, 'CompNegControls.rds'))
+    names(allNCs) = tolower(names(allNCs))
+    
+    db_name = ifelse(database_id %in% c('MDCD','MDCR'), 
+                     sprintf('IBM_%s', database_id), 
+                     database_id)
+    
+    dat = allNCs %>% 
+      filter(database_id == db_name,
+             method == !!method,
+             analysis_id == !!analysis_id, 
+             exposure_id == !!exposure_id,
+             !is.na(log_rr))
+    
+    # check if has minOutcomes of results
+    if(nrow(dat) == 0 || length(unique(dat$outcome_id)) < minOutcomes){
+      mes = sprintf('Num. of negative controls for analysis %s, exposure %s and prior %s is smaller than minimum %s!\n',
+                    analysis_id, exposure_id, prior_id, minOutcomes)
+      cat(mes)
+      return(NULL)
+    }
+    
+    # get latest period results
+    maxPeriod = max(dat$period_id)
+    dat = dat %>% filter(period_id == maxPeriod)
+    
+    # pull estimates
+    estimates = dat %>% select(log_rr) %>% pull()
+  }
+  
+  # return a result list
+  list(estimates = estimates, 
+       mean = mean(estimates),
+       sd = sd(estimates),
+       num = length(estimates),
+       estimateType = estimateType,
+       database_id = database_id,
+       method = method,
+       analysis_id = analysis_id,
+       exposure_id = exposure_id,
+       outcome_id = dat$outcome_id,
+       prior_id = prior_id,
+       period_id = maxPeriod)
+}
 
+# ## try it... --------------
+# summarypath = '~/Documents/Research/betterResults/summary'
+# HCbiases = getBiases(database_id = 'MDCD',
+#                      method = 'HistoricalComparator', # 'SCCS'
+#                      analysis_id = 2,
+#                      exposure_id = 211983,
+#                      prior_id = 1,
+#                      resPath = summarypath,
+#                      minOutcomes = 5,
+#                      estimateType = 'Median')
 
+# # another example ----
+# cachepath = './localCache/'
+# HCbiases = getBiases(database_id = 'MDCD',
+#                      method = 'HistoricalComparator', # 'SCCS'
+#                      analysis_id = 2,
+#                      exposure_id = 211983,
+#                      prior_id = 1,
+#                      resPath = cachepath,
+#                      minOutcomes = 5,
+#                      source = 'EUMAEUS')
