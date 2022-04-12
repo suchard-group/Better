@@ -101,7 +101,7 @@ cachepath = '../localCache/'
 db = 'CCAE'
 eid = 211981
 aid = 2
-pid = 1
+pid = 3 # 1: sd=10; 2: sd=1.5; 3: sd=4 
 tolerance = 0.004
 
 ```
@@ -190,11 +190,82 @@ plotSideBySide(res3, res4, plotToShow = 'error')
 <!-- # plotSideBySide(res3, res4, plotToShow = 'f1') -->
 <!-- # ``` -->
 
+#### Estimation biases without adjustment
+
+<!-- Below we plot the distributions of unadjusted negative control estimates (using MAP estimates) for Historical Comparator and SCCS designs (in Examples 1 and 2).  -->
+
+```{r get biases, cache=TRUE, include=FALSE}
+HCbiases1 = getBiases(database_id = db, method = 'HistoricalComparator',
+                     exposure_id = eid, analysis_id = aid, prior_id = pid,
+                     resPath = summarypath, estimateType = 'MAP')
+
+SCCSbiases1 = getBiases(database_id = db, method = 'SCCS',
+                     exposure_id = eid, analysis_id = aid, prior_id = pid,
+                     resPath = summarypath, estimateType = 'MAP')
+
+dat1 = bind_rows(as.data.frame(HCbiases1), as.data.frame(SCCSbiases1)) %>% 
+  select(outcome_id, estimates, method, mean, sd, num) %>%
+  mutate(label = sprintf('Num. of NCs: %s\nMean: %.3f\nStd: %.3f',
+                         num, mean, sd),
+         method = if_else(method == 'HistoricalComparator', 
+                          'Historical Comparator', 'SCCS'))
+
+```
+
+
+```{r plot bias distributions, include=FALSE, fig.width=4, fig.height=3}
+ggplot(dat1, aes(x=estimates)) +
+  geom_density(aes(fill = method), alpha = 0.8) +
+  facet_grid(method~.)+
+  geom_text(x=1, y = 0.6, aes(label = label), 
+            fontface = 'plain', hjust = 0) +
+  scale_fill_manual(values = wes_palette("Chevalier1")[2:3]) +
+  labs(x='Bayesian estimates for negative control outcomes',
+       fill = '', y = '') +
+  theme_bw(base_size = 14) +
+  theme(legend.position = 'bottom')
+```
+
+```{r get biases from EUMAEUS, cache=TRUE}
+localCache = '../localCache'
+HCbiases2 = getBiases(database_id = db, method = 'HistoricalComparator',
+                     exposure_id = eid, analysis_id = aid, prior_id = pid,
+                     resPath = localCache, source='EUMAEUS')
+
+SCCSbiases2 = getBiases(database_id = db, method = 'SCCS',
+                     exposure_id = eid, analysis_id = aid, prior_id = pid,
+                     resPath = localCache, source='EUMAEUS')
+
+dat2 = bind_rows(as.data.frame(HCbiases2), as.data.frame(SCCSbiases2)) %>% 
+  select(outcome_id, estimates, method, mean, sd, num) %>%
+  mutate(label = sprintf('Num. of NCs: %s\nMean: %.3f\nStd: %.3f',
+                         num, mean, sd),
+         method = if_else(method == 'HistoricalComparator', 
+                          'Historical Comparator', 'SCCS'))
+
+```
+
+```{r plot bias distributions from EUMAEUS, fig.width=8, fig.height=6}
+ggplot(dat2, aes(x=estimates)) +
+  geom_density(aes(fill = method), alpha = 0.8) +
+  facet_grid(method~.)+
+  geom_text(x=1, y = 0.6, aes(label = label), 
+            fontface = 'plain', hjust = 0) +
+  scale_fill_manual(values = wes_palette("Chevalier1")[2:3]) +
+  labs(x='Estimates for negative control outcomes',
+       fill = '', y = '') +
+  theme_bw(base_size = 14) +
+  theme(legend.position = 'bottom')
+```
+
+
 ## Discussion
 
-1. How to justify changing $h$? Is changing the hypothesis mid-through the anlaysis a valid thing to do? 
+1. How to justify changing $h$? Is changing the hypothesis mid-way through the analysis a valid thing to do? (Note that in practice our analysis should be sequential.)
 
 2. How to interpret Bayesian estimates (with/without adjustments) after the "calibration"?
+
+   Our proposal: keep $h=0$, do bias adjustment, & calibrate on threshold $\delta_1$; then the posterior distribution *after* adjustment does produce interpretable estimates. 
 
 3. This whole procedure is retrospective calibration --- can't really do this in practice, and it actually suffers the same pre-schedule problem of MaxSPRT.
 
