@@ -5,6 +5,7 @@ suppressPackageStartupMessages(library(tidyverse))
 
 suppressPackageStartupMessages(library(ggplot2))
 library(wesanderson)
+library(stringr)
 
 # 1. with fixed threshold (between H0 and H1), find delta1 threshold to achieve Type I error rate
 # 2. with fixed delta1 threshold, find threshold (between H0 and H1) to achieve Type I error rate
@@ -536,6 +537,19 @@ plotSideBySide <- function(adjLst, unadjLst, plotToShow = 'both'){
   errorDat = rbind(adjErrorDat, unadjErrorDat)
   f1Dat = rbind(adjF1Dat, unadjF1Dat)
   
+  # try to order the categories for the Type 1 and 2 errors
+  errorDat$calibrate = factor(errorDat$calibrate, levels = c('Uncalibrated', 'Calibrated'))
+  errorDat$adjLabel = factor(errorDat$adjLabel, 
+                             levels = c('Without bias adjustment', 'With bias adjustment'))
+  
+  # add commentary on un-calibrated h and delta1 values
+  errorDat = errorDat %>% 
+    mutate(methodLabel = ifelse(str_starts(method, 'Decision'), 
+                                paste0(method, '\n    with h=0 fixed'),
+                                paste0(method, '\n    with delta1=0.95 fixed')))
+    
+  
+  
   capt = unadjLst$caption
   
   p1 = ggplot(data=errorDat, aes(x=errorType, y=error, fill=calibrate)) +
@@ -544,7 +558,7 @@ plotSideBySide <- function(adjLst, unadjLst, plotToShow = 'both'){
                size = 1, linetype=2)+
     scale_y_continuous(limits = c(0,1))+
     labs(x='', y='error rate', caption = capt, fill='')+
-    facet_grid(.~adjLabel + method) +
+    facet_grid(.~adjLabel + methodLabel) +
     scale_fill_manual(values = wes_palette("Darjeeling2")[c(2,4)]) +
     theme_bw(base_size = 13)
   

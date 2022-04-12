@@ -1,7 +1,7 @@
 ---
 title: "Bayesian Calibration Discussion"
 author: "Fan Bu"
-date: "3/30/2022"
+date: "04/12/2022"
 output: html_document
 ---
 
@@ -63,11 +63,11 @@ However, we also have estimated systematic error distributions from negative con
 
 2. Access all adjusted/unadjusted posterior samples for all negative control outcomes (for a specific analysis design and exposure etc.)
 
-3. Use binary search (within a pre-specified search range) to find a proper $h$ value such that $e_1$ (estimated Type I error rate for these outcomes) gets very close to $\alpha$
+3. Use binary search (within a pre-specified search range) to find a proper $h$ value such that $e_1$ (estimated Type I error rate for these outcomes) gets very close to $\alpha$ (details in appendix)
 
 4. Retain the $h$ value and do further evaluation (e.g., Type 2 error rate) on it
 
-### Breif description: calibrating $\delta_1$
+### Brief description: calibrating $\delta_1$
 
 1. Set $h=0$ (probably much more reasonable if using de-biased/adjusted estimates) and choose $\alpha$ (e.g., $0.05$)
 
@@ -83,11 +83,11 @@ However, we also have estimated systematic error distributions from negative con
 
 2. Type II error (error rates on positive controls)
 
-3. F1 score
-$$
-F_1 = \frac{2}{1/P + 1/R} = \frac{2 P \times R}{P + R},
-$$
-where $P = \frac{TP}{TP+FP}$ precision, $R = 1 - \text{type 2 error}$ recall. 
+<!-- 3. F1 score -->
+<!-- $$ -->
+<!-- F_1 = \frac{2}{1/P + 1/R} = \frac{2 P \times R}{P + R}, -->
+<!-- $$ -->
+<!-- where $P = \frac{TP}{TP+FP}$ precision, $R = 1 - \text{type 2 error}$ recall.  -->
 
 
 ## Examples
@@ -144,9 +144,9 @@ res2 = plotCalibration(database_id = db,
 plotSideBySide(res2, res1, plotToShow = 'error')
 ```
 
-```{r ex1 and ex2 f1 scores, fig.width=7, fig.height=4}
-plotSideBySide(res2, res1, plotToShow = 'f1')
-```
+<!-- # ```{r ex1 and ex2 f1 scores, fig.width=7, fig.height=4} -->
+<!-- # plotSideBySide(res2, res1, plotToShow = 'f1') -->
+<!-- # ``` -->
 
 
 
@@ -186,9 +186,9 @@ res4 = plotCalibration(database_id = db,
 plotSideBySide(res3, res4, plotToShow = 'error')
 ```
 
-```{r ex3 and ex4 f1 scores, fig.width=7, fig.height=4}
-plotSideBySide(res3, res4, plotToShow = 'f1')
-```
+<!-- # ```{r ex3 and ex4 f1 scores, fig.width=7, fig.height=4} -->
+<!-- # plotSideBySide(res3, res4, plotToShow = 'f1') -->
+<!-- # ``` -->
 
 ## Discussion
 
@@ -197,3 +197,18 @@ plotSideBySide(res3, res4, plotToShow = 'f1')
 2. How to interpret Bayesian estimates (with/without adjustments) after the "calibration"?
 
 3. This whole procedure is retrospective calibration --- can't really do this in practice, and it actually suffers the same pre-schedule problem of MaxSPRT.
+
+
+### Appendix
+
+#### Calibrating $h$: more details
+
+We can show that, given a decision threshold $\delta_1$, the (empirical) Type I error rate ($O$ is the total number of negative controls)
+$$
+e_{1}(h) = \frac{1}{O} \sum_{o=1}^O I(\max_{t}(p_{1t,o}) > \delta_1)
+$$
+is a decreasing step function of $h$, with $e_1(h) \rightarrow 1$ as $h \rightarrow -\infty$ and $e_1(h) \rightarrow 0$ as $h \rightarrow \infty$. A rough illustration is shown below.
+
+
+
+
