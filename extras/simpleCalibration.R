@@ -559,7 +559,8 @@ plotSideBySide <- function(adjLst, unadjLst, plotToShow = 'both'){
     scale_y_continuous(limits = c(0,1))+
     labs(x='', y='error rate', caption = capt, fill='')+
     facet_grid(.~adjLabel + methodLabel) +
-    scale_fill_manual(values = wes_palette("Darjeeling2")[c(2,4)]) +
+    scale_fill_manual(values = wes_palette("Darjeeling2")[c(4,2)]) + # my wesanderson colors
+    #scale_fill_manual(values = c("#547BD3", "#D3AD4E")) + # Trevor blue and yellow -- which I don't like
     theme_bw(base_size = 13)
   
   #print(p1)
@@ -569,7 +570,7 @@ plotSideBySide <- function(adjLst, unadjLst, plotToShow = 'both'){
     scale_y_continuous(limits = c(0,1))+
     labs(x='Calibrate on...', y='F1 score', caption = capt, fill='')+
     facet_grid(.~adjLabel) +
-    scale_fill_manual(values = wes_palette("Darjeeling2")[c(2,4)]) +
+    scale_fill_manual(values = wes_palette("Darjeeling2")[c(2,4)]) + 
     theme_bw(base_size = 13)
   
   #print(p2)
