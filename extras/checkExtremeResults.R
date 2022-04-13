@@ -37,5 +37,5 @@ for(o in outcomes){
 # SO without very strong priors, estimate is going to be VERY negative...
 
 
-# close conneciton
+# close connection
 DatabaseConnector::disconnect(connection)
