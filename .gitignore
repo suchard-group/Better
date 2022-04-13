@@ -37,3 +37,4 @@ extras/credentials.R
 
 # irrelevant stuff
 extras/check_legendhtn_age_groups.R
+extras/tryPrallelProcess.R
