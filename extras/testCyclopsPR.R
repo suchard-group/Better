@@ -1,4 +1,9 @@
 # test Cyclops Poisson regression fit
+# 04/14/2022: mystery solved!!
+# when ex. (x1,y1) = (1,0); (x2,y2) = c(0, ++)
+# log likelihood of PR is monotonously decreasing...
+# so will return a very negative coef
+# which should actually be -infty
 
 library(Cyclops)
 

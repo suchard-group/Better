@@ -18,7 +18,7 @@ ConnectionDetails <- DatabaseConnector::createConnectionDetails(
 # set up the DB connection
 connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
 
-db = 'CCAE'
+db = 'OptumEhr'
 method = 'SCCS'
 eid = 211981
 aid = 2
