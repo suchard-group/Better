@@ -591,6 +591,7 @@ plotSideBySide <- function(adjLst, unadjLst, plotToShow = 'both'){
 
 
 # April 12: plot distribution of biases (as in negative control estimates)
+# April 13: for EUMAEUS results, pull se_log_rr and ci bounds too for funnel plots
 getBiases <- function(database_id,
                       method,
                       analysis_id,
@@ -650,7 +651,8 @@ getBiases <- function(database_id,
              method == !!method,
              analysis_id == !!analysis_id, 
              exposure_id == !!exposure_id,
-             !is.na(log_rr))
+             !is.na(log_rr),
+             !is.na(se_log_rr))
     
     # check if has minOutcomes of results
     if(nrow(dat) == 0 || length(unique(dat$outcome_id)) < minOutcomes){
@@ -666,9 +668,13 @@ getBiases <- function(database_id,
     
     # pull estimates
     estimates = dat %>% select(log_rr) %>% pull()
+    ses = dat %>% select(se_log_rr) %>% pull()
+    ci_lbs = dat %>% select(ci_95_lb) %>% pull()
+    ci_ubs = dat %>% select(ci_95_ub) %>% pull()
   }
   
   # return a result list
+  res = 
   list(estimates = estimates, 
        mean = mean(estimates),
        sd = sd(estimates),
@@ -681,6 +687,14 @@ getBiases <- function(database_id,
        outcome_id = dat$outcome_id,
        prior_id = prior_id,
        period_id = maxPeriod)
+  
+  if(source != 'Bayesian'){
+    res$se = ses
+    res$ci_95_lb = ci_lbs
+    res$ci_95_ub = ci_ubs
+  }
+  
+  return(res)
 }
 
 # ## try it... --------------
@@ -704,3 +718,66 @@ getBiases <- function(database_id,
 #                      resPath = cachepath,
 #                      minOutcomes = 5,
 #                      source = 'EUMAEUS')
+
+# April 14: produce funnel plot for systematic errors
+plotSystematicErrors <- function(resls, xLabel = 'Rate ratio estimates') {
+  d = as.data.frame(resls)
+  d$Significant <- d$ci_95_lb > 1 | d$ci_95_ub < 1
+  
+  oneRow <- data.frame(nLabel = paste0(formatC(nrow(d), big.mark = ","), 
+                                       " estimates"),
+                       meanLabel = paste0(formatC(100 *
+                                                    mean(!d$Significant, na.rm = TRUE), 
+                                                  digits = 1, format = "f"), 
+                                          "% of CIs includes 1"))
+  
+  breaks <- c(0.1, 0.25, 0.5, 1, 2, 4, 6, 8, 10)
+  theme <- ggplot2::element_text(colour = "#000000", size = 12)
+  themeRA <- ggplot2::element_text(colour = "#000000", size = 12, hjust = 1)
+  themeLA <- ggplot2::element_text(colour = "#000000", size = 12, hjust = 0)
+  
+  alpha <- 1 - min(0.95 * (nrow(d)/50000)^0.1, 0.95)
+  plot <- ggplot2::ggplot(d, ggplot2::aes(x = estimates, y = se)) +
+    ggplot2::geom_vline(xintercept = log(breaks), colour = "#AAAAAA", lty = 1, size = 0.5) +
+    ggplot2::geom_abline(ggplot2::aes(intercept = 0, slope = 1/qnorm(0.025)),
+                         colour = rgb(0.8, 0, 0),
+                         linetype = "dashed",
+                         size = 1,
+                         alpha = 0.5) +
+    ggplot2::geom_abline(ggplot2::aes(intercept = 0, slope = 1/qnorm(0.975)),
+                         colour = rgb(0.8, 0, 0),
+                         linetype = "dashed",
+                         size = 1,
+                         alpha = 0.5) +
+    ggplot2::geom_point(size = 2, color = rgb(0, 0, 0, alpha = 0.05), alpha = alpha, shape = 16) +
+    ggplot2::geom_hline(yintercept = 0) +
+    ggplot2::geom_label(x = log(0.3),
+                        y = 0.97,
+                        alpha = 1,
+                        hjust = "left",
+                        ggplot2::aes(label = nLabel),
+                        size = 5,
+                        data = oneRow) +
+    ggplot2::geom_label(x = log(0.3),
+                        y = 0.87,
+                        alpha = 1,
+                        hjust = "left",
+                        ggplot2::aes(label = meanLabel),
+                        size = 5,
+                        data = oneRow) +
+    ggplot2::scale_x_continuous(xLabel, limits = log(c(0.1,
+                                                       10)), breaks = log(breaks), labels = breaks) +
+    ggplot2::scale_y_continuous("Standard error", limits = c(0, 1)) +
+    ggplot2::theme(panel.grid.minor = ggplot2::element_blank(),
+                   panel.background = ggplot2::element_blank(),
+                   panel.grid.major = ggplot2::element_blank(),
+                   axis.ticks = ggplot2::element_blank(),
+                   axis.text.y = themeRA,
+                   axis.text.x = theme,
+                   axis.title = theme,
+                   legend.key = ggplot2::element_blank(),
+                   strip.text.x = theme,
+                   strip.background = ggplot2::element_blank(),
+                   legend.position = "none")
+  return(plot)
+}

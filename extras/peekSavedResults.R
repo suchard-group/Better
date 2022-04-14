@@ -33,14 +33,23 @@ names(allNegControls) = tolower(names(allNegControls))
 ### save it
 ### only need database, method, exposure, outcome, analysis, period and 
 ### log_rr & se_log_rr
+### April 14: also pull ci_95_lb and ci_95_ub
 allNegControls = allNegControls %>% 
   select(database_id, method, analysis_id, 
          exposure_id, outcome_id, period_id, 
-         log_rr, se_log_rr)
+         log_rr, se_log_rr,
+         ci_95_lb, ci_95_ub)
 #saveRDS(allNegControls, './localCache/NegControlsSCCSHistComparator.rds')
 
 allNegControls %>% filter(!is.na(log_rr) & !is.na(se_log_rr)) %>% count()
 # 738460 with estimates
+
+## save complete obs to local
+allNegControls = allNegControls %>% 
+  filter(!is.na(log_rr) & !is.na(se_log_rr))
+names(allNegControls) = toupper(names(allNegControls))
+
+# saveRDS(allNegControls, './localCache/CompNegControls.rds')
 
 ### save a summary too
 ### count how many results are available for each existing analysis 

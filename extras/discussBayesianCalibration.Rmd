@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ```{r source functions, echo=FALSE, message=FALSE, warning=FALSE}
 source('simpleCalibration.R')
+#suppressMessages(library(gridExtra))
 ```
 
 
@@ -236,16 +237,16 @@ SCCSbiases2 = getBiases(database_id = db, method = 'SCCS',
                      exposure_id = eid, analysis_id = aid, prior_id = pid,
                      resPath = localCache, source='EUMAEUS')
 
-dat2 = bind_rows(as.data.frame(HCbiases2), as.data.frame(SCCSbiases2)) %>% 
-  select(outcome_id, estimates, method, mean, sd, num) %>%
-  mutate(label = sprintf('Num. of NCs: %s\nMean: %.3f\nStd: %.3f',
-                         num, mean, sd),
-         method = if_else(method == 'HistoricalComparator', 
-                          'Historical Comparator', 'SCCS'))
+# dat2 = bind_rows(as.data.frame(HCbiases2), as.data.frame(SCCSbiases2)) %>% 
+#   select(outcome_id, estimates, method, mean, sd, num) %>%
+#   mutate(label = sprintf('Num. of NCs: %s\nMean: %.3f\nStd: %.3f',
+#                          num, mean, sd),
+#          method = if_else(method == 'HistoricalComparator', 
+#                           'Historical Comparator', 'SCCS'))
 
 ```
 
-```{r plot bias distributions from EUMAEUS, fig.width=8, fig.height=6}
+```{r plot bias distributions from EUMAEUS, fig.width=8, fig.height=6, eval=FALSE}
 ggplot(dat2, aes(x=estimates)) +
   geom_density(aes(fill = method), alpha = 0.8) +
   facet_grid(method~.)+
@@ -256,6 +257,15 @@ ggplot(dat2, aes(x=estimates)) +
        fill = '', y = '') +
   theme_bw(base_size = 14) +
   theme(legend.position = 'bottom')
+```
+
+```{r funnel plots instead, message=FALSE, warning=FALSE, fig.width=10, fig.height=4.5}
+HCplot = plotSystematicErrors(HCbiases2) + labs(title='Historical Comparator')
+SCCSplot = plotSystematicErrors(SCCSbiases2) + labs(title='SCCS')
+ggpubr::ggarrange(HCplot, SCCSplot,
+                  # labels = c('Historical Comparator', 
+                  #            'SCCS'), 
+                  ncol = 2)
 ```
 
 
