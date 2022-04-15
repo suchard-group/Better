@@ -1,8 +1,10 @@
 ---
-title: "Bayesian Calibration Discussion"
+title: "Choosing Decision Thresholds for Bayesian Sequential Testing"
 author: "Fan Bu"
-date: "04/12/2022"
-output: html_document
+date: "04/15/2022"
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -11,68 +13,71 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ```{r source functions, echo=FALSE, message=FALSE, warning=FALSE}
 source('simpleCalibration.R')
-#suppressMessages(library(gridExtra))
+
 ```
 
 
-## Setup
+## Problem setup
 
-Hypotheses:
+We wish to test these hypotheses regarding (log) effect $\beta$:
 $$
 H_0: \beta \leq h \quad \text{  v.s. } \quad H_1: \beta > h.
 $$
-Usually $h=0$, but can change the hypothesis threshold $h$ value for "calibration" as $\beta$ may be a biased estimand.
+Usually $h=0$, but we may want to change the hypothesis threshold $h$ value for "calibration" purposes as $\beta$ may be a biased estimand (which is what FDA usually does). 
 
-What actually happens in our Bayesian sequential test, given a decision threshold $\delta_1$:
+What actually happens in our Bayesian sequential test, given a decision threshold $\delta_1$ on the posterior probability:
 
-1. For analysis time point $t=1:T$, compute 
+1. For analysis time point $t=1:T$, compute posterior probability for $H_1$ for each negative control outcome $o$:
 $$
-p_{1t,o} = P(\beta_t > h \mid \text{data at time } t),
+p_{1t,o} = P(\beta_t > h \mid \text{data at time } t).
 $$
-for each specific negative control outcome $o$. 
 
-2. Across all time points $t$, $H_1$ will be claimed true for outcome $o$ if $\max(p_{1t,o}) > \delta_1$.
+2. Across all time points $t$, $H_1$ will be claimed true for outcome $o$ if $\max_t(p_{1t,o}) > \delta_1$.
 
-3. Type I error rate $e_1$ is estimated as the proportion among all $o$'s for which $\max(p_{1t,o}) > \delta_1$.
-
-
-## How to calibrate
-
-To calibrate, we want to limit Type I error rate such that $e_1 \leq \alpha$ --- or, practically, we would prefer that $e_1 \approx \alpha$. 
-
-Two thresholds to potentially calibrate on:
-
-1. Hypothesis threshold $h$ --- i.e., change the hypotheses we practically test to correct for systematic error in order to test the hypotheses we actually want
-
-2. Decision threshold $\delta1$ --- i.e., change the Bayesian decision rule to attain a desired overall (Type I) error rate
+3. Type I error rate $e_1$ is estimated as the proportion among all outcome $o$'s for which $\max_t(p_{1t,o}) > \delta_1$ (i.e., a positive signal is claimed).
 
 
-However, we also have estimated systematic error distributions from negative control analyses, and we can de-bias (or "adjust") the posterior samples accordingly. Thus, there are in fact **four** variations we can potentially do:
+## How to choose proper thresholds
 
-1. Calibrate w.r.t. hypothesis threshold $h$, **with** de-biasing/adjustment
+Domain experts may have direct knowledge about appropriate values for the hypothesis threshold $h$ and the probability threshold $\delta_1$. However, when we don't have such domain expertise, we need to choose reasonable thresholds, perhaps according to certain operating characteristics. 
 
-2. Calibrate w.r.t. hypothesis threshold $h$, **without** de-biasing/adjustment
+Suppose that we want to the limit Type I error rate such that $e_1 \leq \alpha$ --- or, practically, we would prefer that $e_1 \approx \alpha$. Then potentially we can make choices about:
 
-3. Calibrate w.r.t. decision threshold $\delta1$, **with** de-biasing/adjustment
+1. Hypothesis threshold $h$ --- i.e., we may change the hypotheses we practically test to correct for systematic error in order to test the hypotheses we actually want
 
-4. Calibrate w.r.t. decision threshold $\delta1$, **without** de-biasing/adjustment
+2. Probability threshold $\delta1$ --- i.e., we may change the Bayesian decision rule to attain a desired overall (Type I) error rate
 
 
-### Brief description: calibrating $h$
+Furthermore, we also have systematic error distributions estimated from negative control analyses, and so we can de-bias (or "adjust") the posterior samples of $\beta$ accordingly. 
+Thus, there are in fact **four** variations we can potentially do:
 
-1. Choose a reasonable value for $\delta1$ (e.g., $0.95$) and $\alpha$ (e.g., $0.05$)
+1. Choose hypothesis threshold $h$, **with** de-biasing/adjustment
 
-2. Access all adjusted/unadjusted posterior samples for all negative control outcomes (for a specific analysis design and exposure etc.)
+2. Choose hypothesis threshold $h$, **without** de-biasing/adjustment
 
-3. Use binary search (within a pre-specified search range) to find a proper $h$ value such that $e_1$ (estimated Type I error rate for these outcomes) gets very close to $\alpha$ (details in appendix)
+3. Choose probability threshold $\delta1$, **with** de-biasing/adjustment
+
+4. Choose probability threshold $\delta1$, **without** de-biasing/adjustment
+
+
+**Remark**. Choosing proper thresholds is similar, in principle, to empirical calibration. However, here we operate under the Bayesian framework so we technically have two types of "critical values" that we can adjust in order to achieve desired test performance. 
+
+
+### Brief description: how to choose hypothesis threshold $h$
+
+1. Pre-specify a reasonable value for $\delta_1$ (e.g., $0.95$) and $\alpha$ (e.g., $0.05$)
+
+2. Access all adjusted/unadjusted posterior samples of $\beta$ for all negative control outcomes (for a specific analysis design and exposure etc.)
+
+3. Use binary search (within a pre-specified search range) to find a proper $h$ value such that $e_1$ (estimated Type I error rate for these outcomes) gets very close to $\alpha$ (more details in appendix)
 
 4. Retain the $h$ value and do further evaluation (e.g., Type 2 error rate) on it
 
-### Brief description: calibrating $\delta_1$
+### Brief description: how to choose probability threshold  $\delta_1$
 
 1. Set $h=0$ (probably much more reasonable if using de-biased/adjusted estimates) and choose $\alpha$ (e.g., $0.05$)
 
-2. Find $mp_{o} = \max(p_{1t,o})$'s for all the negative control outcomes of interest (for a specific analysis design and exposure etc.)
+2. Find $mp_{o} = \max_t(p_{1t,o})$'s for all the negative control outcomes of interest (for a specific analysis design and exposure etc.)
 
 3. Set $\delta_1$ as the $1-\alpha$ quantile of all $mp_{o}$ values
 
@@ -191,6 +196,14 @@ plotSideBySide(res3, res4, plotToShow = 'error')
 <!-- # plotSideBySide(res3, res4, plotToShow = 'f1') -->
 <!-- # ``` -->
 
+Some findings from these examples:
+
+1. `SCCS` makes less false positives even without bias adjustment.
+
+2. Type I error rates are lowered with bias adjustment, and "calibrating" on thresholds offers an "additional fix".
+
+3. (More prominent for Historical Comparator) Bias adjustment + "calibrating" on $\delta_1$ achieves desired Type I error rate while sacrificing the least on power (least Type II error rate).
+
 #### Estimation biases without adjustment
 
 <!-- Below we plot the distributions of unadjusted negative control estimates (using MAP estimates) for Historical Comparator and SCCS designs (in Examples 1 and 2).  -->
@@ -259,6 +272,9 @@ ggplot(dat2, aes(x=estimates)) +
   theme(legend.position = 'bottom')
 ```
 
+Below we also plot the negative control estimates (without bias adjustment) for the two examples above to show the scale of biases. 
+We do see slightly less bias and better CI coverage with `SCCS`, although in both cases there isn't substantial bias. 
+
 ```{r funnel plots instead, message=FALSE, warning=FALSE, fig.width=10, fig.height=4.5}
 HCplot = plotSystematicErrors(HCbiases2) + labs(title='Historical Comparator')
 SCCSplot = plotSystematicErrors(SCCSbiases2) + labs(title='SCCS')
@@ -271,13 +287,35 @@ ggpubr::ggarrange(HCplot, SCCSplot,
 
 ## Discussion
 
-1. How to justify changing $h$? Is changing the hypothesis mid-way through the analysis a valid thing to do? (Note that in practice our analysis should be sequential.)
+1. How might we justify choosing an $h$ that's non-zero? Note that, in practice, our analysis should be sequential --- is it still a valid test if we practically change the hypotheses at every timepoint of testing? 
+
 
 2. How to interpret Bayesian estimates (with/without adjustments) after the "calibration"?
 
-   Our proposal: keep $h=0$, do bias adjustment, & calibrate on threshold $\delta_1$; then the posterior distribution *after* adjustment does produce interpretable estimates. 
+   **Our proposal**: Keep $h=0$, do bias adjustment, and then choose probability threshold $\delta_1$ on operation characteristics (e.g., Type I error); then the posterior distribution *after* bias adjustment does produce interpretable estimates. The unbiasedness of the de-biased estimates can be easily checked empirically, though we do need some (theoretical or empirical) argument for maintaining $h=0$ but selecting $\delta_1$ to achieve good testing performance. 
 
-3. This whole procedure is retrospective calibration --- can't really do this in practice, and it actually suffers the same pre-schedule problem of MaxSPRT.
+3. This whole procedure is retrospective --- how to do it in a properly sequential way?
+
+    **One possibility**: 
+  
+    i. At each timepoint $t$, select (or re-select) proper thresholds using the above-described procedure, *given data accrued up to time $t$*
+  
+    ii. In this way, we can at least ensure the performance (e.g., not too many false positives) *up to time $t$*
+  
+    iii. However, we can't say much about what would happen in the future, if we don't want to pre-fix the testing schedule
+  
+    iv. We also don't know what to do if a signal shouldn't be claimed given the "calibrated" thresholds at time $t$ **but** it was already claimed as a signal given the previously chosen thresholds at, say, time $t-1$
+  
+    **Another possibility**:
+  
+    i. At each timepoint $t$, given all information accrued, simulate/sample the posterior samples and posterior probabilities for the negative controls for all the future analysis time steps
+  
+    ii. Based on the simulated results, choose proper thresholds to maintain desired error rates (e.g., Type I error rate)
+  
+    iii. *Major problem* with this approach: it still suffers the fixed schedule of MaxSPRT, but we want to have more flexibility
+
+
+-------------------
 
 
 ### Appendix
