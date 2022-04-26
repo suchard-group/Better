@@ -45,7 +45,7 @@ Suppose that we want to the limit Type I error rate such that $e_1 \leq \alpha$ 
 
 1. Hypothesis threshold $h$ --- i.e., we may change the hypotheses we practically test to correct for systematic error in order to test the hypotheses we actually want
 
-2. Probability threshold $\delta1$ --- i.e., we may change the Bayesian decision rule to attain a desired overall (Type I) error rate
+2. Probability threshold $\delta_1$ --- i.e., we may change the Bayesian decision rule to attain a desired overall (Type I) error rate
 
 
 Furthermore, we also have systematic error distributions estimated from negative control analyses, and so we can de-bias (or "adjust") the posterior samples of $\beta$ accordingly. 
@@ -55,9 +55,9 @@ Thus, there are in fact **four** variations we can potentially do:
 
 2. Choose hypothesis threshold $h$, **without** de-biasing/adjustment
 
-3. Choose probability threshold $\delta1$, **with** de-biasing/adjustment
+3. Choose probability threshold $\delta_1$, **with** de-biasing/adjustment
 
-4. Choose probability threshold $\delta1$, **without** de-biasing/adjustment
+4. Choose probability threshold $\delta_1$, **without** de-biasing/adjustment
 
 
 **Remark**. Choosing proper thresholds is similar, in principle, to empirical calibration. However, here we operate under the Bayesian framework so we technically have two types of "critical values" that we can adjust in order to achieve desired test performance. 

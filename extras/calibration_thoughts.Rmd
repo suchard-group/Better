@@ -1,0 +1,70 @@
+---
+title: "Calibration thoughts"
+author: "Fan Bu"
+date: "April, 2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+We wish to test
+
+$$
+H_0: \beta \leq h \text{ v.s. } H_1: \beta > h.
+$$
+Usually we have $h=0$ as the critical value. 
+
+Type I error defined with "conditional error" (Berger et al.):
+
+$$
+e_1 = \mathbb{E}_{\text{data} \in H_0} P(\text{reject }H_0 \mid \text{data}).
+$$
+
+
+Our "empirical approximation" using negative control outcomes $o=1:O$:
+
+$$
+e_1 \approx \frac{1}{O}\sum_{o}P(\text{reject }H_0 \mid \text{data on }o).
+$$
+
+Think of posterior probability $p_{o,1} = P(\beta > h \mid \text{data on }o)$ as a "test statistic". Given threshold $\delta_1$ (and $h$),
+
+$$
+e_1 \approx \frac{1}{O}\sum_{o} P(p_{o,1} > \delta_1 \mid \text{data on }o).
+$$
+
+
+Operationally, decisions are made sequentially. So at time $t$ ($t=1,2,\ldots$), the "test statistic" for outcome $o$ is
+$$
+p_{o,1,t} = P(\beta > h \mid \text{data on }o \text{ at } t).
+$$
+**As soon as** $p_{o,1,t} > \delta_1$, $H_1$ is claimed true for outcome $o$. 
+
+Therefore, a Type I error is made for outcome $o$, if
+$$
+\max_t p_{o,1,t} > \delta_1.
+$$
+Thus, our empirical approximation for Type I error rate given the negative control outcomes is
+
+$$
+e_1 \approx \frac{1}{O}\sum_{o} P(\max_t p_{o,1,t} > \delta_1 \mid \text{data on }o \text{ for all time}).
+$$
+
+Note that this is a quantity w.r.t. to **infinite** time horizon, which is tricky to handle. We might want to look at a finite-time approximation (say, up to time $T$)
+
+$$
+e_{1,T} \approx \frac{1}{O}\sum_{o} P(\max_{t \leq T} p_{o,1,t} > \delta_1 \mid \text{data on }o \text{ up to time } T).
+$$
+-------------------
+
+Some ideas so far:
+
+1. Don't worry about it and just pick some $h$ and $\delta_1$ we like
+
+2. Worry about $e_{1,T}$ (finite-time error) only for now
+
+3. Come up with an asymptotic alpha expending function for $e_{1,T}$ (w.r.t. "random test statistic" $p_{o,1,t}$?)
+
+4. Marginalize over uncertain systematic errors and thresholds ($h$ and $\delta_1$???), with smart prior choices to avoid early errors
