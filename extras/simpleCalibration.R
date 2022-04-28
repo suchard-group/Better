@@ -34,17 +34,21 @@ computeF1 <- function(type1, type2, nn, np){
 
 
 # main function for delta1 "calibration"
+# 04/28/2022: add stratification by effect size when computing Type 2 error
+#             also no longer computing F1 scores
 calibrateByDelta1 <- function(database_id,
                               method,
                               analysis_id,
                               exposure_id,
                               prior_id,
                               resPath,
+                              cachePath = './localCache/',
                               summ = NULL,
                               alpha = 0.05,
                               minOutcomes = 5,
                               useAdjusted = FALSE,
-                              evalType2 = TRUE){
+                              evalType2 = TRUE,
+                              stratifyByEffectSize = FALSE){
   # if summ is provided, directly query from given dataframe
   # otherwise, load it from saved summary file
   if(is.null(summ)){
@@ -83,6 +87,13 @@ calibrateByDelta1 <- function(database_id,
     type1 = mean(p1s > calibratedThres)
     untype1 = mean(p1s > (1-alpha)) # an "uncalibrated" version
     
+    # get effect sizes if...
+    if(evalType2 & stratifyByEffectSize){
+      IPCs = readRDS(file.path(cachePath, 'allIPCs.rds')) %>%
+        select(OUTCOME_ID, EFFECT_SIZE)
+      names(IPCs) = tolower(names(IPCs))
+    }
+    
     # evaluate type 2 error as well if...
     if(evalType2){
       # get relevant rows for PCs first
@@ -91,55 +102,82 @@ calibrateByDelta1 <- function(database_id,
                exposure_id == !!exposure_id,
                prior_id == !! prior_id,
                negativeControl == FALSE)
-      if(useAdjusted){
-        p1s = pc.dat %>% group_by(outcome_id) %>%
-          summarize(maxP1 = max(adjustedP1))
+      # 04/28: stratify by effect size if....
+      if(stratifyByEffectSize){
+        pc.dat = pc.dat %>% left_join(IPCs, by = 'outcome_id')
+        if(useAdjusted){
+          p1s = pc.dat %>% 
+            group_by(outcome_id, effect_size) %>%
+            summarize(maxP1 = max(adjustedP1))
+        }else{
+          p1s = pc.dat %>% 
+            group_by(outcome_id, effect_size) %>%
+            summarize(maxP1 = max(P1))
+        }
+        type2s = p1s %>% ungroup() %>% 
+          group_by(effect_size) %>%
+          summarize(type2 = 1 - mean(maxP1 > calibratedThres),
+                    uncalibratedType2 = 1 - mean(maxP1 > (1-alpha))) %>%
+          ungroup()
       }else{
-        p1s = pc.dat %>% group_by(outcome_id) %>%
-          summarize(maxP1 = max(P1))
+        if(useAdjusted){
+          p1s = pc.dat %>% group_by(outcome_id) %>%
+            summarize(maxP1 = max(adjustedP1))
+        }else{
+          p1s = pc.dat %>% group_by(outcome_id) %>%
+            summarize(maxP1 = max(P1))
+        }
+        p1s = p1s %>% ungroup() %>% select(maxP1) %>% pull()
+        # evaluate type 2 error rates
+        type2 = 1 - mean(p1s > calibratedThres)
+        untype2 = 1 - mean(p1s > (1-alpha))
+        type2s = data.frame(type2 = type2,
+                            uncalibratedType2 = untype2)
       }
-      p1s = p1s %>% ungroup() %>% select(maxP1) %>% pull()
-      # evaluate type 2 error rates
-      type2 = 1 - mean(p1s > calibratedThres)
-      untype2 = 1 - mean(p1s > (1-alpha))
     }else{
-      type2 = NA
-      untype2 = NA
+      type2s = data.frame(type2 = NA,
+                          uncalibratedType2 = NA)
     }
     
     # compute F1 score (because why not...)
-    if(evalType2){
-      np = length(unique(pc.dat$outcome_id))
-      nn = length(unique(dat$outcome_id))
-      f1 = computeF1(type1, type2, nn, np)
-      unf1 = computeF1(untype1, untype2, nn, np)
-    }else{
-      f1 = NA
-      unf1 = NA
-    }
+    # if(evalType2){
+    #   np = length(unique(pc.dat$outcome_id))
+    #   nn = length(unique(dat$outcome_id))
+    #   f1 = computeF1(type1, type2, nn, np)
+    #   unf1 = computeF1(untype1, untype2, nn, np)
+    # }else{
+    #   f1 = NA
+    #   unf1 = NA
+    # }
     
     # return result as a one-row data frame to allow batch run...
     res = data.frame(database_id = database_id, method = method, analysis_id = analysis_id,
                      exposure_id = exposure_id, prior_id = prior_id, 
                      calibratedDelta1 = calibratedThres, alpha = alpha,
-                     type1 = type1, type2 = type2,
-                     uncalibratedType1 = untype1, uncalibratedType2 = untype2,
-                     f1 = f1, uncalibratedf1 = unf1,
+                     type1 = type1, 
+                     uncalibratedType1 = untype1,
                      adjusted = useAdjusted)
+    
+    # combine with Type 2 columns
+    res = cbind(res, type2s)
     return(res)
   }
 }
 
 ## try it ------
+## updated try on 04/28/2022
 # resultspath = '~/Documents/Research/betterResults/summary'
+# cachepath = './localCache'
 # calibrateByDelta1(database_id = 'CCAE',
 #                   method = 'SCCS',
 #                   analysis_id = 1,
 #                   exposure_id = 21184,
 #                   prior_id = 2,
 #                   resPath = resultspath,
+#                   cachePath = cachepath,
 #                   useAdjusted = TRUE,
-#                   evalType2 = TRUE)
+#                   evalType2 = TRUE,
+#                   stratifyByEffectSize = TRUE)
 
 
 # 04/27/2022: calibrate on delta1 over time periods and see how thresholds and errors change over time
@@ -150,11 +188,13 @@ tempCalibrateByDelta1 <- function(database_id,
                               exposure_id,
                               prior_id,
                               resPath,
+                              cachePath = './localCache/',
                               summ = NULL,
                               alpha = 0.05,
                               minOutcomes = 5,
                               useAdjusted = FALSE,
-                              evalType2 = TRUE){
+                              evalType2 = TRUE,
+                              stratifyByEffectSize = FALSE){
   # if summ is provided, directly query from given dataframe
   # otherwise, load it from saved summary file
   if(is.null(summ)){
@@ -181,6 +221,14 @@ tempCalibrateByDelta1 <- function(database_id,
   }
   
   # proceed if having enough NCs to work with
+  
+  # load IPCs if...
+  # get effect sizes if...
+  if(evalType2 & stratifyByEffectSize){
+    IPCs = readRDS(file.path(cachePath, 'allIPCs.rds')) %>%
+      select(OUTCOME_ID, EFFECT_SIZE)
+    names(IPCs) = tolower(names(IPCs))
+  }
   
   ## helper function to process data up to a period
   calibrateUpToPeriod <- function(period){
@@ -223,21 +271,45 @@ tempCalibrateByDelta1 <- function(database_id,
                prior_id == !! prior_id,
                negativeControl == FALSE,
                period_id <= period)
-      if(useAdjusted){
-        p1s = pc.dat.p %>% group_by(outcome_id) %>%
-          summarize(maxP1 = max(adjustedP1))
+      
+      # 04/28: stratify by effect size if....
+      if(stratifyByEffectSize){
+        pc.dat.p = pc.dat.p %>% left_join(IPCs, by = 'outcome_id')
+        if(useAdjusted){
+          p1s = pc.dat.p %>% 
+            group_by(outcome_id, effect_size) %>%
+            summarize(maxP1 = max(adjustedP1))
+        }else{
+          p1s = pc.dat.p %>% 
+            group_by(outcome_id, effect_size) %>%
+            summarize(maxP1 = max(P1))
+        }
+        type2s = p1s %>% ungroup() %>% 
+          group_by(effect_size) %>%
+          summarize(type2 = 1 - mean(maxP1 > calibratedThres),
+                    uncalibratedType2 = 1 - mean(maxP1 > (1-alpha))) %>%
+          ungroup()
       }else{
-        p1s = pc.dat.p %>% group_by(outcome_id) %>%
-          summarize(maxP1 = max(P1))
+        if(useAdjusted){
+          p1s = pc.dat.p %>% group_by(outcome_id) %>%
+            summarize(maxP1 = max(adjustedP1))
+        }else{
+          p1s = pc.dat.p %>% group_by(outcome_id) %>%
+            summarize(maxP1 = max(P1))
+        }
+        p1s = p1s %>% ungroup() %>% select(maxP1) %>% pull()
+        # evaluate type 2 error rates
+        type2 = 1 - mean(p1s > calibratedThres)
+        untype2 = 1 - mean(p1s > (1-alpha))
+        type2s = data.frame(type2 = type2,
+                            uncalibratedType2 = untype2)
       }
-      p1s = p1s %>% ungroup() %>% select(maxP1) %>% pull()
-      # evaluate type 2 error rates
-      type2 = 1 - mean(p1s > calibratedThres)
-      untype2 = 1 - mean(p1s > (1-alpha))
+      
     }else{
-      type2 = NA
-      untype2 = NA
+      type2s = data.frame(type2 = NA,
+                          uncalibratedType2 = NA)
     }
+    
     
     # no longer returning F1 scores....
     
@@ -245,10 +317,11 @@ tempCalibrateByDelta1 <- function(database_id,
     res = data.frame(database_id = database_id, method = method, analysis_id = analysis_id,
                      exposure_id = exposure_id, prior_id = prior_id, 
                      calibratedDelta1 = calibratedThres, alpha = alpha,
-                     type1 = type1, type2 = type2,
-                     uncalibratedType1 = untype1, uncalibratedType2 = untype2,
+                     type1 = type1, 
+                     uncalibratedType1 = untype1, 
                      adjusted = useAdjusted,
                      period_id = period)
+    res = cbind(res, type2s)
     return(res)
   }
   
@@ -265,7 +338,7 @@ tempCalibrateByDelta1 <- function(database_id,
   
 }
 
-# ## try it
+## try it
 # resultspath = '~/Documents/Research/betterResults/summary'
 # resByPeriods1 = tempCalibrateByDelta1(database_id = 'CCAE',
 #                                      method = 'SCCS',
@@ -283,7 +356,16 @@ tempCalibrateByDelta1 <- function(database_id,
 #                                       resPath = resultspath,
 #                                       useAdjusted = TRUE,
 #                                       evalType2 = TRUE)
-
+# 
+# resByPeriods1stra = tempCalibrateByDelta1(database_id = 'CCAE',
+#                                       method = 'SCCS',
+#                                       analysis_id = 1,
+#                                       exposure_id = 21184,
+#                                       prior_id = 2,
+#                                       resPath = resultspath,
+#                                       useAdjusted = TRUE,
+#                                       evalType2 = TRUE,
+#                                       stratifyByEffectSize = TRUE)
 
 # function 2 -------
 
@@ -927,22 +1009,25 @@ plotSystematicErrors <- function(resls, xLabel = 'Rate ratio estimates') {
 
 # 04/27/2022: plot the temporal calibration results (on Delta1 only!)
 # (one plot for choosing delta1, one for using default delta1=0.95)
+# 04/28/2022: update with Type 2 error stratified by effect size
 plotTempDelta1 <- function(database_id,
-                            method,
-                            analysis_id,
-                            exposure_id,
-                            prior_id,
-                            summaryPath,
-                            cachePath,
-                            alpha = 0.05,
-                            minOutcomes = 5,
-                            useAdjusted = TRUE,
-                            showPlots = TRUE){
+                           method,
+                           analysis_id,
+                           exposure_id,
+                           prior_id,
+                           summaryPath,
+                           cachePath,
+                           alpha = 0.05,
+                           minOutcomes = 5,
+                           useAdjusted = TRUE,
+                           showPlots = TRUE,
+                           stratifyByEffectSize = TRUE){
   # calibrate Delta1 temporally
   caliDelta = tempCalibrateByDelta1(database_id, method, analysis_id, exposure_id, prior_id,
-                                    resPath = summaryPath,
+                                    resPath = summaryPath, cachePath = cachePath,
                                     alpha = alpha, minOutcomes = minOutcomes, 
-                                    useAdjusted = useAdjusted, evalType2 = TRUE)
+                                    useAdjusted = useAdjusted, evalType2 = TRUE,
+                                    stratifyByEffectSize = stratifyByEffectSize)
   
   
   # generate figure caption (with info)
@@ -971,17 +1056,41 @@ plotTempDelta1 <- function(database_id,
     capt = paste0(capt,'\nWithout bias adjustment')
   }
   
-  withChoose = data.frame(period_id = rep(caliDelta$period_id, 3),
-                          y = c(caliDelta$calibratedDelta1, 
-                                caliDelta$type1,
-                                caliDelta$type2),
+  if(stratifyByEffectSize){
+    withChoose = data.frame(period_id = rep(caliDelta$period_id, 3),
+                            y = c(caliDelta$calibratedDelta1, 
+                                  caliDelta$type1,
+                                  caliDelta$type2),
+                            effect_size = rep(caliDelta$effect_size, 3),
+                            stats = rep(c('delta1', 'type 1', 'type 2'), each = nrow(caliDelta))) %>%
+      distinct() %>%
+      mutate(stats = if_else(stats == 'type 2',
+                             sprintf('%s (effect=%.1f)',stats, effect_size),
+                             stats))
+    noChoose = data.frame(period_id = rep(caliDelta$period_id, 3),
+                          y = c(rep(1-alpha, nrow(caliDelta)), 
+                                caliDelta$uncalibratedType1,
+                                caliDelta$uncalibratedType2),
+                          effect_size = rep(caliDelta$effect_size, 3),
+                          stats = rep(c('delta1', 'type 1', 'type 2'), each = nrow(caliDelta))) %>%
+      distinct() %>%
+      mutate(stats = if_else(stats == 'type 2',
+                             sprintf('%s (effect=%.1f)',stats, effect_size),
+                             stats))
+  }else{
+    withChoose = data.frame(period_id = rep(caliDelta$period_id, 3),
+                            y = c(caliDelta$calibratedDelta1, 
+                                  caliDelta$type1,
+                                  caliDelta$type2),
+                            stats = rep(c('delta1', 'type 1', 'type 2'), each = nrow(caliDelta)))
+    noChoose = data.frame(period_id = rep(caliDelta$period_id, 3),
+                          y = c(rep(1-alpha, nrow(caliDelta)), 
+                                caliDelta$uncalibratedType1,
+                                caliDelta$uncalibratedType2),
                           stats = rep(c('delta1', 'type 1', 'type 2'), each = nrow(caliDelta)))
-  noChoose = data.frame(period_id = rep(caliDelta$period_id, 3),
-                        y = c(rep(1-alpha, nrow(caliDelta)), 
-                              caliDelta$uncalibratedType1,
-                              caliDelta$uncalibratedType2),
-                        stats = rep(c('delta1', 'type 1', 'type 2'), each = nrow(caliDelta)))
+  }
   
+  # combine data
   res = bind_rows(withChoose, noChoose)
   res$method = rep(c('choosing delta1','not choosing delta1'), 
                    each = nrow(withChoose))
@@ -993,23 +1102,53 @@ plotTempDelta1 <- function(database_id,
                       by = 2)
   period_labels = as.integer(period_breaks)
   
+  hlines = data.frame(yinter=c(0.05,0.95,0.05), 
+                      method = factor(c('choosing delta1',
+                                        'choosing delta1',
+                                        'not choosing delta1'),
+                                      levels = c('not choosing delta1', 'choosing delta1')))
+  
+  if(stratifyByEffectSize){
+    # # helper func to get shade color for effect size
+    # getShade <- function(e, from=0.5, to=1){
+    #   (e-min(e))/(max(e)-min(e)) * (to-from) + from
+    # }
+    # 
+    # # transform Type 2 colors with shades
+    # shades = getShade(sort(unique(res$effect_size)))
+    # 
+    # cat(shades,'\n')
+    # 
+    # type2basecol = col2rgb(wes_palette("Royal1")[4])
+    # 
+    # type2cols = rgb(t(type2basecol), alpha = shades, maxColorValue = 255)
+    
+    type2cols = c(wes_palette("Zissou1")[3:4],wes_palette("Royal1")[4])
+    allCols = c(wes_palette("Royal1")[1:2], type2cols)
+    cat(allCols)
+    # 
+    # res = res %>% 
+    #   mutate(shade = if_else(!stats %in% c('delta1','type 1'),
+    #                          getShade(effect_size),
+    #                          1))
+  }else{
+    allCols = wes_palette("Royal1")[c(1,2,4)]
+  }
+  
   p = ggplot(res, aes(x=period_id, y=y, color=stats))+
     geom_line(size = 1.5) +
     geom_point(size=2)+
-    geom_hline(data = data.frame(yinter=c(0.05,0.95,0.05), 
-                          method = factor(c('choosing delta1',
-                                            'choosing delta1',
-                                            'not choosing delta1'),
-                                     levels = c('not choosing delta1', 'choosing delta1'))),
+    geom_hline(data = hlines,
                mapping = aes(yintercept = yinter), 
                color = 'gray60', 
                size = 1, linetype=2)+
     scale_y_continuous(limits = c(0,1))+
     scale_x_continuous(breaks = period_breaks, labels = period_labels)+
     labs(x='analysis period (months)', y='', caption = capt, color='')+
-    scale_color_manual(values = wes_palette("Royal1")[c(1,2,4)]) +
+    scale_color_manual(values = allCols) +
     facet_grid(.~method)+
     theme_bw(base_size = 13)
+  
   
   # show plots if...
   if(showPlots){
@@ -1022,15 +1161,15 @@ plotTempDelta1 <- function(database_id,
 ## try it
 # summarypath = '~/Documents/Research/betterResults/summary'
 # cachepath = './localCache/'
-# caliDelta = 
-#   calibrateByDelta1(database_id= 'MDCD', 
-#                     method = 'HistoricalComparator', 
+# caliDelta =
+#   calibrateByDelta1(database_id= 'MDCD',
+#                     method = 'HistoricalComparator',
 #                     analysis_id = 2,
-#                     exposure_id = 211983, 
+#                     exposure_id = 211983,
 #                     prior_id = 1,
 #                     resPath = summarypath,
-#                     alpha = 0.05, 
-#                     minOutcomes = 5, 
+#                     alpha = 0.05,
+#                     minOutcomes = 5,
 #                     useAdjusted = TRUE, evalType2 = TRUE)
 # res = plotTempDelta1(database_id = 'MDCD',
 #                 method = 'HistoricalComparator', # 'SCCS'
@@ -1039,4 +1178,5 @@ plotTempDelta1 <- function(database_id,
 #                 prior_id = 1,
 #                 summaryPath = summarypath,
 #                 cachePath = cachepath,
-#                 useAdjusted = TRUE)
+#                 useAdjusted = TRUE,
+#                 stratifyByEffectSize = TRUE)

@@ -300,20 +300,8 @@ ggpubr::ggarrange(HCplot, SCCSplot,
 
 ### Historical Comparator design
 
-#### (a) With bias adjustment, choosing or not choosing $\delta_1$ for desired Type I error rates
-```{r HC with bias adjustment temporal, echo = FALSE, fig.width=10, fig.height=4.5}
-HCwithAdjust = plotTempDelta1(database_id = db,
-                method = 'HistoricalComparator', 
-                analysis_id = aid,
-                exposure_id = eid,
-                prior_id = pid,
-                summaryPath = summarypath,
-                cachePath = cachepath,
-                useAdjusted = TRUE)
-```
-
-#### (b) Without bias adjustment
-```{r HC without bias adjustment temporal, echo = FALSE, fig.width=10, fig.height=4.5}
+#### (a) Without bias adjustment
+```{r HC without bias adjustment temporal, echo = FALSE, fig.width=10, fig.height=4.5,results='hide',message=FALSE,warning=FALSE}
 HCwithoutAdjust = plotTempDelta1(database_id = db,
                 method = 'HistoricalComparator', 
                 analysis_id = aid,
@@ -321,25 +309,30 @@ HCwithoutAdjust = plotTempDelta1(database_id = db,
                 prior_id = pid,
                 summaryPath = summarypath,
                 cachePath = cachepath,
-                useAdjusted = FALSE)
+                useAdjusted = FALSE,
+                stratifyByEffectSize = TRUE)
 ```
 
 
-### SCCS design
-#### (a) With bias adjustment, choosing or not choosing $\delta_1$ for desired Type I error rates
-```{r SCCS with bias adjustment temporal, echo = FALSE, fig.width=10, fig.height=4.5}
-SCCSwithAdjust = plotTempDelta1(database_id = db,
-                method = 'SCCS', 
+#### (b) With bias adjustment, choosing or not choosing $\delta_1$ for desired Type I error rates
+```{r HC with bias adjustment temporal, echo = FALSE, fig.width=10, fig.height=4.5,results='hide',message=FALSE,warning=FALSE}
+HCwithAdjust = plotTempDelta1(database_id = db,
+                method = 'HistoricalComparator', 
                 analysis_id = aid,
                 exposure_id = eid,
                 prior_id = pid,
                 summaryPath = summarypath,
                 cachePath = cachepath,
-                useAdjusted = TRUE)
+                useAdjusted = TRUE,
+                stratifyByEffectSize = TRUE)
 ```
 
-#### (b) Without bias adjustment
-```{r SCCS without bias adjustment temporal, echo = FALSE, fig.width=10, fig.height=4.5}
+
+
+### SCCS design
+
+#### (a) Without bias adjustment
+```{r SCCS without bias adjustment temporal, echo = FALSE, fig.width=10, fig.height=4.5,results='hide',message=FALSE,warning=FALSE}
 SCCSwithoutAdjust = plotTempDelta1(database_id = db,
                 method = 'SCCS', 
                 analysis_id = aid,
@@ -347,8 +340,24 @@ SCCSwithoutAdjust = plotTempDelta1(database_id = db,
                 prior_id = pid,
                 summaryPath = summarypath,
                 cachePath = cachepath,
-                useAdjusted = FALSE)
+                useAdjusted = FALSE,
+                stratifyByEffectSize = TRUE)
 ```
+
+
+#### (b) With bias adjustment, choosing or not choosing $\delta_1$ for desired Type I error rates
+```{r SCCS with bias adjustment temporal, echo = FALSE, fig.width=10, fig.height=4.5,results='hide',message=FALSE,warning=FALSE}
+SCCSwithAdjust = plotTempDelta1(database_id = db,
+                method = 'SCCS', 
+                analysis_id = aid,
+                exposure_id = eid,
+                prior_id = pid,
+                summaryPath = summarypath,
+                cachePath = cachepath,
+                useAdjusted = TRUE,
+                stratifyByEffectSize = TRUE)
+```
+
 
 
 
