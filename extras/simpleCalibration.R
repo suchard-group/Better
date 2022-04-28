@@ -142,6 +142,148 @@ calibrateByDelta1 <- function(database_id,
 #                   evalType2 = TRUE)
 
 
+# 04/27/2022: calibrate on delta1 over time periods and see how thresholds and errors change over time
+# main function for delta1 "calibration"
+tempCalibrateByDelta1 <- function(database_id,
+                              method,
+                              analysis_id,
+                              exposure_id,
+                              prior_id,
+                              resPath,
+                              summ = NULL,
+                              alpha = 0.05,
+                              minOutcomes = 5,
+                              useAdjusted = FALSE,
+                              evalType2 = TRUE){
+  # if summ is provided, directly query from given dataframe
+  # otherwise, load it from saved summary file
+  if(is.null(summ)){
+    db_name = ifelse(database_id == 'MDCD', 'IBM_MDCD', database_id)
+    fname = sprintf('AllSummary-%s-%s.rds', db_name, method)
+    # cat(file.path(resPath, fname))
+    # cat('\n')
+    summ = readRDS(file.path(resPath, fname))
+  }
+  
+  # get relevant rows for NCs
+  dat  = summ %>% 
+    filter(analysis_id == !!analysis_id, 
+           exposure_id == !!exposure_id,
+           prior_id == !! prior_id,
+           negativeControl == TRUE)
+  
+  # check if total num. of NCs meet `minOutcomes`
+  if(nrow(dat) == 0 || length(unique(dat$outcome_id)) < minOutcomes){
+    mes = sprintf('Num. of negative controls for analysis %s, exposure %s and prior %s is smaller than minimum %s!\n',
+                  analysis_id, exposure_id, prior_id, minOutcomes)
+    cat(mes)
+    return(NULL)
+  }
+  
+  # proceed if having enough NCs to work with
+  
+  ## helper function to process data up to a period
+  calibrateUpToPeriod <- function(period){
+    # get relevant data up to period
+    dat.p = summ %>% 
+      filter(analysis_id == !!analysis_id, 
+             exposure_id == !!exposure_id,
+             prior_id == !! prior_id,
+             negativeControl == TRUE,
+             period_id <= period)
+    # check if having enough data
+    if(nrow(dat.p) == 0 || length(unique(dat.p$outcome_id)) < minOutcomes){
+      mes = sprintf('Num. of negative controls for period %s, is smaller than minimum %s!\n',
+                    period, minOutcomes)
+      cat(mes)
+      return(NULL)
+    }
+    
+    # proceed if okay
+    if(useAdjusted){
+      p1s = dat.p %>% group_by(outcome_id) %>%
+        summarize(maxP1 = max(adjustedP1))
+    }else{
+      p1s = dat.p %>% group_by(outcome_id) %>%
+        summarize(maxP1 = max(P1))
+    }
+    p1s = p1s %>% ungroup() %>% select(maxP1) %>% pull()
+    calibratedThres = quantile(p1s, 1-alpha) %>% as.numeric()
+    
+    # evaluate the actual type1 error rate using calibrated threshold
+    type1 = mean(p1s > calibratedThres)
+    untype1 = mean(p1s > (1-alpha)) # an "uncalibrated" version
+    
+    # evaluate type 2 error as well if...
+    if(evalType2){
+      # get relevant rows for PCs first
+      pc.dat.p = summ %>% 
+        filter(analysis_id == !!analysis_id, 
+               exposure_id == !!exposure_id,
+               prior_id == !! prior_id,
+               negativeControl == FALSE,
+               period_id <= period)
+      if(useAdjusted){
+        p1s = pc.dat.p %>% group_by(outcome_id) %>%
+          summarize(maxP1 = max(adjustedP1))
+      }else{
+        p1s = pc.dat.p %>% group_by(outcome_id) %>%
+          summarize(maxP1 = max(P1))
+      }
+      p1s = p1s %>% ungroup() %>% select(maxP1) %>% pull()
+      # evaluate type 2 error rates
+      type2 = 1 - mean(p1s > calibratedThres)
+      untype2 = 1 - mean(p1s > (1-alpha))
+    }else{
+      type2 = NA
+      untype2 = NA
+    }
+    
+    # no longer returning F1 scores....
+    
+    # return result as a one-row data frame to allow batch run...
+    res = data.frame(database_id = database_id, method = method, analysis_id = analysis_id,
+                     exposure_id = exposure_id, prior_id = prior_id, 
+                     calibratedDelta1 = calibratedThres, alpha = alpha,
+                     type1 = type1, type2 = type2,
+                     uncalibratedType1 = untype1, uncalibratedType2 = untype2,
+                     adjusted = useAdjusted,
+                     period_id = period)
+    return(res)
+  }
+  
+  # calibration by periods
+  periods = sort(unique(dat$period_id))
+  
+  allRes = NULL
+  for(per in periods){
+    res.p = calibrateUpToPeriod(per)
+    allRes = rbind(allRes, res.p)
+  }
+  
+  return(allRes)
+  
+}
+
+# ## try it
+# resultspath = '~/Documents/Research/betterResults/summary'
+# resByPeriods1 = tempCalibrateByDelta1(database_id = 'CCAE',
+#                                      method = 'SCCS',
+#                                      analysis_id = 1,
+#                                      exposure_id = 21184,
+#                                      prior_id = 2,
+#                                      resPath = resultspath,
+#                                      useAdjusted = TRUE,
+#                                      evalType2 = TRUE)
+# resByPeriods2 = tempCalibrateByDelta1(database_id = 'CCAE',
+#                                       method = 'HistoricalComparator',
+#                                       analysis_id = 1,
+#                                       exposure_id = 21184,
+#                                       prior_id = 2,
+#                                       resPath = resultspath,
+#                                       useAdjusted = TRUE,
+#                                       evalType2 = TRUE)
+
 
 # function 2 -------
 
@@ -781,3 +923,120 @@ plotSystematicErrors <- function(resls, xLabel = 'Rate ratio estimates') {
                    legend.position = "none")
   return(plot)
 }
+
+
+# 04/27/2022: plot the temporal calibration results (on Delta1 only!)
+# (one plot for choosing delta1, one for using default delta1=0.95)
+plotTempDelta1 <- function(database_id,
+                            method,
+                            analysis_id,
+                            exposure_id,
+                            prior_id,
+                            summaryPath,
+                            cachePath,
+                            alpha = 0.05,
+                            minOutcomes = 5,
+                            useAdjusted = TRUE,
+                            showPlots = TRUE){
+  # calibrate Delta1 temporally
+  caliDelta = tempCalibrateByDelta1(database_id, method, analysis_id, exposure_id, prior_id,
+                                    resPath = summaryPath,
+                                    alpha = alpha, minOutcomes = minOutcomes, 
+                                    useAdjusted = useAdjusted, evalType2 = TRUE)
+  
+  
+  # generate figure caption (with info)
+  analysis_name = readRDS(file.path(cachePath,'analyses.rds')) %>%
+    filter(method == !!method, analysis_id == !!analysis_id) %>%
+    select(description, time_at_risk) %>%
+    mutate(description_text = sprintf('%s, time at risk = %s days', description, time_at_risk)) %>%
+    select(description_text) %>% pull() %>% as.character()
+  
+  prior_name = readRDS(file.path(cachePath,'priorTable.rds')) %>%
+    filter(prior_id == !!prior_id) %>%
+    mutate(priorLabel = sprintf('Mean=%s, SD=%.1f', Mean, Sd)) %>%
+    select(priorLabel) %>% pull() %>% as.character()
+  
+  exposure_name = readRDS(file.path(cachePath,'exposures.rds')) %>%
+    filter(exposure_id == !!exposure_id) %>%
+    select(exposure_name) %>% pull() %>% as.character()
+  
+  capt = sprintf('%s\nExposure: %s\nDatabase: %s\nPrior:%s\nalpha=%.2f; default delta1=%.2f',
+                 analysis_name, exposure_name, database_id, prior_name, alpha, 1-alpha)
+  
+  
+  if(useAdjusted){
+    capt = paste0(capt,'\nWith bias adjustment')
+  }else{
+    capt = paste0(capt,'\nWithout bias adjustment')
+  }
+  
+  withChoose = data.frame(period_id = rep(caliDelta$period_id, 3),
+                          y = c(caliDelta$calibratedDelta1, 
+                                caliDelta$type1,
+                                caliDelta$type2),
+                          stats = rep(c('delta1', 'type 1', 'type 2'), each = nrow(caliDelta)))
+  noChoose = data.frame(period_id = rep(caliDelta$period_id, 3),
+                        y = c(rep(1-alpha, nrow(caliDelta)), 
+                              caliDelta$uncalibratedType1,
+                              caliDelta$uncalibratedType2),
+                        stats = rep(c('delta1', 'type 1', 'type 2'), each = nrow(caliDelta)))
+  
+  res = bind_rows(withChoose, noChoose)
+  res$method = rep(c('choosing delta1','not choosing delta1'), 
+                   each = nrow(withChoose))
+  res$method = factor(res$method, 
+                      levels = c('not choosing delta1', 'choosing delta1'))
+  
+  period_breaks = seq(from = min(caliDelta$period_id),
+                      to = max(caliDelta$period_id),
+                      by = 2)
+  period_labels = as.integer(period_breaks)
+  
+  p = ggplot(res, aes(x=period_id, y=y, color=stats))+
+    geom_line(size = 1.5) +
+    geom_point(size=2)+
+    geom_hline(data = data.frame(yinter=c(0.05,0.95,0.05), 
+                          method = factor(c('choosing delta1',
+                                            'choosing delta1',
+                                            'not choosing delta1'),
+                                     levels = c('not choosing delta1', 'choosing delta1'))),
+               mapping = aes(yintercept = yinter), 
+               color = 'gray60', 
+               size = 1, linetype=2)+
+    scale_y_continuous(limits = c(0,1))+
+    scale_x_continuous(breaks = period_breaks, labels = period_labels)+
+    labs(x='analysis period (months)', y='', caption = capt, color='')+
+    scale_color_manual(values = wes_palette("Royal1")[c(1,2,4)]) +
+    facet_grid(.~method)+
+    theme_bw(base_size = 13)
+  
+  # show plots if...
+  if(showPlots){
+    print(p)
+  }
+  
+  return(res)
+}
+
+## try it
+# summarypath = '~/Documents/Research/betterResults/summary'
+# cachepath = './localCache/'
+# caliDelta = 
+#   calibrateByDelta1(database_id= 'MDCD', 
+#                     method = 'HistoricalComparator', 
+#                     analysis_id = 2,
+#                     exposure_id = 211983, 
+#                     prior_id = 1,
+#                     resPath = summarypath,
+#                     alpha = 0.05, 
+#                     minOutcomes = 5, 
+#                     useAdjusted = TRUE, evalType2 = TRUE)
+# res = plotTempDelta1(database_id = 'MDCD',
+#                 method = 'HistoricalComparator', # 'SCCS'
+#                 analysis_id = 2,
+#                 exposure_id = 211983,
+#                 prior_id = 1,
+#                 summaryPath = summarypath,
+#                 cachePath = cachepath,
+#                 useAdjusted = TRUE)

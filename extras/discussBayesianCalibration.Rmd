@@ -1,7 +1,7 @@
 ---
 title: "Choosing Decision Thresholds for Bayesian Sequential Testing"
 author: "Fan Bu"
-date: "04/15/2022"
+date: "04/27/2022"
 output:
   html_document: default
   pdf_document: default
@@ -283,6 +283,62 @@ ggpubr::ggarrange(HCplot, SCCSplot,
                   #            'SCCS'), 
                   ncol = 2)
 ```
+
+
+## Explore temporal trends of "calibration"
+
+### Historical Comparator design
+
+#### (a) With bias adjustment, choosing or not choosing $\delta_1$ for desired Type I error rates
+```{r HC with bias adjustment temporal, echo = FALSE, fig.width=10, fig.height=4.5}
+HCwithAdjust = plotTempDelta1(database_id = db,
+                method = 'HistoricalComparator', 
+                analysis_id = aid,
+                exposure_id = eid,
+                prior_id = pid,
+                summaryPath = summarypath,
+                cachePath = cachepath,
+                useAdjusted = TRUE)
+```
+
+#### (b) Without bias adjustment
+```{r HC without bias adjustment temporal, echo = FALSE, fig.width=10, fig.height=4.5}
+HCwithoutAdjust = plotTempDelta1(database_id = db,
+                method = 'HistoricalComparator', 
+                analysis_id = aid,
+                exposure_id = eid,
+                prior_id = pid,
+                summaryPath = summarypath,
+                cachePath = cachepath,
+                useAdjusted = FALSE)
+```
+
+
+### SCCS design
+#### (a) With bias adjustment, choosing or not choosing $\delta_1$ for desired Type I error rates
+```{r SCCS with bias adjustment temporal, echo = FALSE, fig.width=10, fig.height=4.5}
+SCCSwithAdjust = plotTempDelta1(database_id = db,
+                method = 'SCCS', 
+                analysis_id = aid,
+                exposure_id = eid,
+                prior_id = pid,
+                summaryPath = summarypath,
+                cachePath = cachepath,
+                useAdjusted = TRUE)
+```
+
+#### (b) Without bias adjustment
+```{r SCCS without bias adjustment temporal, echo = FALSE, fig.width=10, fig.height=4.5}
+SCCSwithoutAdjust = plotTempDelta1(database_id = db,
+                method = 'SCCS', 
+                analysis_id = aid,
+                exposure_id = eid,
+                prior_id = pid,
+                summaryPath = summarypath,
+                cachePath = cachepath,
+                useAdjusted = FALSE)
+```
+
 
 
 ## Discussion
