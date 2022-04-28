@@ -48,8 +48,19 @@ Suppose that we want to the limit Type I error rate such that $e_1 \leq \alpha$ 
 2. Probability threshold $\delta_1$ --- i.e., we may change the Bayesian decision rule to attain a desired overall (Type I) error rate
 
 
-Furthermore, we also have systematic error distributions estimated from negative control analyses, and so we can de-bias (or "adjust") the posterior samples of $\beta$ accordingly. 
-Thus, there are in fact **four** variations we can potentially do:
+Furthermore, we also have systematic error distributions estimated from negative control analyses, and so we can de-bias (or "adjust") the posterior samples of $\beta$ accordingly. Roughly, we do the following for bias adjustment:
+
+i. Fit a systematic error distribution $P$ from the effect estimates of negative control outcomes; assuming normality, let the estimated distribution be $N(m,s^2)$
+
+ii. Sample biases (induced by systematic error) from the systematic error: $b_s \sim N(m.s^2)$ ($s=1,2,\ldots, S$)
+
+iii. With posterior samples of $\beta$, $\{\beta_s\}_{s=1}^S$, produce "de-biased" posterior samples for $\beta$ with $\tilde\beta_s = \beta_s - b_s$ ($s=1,2,\ldots, S$)
+
+iv. Use $\tilde\beta_s$'s instead of $\beta_s$'s to approximate the (de-biased) posterior distribution for effect $\beta$
+
+
+
+With the option of doing bias adjustment, there are in fact **four** variations we can potentially do in order to achieve a desired level of Type I error rates:
 
 1. Choose hypothesis threshold $h$, **with** de-biasing/adjustment
 
