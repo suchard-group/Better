@@ -31,6 +31,7 @@ Documents/*.log
 Documents/*.docx
 docs/BETTER-protocol-BEST-copied.docx
 extras/*.html
+extras/*.pdf
 
 # eumaeus credentials
 extras/credentials.R
