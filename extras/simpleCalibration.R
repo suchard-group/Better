@@ -1092,10 +1092,10 @@ plotTempDelta1 <- function(database_id,
   
   # combine data
   res = bind_rows(withChoose, noChoose)
-  res$method = rep(c('choosing delta1','not choosing delta1'), 
+  res$method = rep(c('adaptive selecting delta1',sprintf("delta1=%.2f fixed",1-alpha)), 
                    each = nrow(withChoose))
   res$method = factor(res$method, 
-                      levels = c('not choosing delta1', 'choosing delta1'))
+                      levels = c(sprintf("delta1=%.2f fixed",1-alpha), 'adaptive selecting delta1'))
   
   period_breaks = seq(from = min(caliDelta$period_id),
                       to = max(caliDelta$period_id),
@@ -1103,10 +1103,10 @@ plotTempDelta1 <- function(database_id,
   period_labels = as.integer(period_breaks)
   
   hlines = data.frame(yinter=c(0.05,0.95,0.05), 
-                      method = factor(c('choosing delta1',
-                                        'choosing delta1',
-                                        'not choosing delta1'),
-                                      levels = c('not choosing delta1', 'choosing delta1')))
+                      method = factor(c('adaptive selecting delta1',
+                                        'adaptive selecting delta1',
+                                        sprintf("delta1=%.2f fixed",1-alpha)),
+                                      levels = c(sprintf("delta1=%.2f fixed",1-alpha), 'adaptive selecting delta1')))
   
   if(stratifyByEffectSize){
     # # helper func to get shade color for effect size
@@ -1180,3 +1180,177 @@ plotTempDelta1 <- function(database_id,
 #                 cachePath = cachepath,
 #                 useAdjusted = TRUE,
 #                 stratifyByEffectSize = TRUE)
+
+
+# 04/28/2022: compare prior choices -----
+# need to specify if want to calibrate
+plotTempDelta1ByPriors <- function(database_id,
+                           method,
+                           analysis_id,
+                           exposure_id,
+                           prior_ids,
+                           summaryPath,
+                           cachePath,
+                           alpha = 0.05,
+                           minOutcomes = 5,
+                           useAdjusted = TRUE,
+                           showPlots = TRUE,
+                           stratifyByEffectSize = TRUE,
+                           calibrate = TRUE){
+  # calibrate Delta1 temporally over the priors
+  res = NULL
+  for(pid in prior_ids){
+    caliDelta = tempCalibrateByDelta1(database_id, method, analysis_id, exposure_id, 
+                                      prior_id = pid,
+                                      resPath = summaryPath, cachePath = cachePath,
+                                      alpha = alpha, minOutcomes = minOutcomes, 
+                                      useAdjusted = useAdjusted, evalType2 = TRUE,
+                                      stratifyByEffectSize = stratifyByEffectSize)
+    if(calibrate){
+      if(stratifyByEffectSize){
+        this.res = 
+          data.frame(period_id = rep(caliDelta$period_id, 3),
+                     prior_id = rep(caliDelta$prior_id, 3),
+                   y = c(caliDelta$calibratedDelta1, 
+                         caliDelta$type1,
+                         caliDelta$type2),
+                   effect_size = rep(caliDelta$effect_size, 3),
+                   stats = rep(c('delta1', 'type 1', 'type 2'), each = nrow(caliDelta))) %>%
+          distinct() %>%
+          mutate(stats = if_else(stats == 'type 2',
+                                 sprintf('%s (effect=%.1f)',stats, effect_size),
+                                 stats))
+      }else{
+        this.res = data.frame(period_id = rep(caliDelta$period_id, 3),
+                              prior_id = rep(caliDelta$prior_id, 3),
+                              y = c(caliDelta$calibratedDelta1, 
+                                    caliDelta$type1,
+                                    caliDelta$type2),
+                              stats = rep(c('delta1', 'type 1', 'type 2'), each = nrow(caliDelta)))
+      }
+    }else{
+      if(stratifyByEffectSize){
+        this.res = data.frame(period_id = rep(caliDelta$period_id, 2),
+                              prior_id = rep(caliDelta$prior_id, 2),
+                              y = c(caliDelta$uncalibratedType1,
+                                    caliDelta$uncalibratedType2),
+                              effect_size = rep(caliDelta$effect_size, 2),
+                              stats = rep(c('type 1', 'type 2'), each = nrow(caliDelta))) %>%
+          distinct() %>%
+          mutate(stats = if_else(stats == 'type 2',
+                                 sprintf('%s (effect=%.1f)',stats, effect_size),
+                                 stats))
+      }else{
+        this.res = data.frame(period_id = rep(caliDelta$period_id, 2),
+                              prior_id = rep(caliDelta$prior_id, 2),
+                              y = c(caliDelta$uncalibratedType1,
+                                    caliDelta$uncalibratedType2),
+                              stats = rep(c('type 1', 'type 2'), each = nrow(caliDelta)))
+      }
+    }
+    
+    res = rbind(res, this.res)
+  }
+  
+  
+  # generate figure caption (with info)
+  analysis_name = readRDS(file.path(cachePath,'analyses.rds')) %>%
+    filter(method == !!method, analysis_id == !!analysis_id) %>%
+    select(description, time_at_risk) %>%
+    mutate(description_text = sprintf('%s, time at risk = %s days', description, time_at_risk)) %>%
+    select(description_text) %>% pull() %>% as.character()
+  
+  exposure_name = readRDS(file.path(cachePath,'exposures.rds')) %>%
+    filter(exposure_id == !!exposure_id) %>%
+    select(exposure_name) %>% pull() %>% as.character()
+  
+  capt = sprintf('%s\nExposure: %s\nDatabase: %s',
+                 analysis_name, exposure_name, database_id)
+  
+  if(useAdjusted){
+    capt = paste0(capt,'\nWith bias adjustment')
+  }else{
+    capt = paste0(capt,'\nWithout bias adjustment')
+  }
+  
+  if(calibrate){
+    capt = paste0(capt,sprintf('\nAdaptively select delta1; alpha=%.2f',alpha))
+  }else{
+    capt = paste0(capt,sprintf('\nWith delta1=%.2f fixed', 1-alpha))
+  }
+  
+  # get priors info and labels
+  prior_labels = readRDS(file.path(cachePath,'priorTable.rds')) %>%
+    filter(prior_id %in% prior_ids) %>%
+    mutate(priorLabel = sprintf('Mean=%s, SD=%.1f', Mean, Sd)) %>%
+    select(prior_id, Sd, priorLabel) %>%
+    arrange(Sd)
+  prior.labs = prior_labels$priorLabel
+  names(prior.labs) = as.character(prior_labels$Sd)
+  
+  # join with prior labels
+  res = res %>% left_join(prior_labels, by='prior_id')
+  
+  # make plots
+  
+  ## period
+  period_breaks = seq(from = min(caliDelta$period_id),
+                      to = max(caliDelta$period_id),
+                      by = 2)
+  period_labels = as.integer(period_breaks)
+  
+  ## colors
+  if(stratifyByEffectSize){
+    type2cols = c(wes_palette("Zissou1")[3:4],wes_palette("Royal1")[4])
+  }else{
+    type2cols = wes_palette("Royal1")[4]
+  }
+  if(calibrate){
+    othercols = wes_palette("Royal1")[1:2]
+    yinters = c(0.05, 0.95)
+    yname = 'error rates/thresholds'
+  }else{
+    othercols =  wes_palette("Royal1")[2]
+    yinters = 0.05
+    yname = 'error rates'
+  }
+  allCols = c(othercols, type2cols)
+
+  # the plot
+  p = ggplot(res, aes(x=period_id, y=y, color=stats))+
+    geom_line(size = 1.5) +
+    geom_point(size=2)+
+    geom_hline(yintercept = yinters, 
+               color = 'gray60', 
+               size = 1, linetype=2)+
+    scale_y_continuous(limits = c(0,1))+
+    scale_x_continuous(breaks = period_breaks, labels = period_labels)+
+    labs(x='analysis period (months)', y=yname, caption = capt, color='')+
+    scale_color_manual(values = allCols) +
+    facet_grid(.~Sd, 
+               labeller = labeller(Sd = prior.labs))+
+    theme_bw(base_size = 13)
+  
+  
+  # show plots if...
+  if(showPlots){
+    print(p)
+  }
+  
+  return(res)
+}
+
+## try it
+# summarypath = '~/Documents/Research/betterResults/summary'
+# cachepath = './localCache/'
+# res = plotTempDelta1ByPriors(database_id = 'MDCD',
+#                              method = 'HistoricalComparator', # 'SCCS'
+#                              analysis_id = 2,
+#                              exposure_id = 211983,
+#                              prior_ids = c(1:3),
+#                              summaryPath = summarypath,
+#                              cachePath = cachepath,
+#                              useAdjusted = FALSE,
+#                              stratifyByEffectSize = TRUE,
+#                              calibrate = TRUE)
+
