@@ -3,6 +3,24 @@
 # using a hierarchical normal model 
 # (instead of just a normal using NC estimates and SDs)
 
+## helper function to pre-process one pulled likelihood profile
+## 1-row with string "point" and "value"
+## --> multiple rows with numeric `point` and `value`
+
+processLikelihood <- function(row, keepLikelihoodOnly = TRUE){
+  points = stringr::str_split(row$point,';') %>% 
+    unlist() %>% as.numeric()
+  values = stringr::str_split(row$value,';') %>% 
+    unlist() %>% as.numeric()
+  
+  if(keepLikelihoodOnly){
+    data.frame(point = points, value = values)
+  }else{
+    row %>% select(-point, -value) %>%
+      bind_cols(data.frame(point = points, value = values))
+  }
+}
+
 fitJointNegativeControl <- function(connection,
                                     schema,
                                     database_id,
@@ -86,7 +104,11 @@ fitJointNegativeControl <- function(connection,
       # transform it to a list of one-row dataframes
       likelihoods = split(likelihoods, seq(nrow(likelihoods)), drop = TRUE)
       
-      cat(length(likelihoods), '\n', names(likelihoods[[1]]), '\n')
+      # process each likelihood profile into a long-format dataframe
+      likelihoods = lapply(likelihoods, processLikelihood)
+      
+      ParallelLogger::logInfo(sprintf('Estimating systemaic error distribution using %s negative control likelihood profiles...!\n',
+                                      length(likelihoods)))
       
       ## run MCMC to get post samples for mean and precision
       null <- EvidenceSynthesis::computeBayesianMetaAnalysis(data = likelihoods,
@@ -127,15 +149,29 @@ fitJointNegativeControl <- function(connection,
 
 
 # try it
-null = fitJointNegativeControl(connection = connection,
-                               schema = 'eumaeus',
-                               database_id = "IBM_MDCD",
-                               method = "SCCS",
-                               exposure_id = 21184,
-                               period_id = 9,
-                               analysis_id = 1,
-                               outcomeToExclude = NULL, # (Sedative withdrawal)
-                               numsamps = 10000,
-                               thin = 100,
-                               minNCs = 5,
-                               plot = TRUE)
+# null = fitJointNegativeControl(connection = connection,
+#                                schema = 'eumaeus',
+#                                database_id = "IBM_MDCD",
+#                                method = "SCCS",
+#                                exposure_id = 21184,
+#                                period_id = 9,
+#                                analysis_id = 1,
+#                                outcomeToExclude = NULL,
+#                                numsamps = 10000,
+#                                thin = 100,
+#                                minNCs = 5,
+#                                plot = TRUE)
+
+## compare it with the null distr. fitted using frequentist estimates only
+# NCs = fitNegativeControlDistribution(connection, 'eumaeus',
+#                                      database_id = "IBM_MDCD",
+#                                      method = "SCCS",
+#                                      exposure_id = 21184,
+#                                      period_id = 9,
+#                                      analysis_id = 1,
+#                                      outcomeToExclude = NULL,# (Sedative withdrawal)
+#                                      numsamps = 10000,
+#                                      plot = TRUE)
+
+# they do look different, as more info is included for likelihood profiles
+# (some didn't produce estimates but still have saved LPs)

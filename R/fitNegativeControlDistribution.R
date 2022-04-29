@@ -84,6 +84,9 @@ fitNegativeControlDistribution <- function(connection,
       # otherwise, fit a systematic error (normal) distribution with MCMC
       # get mean and precision parameters samples back
       names(estimates) = tolower(names(estimates))
+      
+      ParallelLogger::logInfo(sprintf('Estimating systemaic error distribution using %s negative control estiamtes...!\n',
+                                      nrow(estimates)))
 
       ## run MCMC to get post samples for mean and precision
       null <- EmpiricalCalibration::fitMcmcNull(logRr = estimates$log_rr, 
