@@ -161,6 +161,19 @@ LEFT JOIN #event_count event_count
 	ON background_time.age_group = event_count.age_group
 		AND background_time.gender_concept_id = event_count.gender_concept_id
 		AND all_cohorts.cohort_id = event_count.cohort_id;
+		
+-- Mutate the background_time table to have gender and personYears
+IF OBJECT_ID('tempdb..#reference_rates', 'U') IS NOT NULL
+  DROP TABLE #reference_rates;
+
+SELECT age_group, 
+  concept_name AS gender,
+  day_count/365.25 AS person_years,
+  person_count
+INTO #reference_rates
+FROM #background_time background_time
+INNER JOIN @cdm_database_schema.concept
+	ON concept_id = background_time.gender_concept_id;
 
 TRUNCATE TABLE #risk_window;
 DROP TABLE #risk_window;
@@ -168,5 +181,6 @@ DROP TABLE #risk_window;
 TRUNCATE TABLE #event_count;
 DROP TABLE #event_count;
 
-TRUNCATE TABLE #background_time;
-DROP TABLE #background_time;
+-- Keep the background_time table for now...
+--TRUNCATE TABLE #background_time;
+--DROP TABLE #background_time;
