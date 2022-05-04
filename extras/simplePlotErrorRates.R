@@ -1,8 +1,12 @@
 # March 4, simple plot for error rates
 
+# 05/04/2022: change "calibrated" to "biased adjusted"
+#             and "uncalibrated" to "unadjusted"
+
 library(ggh4x)
 library(wesanderson)
 source('extras/helperFunctions.R')
+source('extras/postProcessUtils.R')
 
 # main function
 simplePlotErrorRates <- function(database_id,
@@ -73,7 +77,11 @@ simplePlotErrorRates <- function(database_id,
   # add labels for Type 1/2 and calibrated/uncalibrated
   judged = judged %>% 
     mutate(errorType = if_else(negativeControl, 'Type I', 'Type II'),
-           Type = if_else(stringr::str_starts(errorLabel, 'Cali'), 'Calibrated', 'Uncalibrated'))
+           Type = if_else(stringr::str_starts(errorLabel, 'Cali'), 'Bias Adjusted', 'Unadjusted')) %>%
+    mutate(errorLabel = paste(Type, errorType))
+  judged$errorLabel = factor(judged$errorLabel, 
+                             levels = c('Unadjusted Type I', 'Unadjusted Type II',
+                                        'Bias Adjusted Type I', 'Bias Adjusted Type II'))
   
   # ! switch Type I error back to the positive scale...
   judged = judged %>% 
@@ -123,10 +131,18 @@ simplePlotErrorRates <- function(database_id,
       theme(strip.background = element_blank(),
             panel.border = element_blank(),
             legend.position = 'bottom',
-            strip.text.y = element_text(angle = 0)) +
-      facet_nested(method_description ~ exposure_name + errorType,
-                   labeller = label_wrap_gen(width=15),
-                   nest_line = element_line(linetype = 1))
+            strip.text.y = element_text(angle = 0))
+    
+    if(length(exposure_ids) < 2 & length(unique(judged$method_description)) >= 2){
+      pg = pg + facet_grid(method_description ~ errorType)
+    }else if(length(exposure_ids) < 2 & length(unique(judged$method_description)) < 2){
+      pg = pg + facet_grid(. ~ errorType)
+    }else{
+      pg = pg +
+        facet_nested(method_description ~ exposure_name + errorType,
+                     labeller = label_wrap_gen(width=15),
+                     nest_line = element_line(linetype = 1))
+    }
   }
   if(flag == 'byDelta0'){
     pg = ggplot(judged, aes(x=d0Label, y=avgErrorRate, 
@@ -144,10 +160,18 @@ simplePlotErrorRates <- function(database_id,
       theme(strip.background = element_blank(),
             panel.border = element_blank(),
             legend.position = 'bottom',
-            strip.text.y = element_text(angle = 0)) +
-      facet_nested(method_description ~ exposure_name + errorType,
-                   labeller = label_wrap_gen(width=15),
-                   nest_line = element_line(linetype = 1))
+            strip.text.y = element_text(angle = 0))
+    
+    if(length(exposure_ids) < 2 & length(unique(judged$method_description)) >= 2){
+      pg = pg + facet_grid(method_description ~ errorType)
+    }else if(length(exposure_ids) < 2 & length(unique(judged$method_description)) < 2){
+      pg = pg + facet_grid(. ~ errorType)
+    }else{
+      pg = pg +
+        facet_nested(method_description ~ exposure_name + errorType,
+                     labeller = label_wrap_gen(width=15),
+                     nest_line = element_line(linetype = 1))
+    }
   }
   if(flag == 'byPrior'){
     pg = ggplot(judged, aes(x=as.factor(Sd), y=avgErrorRate, fill=errorLabel)) +
@@ -164,10 +188,18 @@ simplePlotErrorRates <- function(database_id,
       theme(strip.background = element_blank(),
             panel.border = element_blank(),
             legend.position = 'bottom',
-            strip.text.y = element_text(angle = 0)) +
-      facet_nested(method_description ~ exposure_name + errorType,
-                   labeller = label_wrap_gen(width=15),
-                   nest_line = element_line(linetype = 1))
+            strip.text.y = element_text(angle = 0))
+    
+    if(length(exposure_ids) < 2 & length(unique(judged$method_description)) >= 2){
+      pg = pg + facet_grid(method_description ~ errorType)
+    }else if(length(exposure_ids) < 2 & length(unique(judged$method_description)) < 2){
+      pg = pg + facet_grid(. ~ errorType)
+    }else{
+      pg = pg +
+        facet_nested(method_description ~ exposure_name + errorType,
+                     labeller = label_wrap_gen(width=15),
+                     nest_line = element_line(linetype = 1))
+    }
   }
   
   # add color palette if
@@ -200,12 +232,80 @@ simplePlotErrorRates <- function(database_id,
 
 
 ### Run code to produce plots
+# resultspath = '~/Documents/Research/betterResults/judged/'
+# cachepath = './localCache/'
+# savepath = '~/Documents/Research/betterResults/simpleErrorPlots/'
+# 
+# databases = 'IBM_MDCD'
+# methods = c('SCCS','HistoricalComparator')
+# 
+# for(db in databases){
+#   for(mt in methods){
+#     if(mt == 'SCCS'){aids = c(2,4)}
+#     if(mt == 'HistoricalComparator'){aids = c(2,6)}
+#     
+#     # prior sd on x-axis
+#     simplePlotErrorRates(database_id = db, method = mt, 
+#                          resPath = resultspath, 
+#                          cachePath = cachepath,
+#                          judgeStyle = 'H0neither',
+#                          exposure_ids = NULL,
+#                          analysis_ids = aids,
+#                          delta1 = 0.8,
+#                          delta0 = 0.9,
+#                          prior_Sd = NULL,
+#                          returnResults = FALSE,
+#                          savePath = savepath,
+#                          saveResults = FALSE,
+#                          fnameSuffix = '',
+#                          usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)],
+#                          pHeight = 7)
+#     
+#     # delta1 on x-axis
+#     simplePlotErrorRates(database_id = db, method = mt, 
+#                          resPath = resultspath, 
+#                          cachePath = cachepath,
+#                          judgeStyle = 'H0neither',
+#                          exposure_ids = NULL,
+#                          analysis_ids = aids,
+#                          delta1 = NULL,
+#                          delta0 = 0.9,
+#                          prior_Sd = 1.5,
+#                          returnResults = FALSE,
+#                          savePath = savepath,
+#                          saveResults = FALSE,
+#                          fnameSuffix = '',
+#                          usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)],
+#                          pHeight = 7)
+#     
+#     # delta0 on x-axis
+#     simplePlotErrorRates(database_id = db, method = mt, 
+#                          resPath = resultspath, 
+#                          cachePath = cachepath,
+#                          judgeStyle = 'H0neither',
+#                          exposure_ids = NULL,
+#                          analysis_ids = aids,
+#                          delta1 = 0.95,
+#                          delta0 = NULL,
+#                          prior_Sd = 1.5,
+#                          returnResults = FALSE,savePath = savepath,
+#                          saveResults = FALSE,
+#                          fnameSuffix = '',
+#                          usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)],
+#                          pHeight = 7) 
+#   }
+# }
+
+
+## 05/04: produce some simple plots for Zoster vaccine
 resultspath = '~/Documents/Research/betterResults/judged/'
 cachepath = './localCache/'
-savepath = '~/Documents/Research/betterResults/simpleErrorPlots/'
+savepath = '~/Documents/Research/betterResults/demoPlotsZoster/'
 
 databases = 'IBM_MDCD'
-methods = c('SCCS','HistoricalComparator')
+methods = c('HistoricalComparator')
+
+eid = c(211981,211982,211983) # Zoster
 
 for(db in databases){
   for(mt in methods){
@@ -217,7 +317,7 @@ for(db in databases){
                          resPath = resultspath, 
                          cachePath = cachepath,
                          judgeStyle = 'H0neither',
-                         exposure_ids = NULL,
+                         exposure_ids = eid,
                          analysis_ids = aids,
                          delta1 = 0.8,
                          delta0 = 0.9,
@@ -227,14 +327,14 @@ for(db in databases){
                          saveResults = FALSE,
                          fnameSuffix = '',
                          usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)],
-                         pHeight = 7)
+                         pHeight = 7, pWidth = 11) 
     
     # delta1 on x-axis
     simplePlotErrorRates(database_id = db, method = mt, 
                          resPath = resultspath, 
                          cachePath = cachepath,
                          judgeStyle = 'H0neither',
-                         exposure_ids = NULL,
+                         exposure_ids = eid,
                          analysis_ids = aids,
                          delta1 = NULL,
                          delta0 = 0.9,
@@ -244,26 +344,26 @@ for(db in databases){
                          saveResults = FALSE,
                          fnameSuffix = '',
                          usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)],
-                         pHeight = 7)
+                         pHeight = 7, pWidth = 11) 
     
     # delta0 on x-axis
     simplePlotErrorRates(database_id = db, method = mt, 
                          resPath = resultspath, 
                          cachePath = cachepath,
                          judgeStyle = 'H0neither',
-                         exposure_ids = NULL,
+                         exposure_ids = eid,
                          analysis_ids = aids,
                          delta1 = 0.95,
                          delta0 = NULL,
                          prior_Sd = 1.5,
-                         returnResults = FALSE,savePath = savepath,
+                         returnResults = FALSE,
+                         savePath = savepath,
                          saveResults = FALSE,
                          fnameSuffix = '',
                          usePalette = wes_palette("Darjeeling2")[c(1,4,3,2)],
-                         pHeight = 7) 
+                         pHeight = 7, pWidth = 11) 
   }
 }
-
 
 
 
