@@ -9,6 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## The problem
+
 We wish to test
 
 $$
@@ -26,13 +28,13 @@ $$
 Our "empirical approximation" using negative control outcomes $o=1:O$:
 
 $$
-e_1 \approx \frac{1}{O}\sum_{o}P(\text{reject }H_0 \mid \text{data on }o).
+e_1 \approx \frac{1}{O}\sum_{o}\mathbb{I}(\text{reject }H_0 \mid \text{data on }o).
 $$
 
 Think of posterior probability $p_{o,1} = P(\beta > h \mid \text{data on }o)$ as a "test statistic". Given threshold $\delta_1$ (and $h$),
 
 $$
-e_1 \approx \frac{1}{O}\sum_{o} P(p_{o,1} > \delta_1 \mid \text{data on }o).
+e_1 \approx \frac{1}{O}\sum_{o} \mathbb{I}(p_{o,1} > \delta_1).
 $$
 
 
@@ -49,22 +51,55 @@ $$
 Thus, our empirical approximation for Type I error rate given the negative control outcomes is
 
 $$
-e_1 \approx \frac{1}{O}\sum_{o} P(\max_t p_{o,1,t} > \delta_1 \mid \text{data on }o \text{ for all time}).
+e_1 \approx \frac{1}{O}\sum_{o} \mathbb{I}(\max_t p_{o,1,t} > \delta_1).
 $$
 
 Note that this is a quantity w.r.t. to **infinite** time horizon, which is tricky to handle. We might want to look at a finite-time approximation (say, up to time $T$)
 
 $$
-e_{1,T} \approx \frac{1}{O}\sum_{o} P(\max_{t \leq T} p_{o,1,t} > \delta_1 \mid \text{data on }o \text{ up to time } T).
+e_{1,T} \approx \frac{1}{O}\sum_{o} \mathbb{I}(\max_{t \leq T} p_{o,1,t} > \delta_1).
 $$
--------------------
 
-Some ideas so far:
+## Examine $p_{o,1,t}$
 
-1. Don't worry about it and just pick some $h$ and $\delta_1$ we like
+Recall that $p_{o,1,t}$ is the posterior probability of $H_1$:
 
-2. Worry about $e_{1,T}$ (finite-time error) only for now
+$$
+p_{o,1,t} = P(\beta > h \mid \text{data on }o \text{ at } t).
+$$
 
-3. Come up with an asymptotic alpha expending function for $e_{1,T}$ (w.r.t. "random test statistic" $p_{o,1,t}$?)
+Suppose the truth is $\beta = \beta_0 < h$. Given posterior consistency, the posterior distribution $P_t(\beta \mid \text{data}_t)$ will converge to $\delta_{\beta_0}$ as $t \rightarrow \infty$. 
 
-4. Marginalize over uncertain systematic errors and thresholds ($h$ and $\delta_1$???), with smart prior choices to avoid early errors
+Therefore it might be safe (???) to say that, for any arbitrarily small $\epsilon$ ($< \delta_1$), there exists a (sufficiently large) time $T_s$ such that at any time $t \geq T_s$, we can guarantee
+
+$$
+p_{o,1,t} < \epsilon
+$$
+
+a.s., or with large enough probability. (i.e., the tail probability of posterior $P_t$ will get small enough as $P_t$ gets close enough to the truth $\delta_{\beta_0}$.)
+
+Thus, we may think of 
+$$
+\mathbb{I}(\max_t p_{o,1,t} > \delta_1) \approx \mathbb{I}(\max_{t < T_s} p_{o,1,t} > \delta_1).
+$$
+In other words, only considering a (sufficiently long) limited-time horizon is a valid thing to do.
+
+Now the problem becomes: how to make sure $p_{o,1,t} \leq \delta_1$ happens all the time (or almost all the time) for $t < T_s$. Some choices/ideas:
+
+1. Some kind of alpha expenditure scheme for those early-on time points --- is that not too good (too inflexible)?
+
+2. Do our dynamic adaptive "calibration" thing for those early-on time points -- but, e.g., calibrating at $\alpha = 0.05$ at time $t$ does **not** guarantee overall $\alpha = 0.05$ through $T_s$
+
+3. At the earliest few time points (say, the first 1 or 2 looks), use some really conservative prior (or simply not reject $H_0$ at all) to prevent false positives, and then do our adaptive "calibration" thing --- not good for power in those earliest time points
+
+<!-- ------------------- -->
+
+<!-- Some ideas so far: -->
+
+<!-- 1. Don't worry about it and just pick some $h$ and $\delta_1$ we like -->
+
+<!-- 2. Worry about $e_{1,T}$ (finite-time error) only for now -->
+
+<!-- 3. Come up with an asymptotic alpha expending function for $e_{1,T}$ (w.r.t. "random test statistic" $p_{o,1,t}$?) -->
+
+<!-- 4. Marginalize over uncertain systematic errors and thresholds ($h$ and $\delta_1$???), with smart prior choices to avoid early errors -->
