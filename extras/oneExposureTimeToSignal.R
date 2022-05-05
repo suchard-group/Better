@@ -27,15 +27,24 @@ periodToSensitivity <- function(ttd, dec, sens = 0.8){
 
 ## 2. main function to compute earliest time to specified sensitivity level (default to 0.8)
 ##    to the computation and save results first, NO PLOTTING IN HERE
-computeEarliestTimeToSignal <- function(database_id,
-                                        method,
-                                        resPath,          # where to find the summary files (decisions in them)
-                                        cachePath,        # where to find helper tables
-                                        savePath = NULL, # path for saving results
-                                        returnResults = FALSE, # if return results as dataframe
-                                        saveResults = FALSE, # if save the summary results to savePath
-                                        sensitivity = 0.8,
-                                        posControlOnly = TRUE){ # if only do this for positive controls
+## 05/04/2022: (1) do this for a subset of exposures (mainly, for single exposure)
+##             (2) also change "Calibrated" --> "Bias adjusted"; also re-order to put unadjusted up front
+selectExposureEarliestTimeToSignal <- function(database_id,
+                                               method,
+                                               exposure_id,
+                                               resPath,
+                                               # where to find the summary files (decisions in them)
+                                               cachePath,
+                                               # where to find helper tables
+                                               savePath = NULL,
+                                               # path for saving results
+                                               returnResults = FALSE,
+                                               # if return results as dataframe
+                                               saveResults = FALSE,
+                                               # if save the summary results to savePath
+                                               sensitivity = 0.8,
+                                               posControlOnly = TRUE) {
+  # if only do this for positive controls
   # first check if savePath is provided when saveResults=TRUE
   if(saveResults & is.null(savePath)){
     stop('Must provide a `savePath` when saveResults=TRUE!!!\n')
@@ -70,6 +79,11 @@ computeEarliestTimeToSignal <- function(database_id,
     res = res %>% filter(!negativeControl)
   }
   
+  # subset on exposure_ids if not null
+  if(!is.null(exposure_id)){
+    res = res %>% filter(exposure_id %in% !!exposure_id)
+  }
+  
   # read in the effect size table and join with decisions
   effects = getEffectSizes(cachePath, cachePath)
   res = res %>% left_join(effects)
@@ -83,7 +97,7 @@ computeEarliestTimeToSignal <- function(database_id,
     summarise(timeToSignal = periodToSensitivity(timeToDecision, 
                                                  decision, 
                                                  sens = sensitivity)) %>%
-    mutate(Type = 'Uncalibrated')
+    mutate(Type = 'Unadjusted')
   
   adjusted = res %>% 
     group_by(database_id, method, analysis_id, 
@@ -92,10 +106,11 @@ computeEarliestTimeToSignal <- function(database_id,
     summarise(timeToSignal = periodToSensitivity(adjustedTimeToDecision, 
                                                  adjustedDecision, 
                                                  sens = sensitivity)) %>%
-    mutate(Type = 'Calibrated')
+    mutate(Type = 'Bias adjusted')
   
   # combine and return/save if necessary
-  res = bind_rows(unadjusted, adjusted)
+  res = bind_rows(unadjusted, adjusted) %>%
+    mutate(Type = factor(Type, levels = c('Unadjusted','Bias adjusted')))
   
   # save results if ...
   if(saveResults){
@@ -117,34 +132,46 @@ computeEarliestTimeToSignal <- function(database_id,
 ## 3. plotting function
 ##   (1) plot density of time to signal (those finite times)
 ##   (2) proportion of finite times to signal
-plotEarliestTimeToSignal <- function(database_id,
-                                     method,
-                                     analysesToExclude = NULL, # analysis_ids to exclude
-                                     plotType = 'timeDensity',
-                                     resPath,          # where to find the summary files (decisions in them)
-                                     cachePath,        # where to find helper tables
-                                     savePath = NULL, # path for saving plots
-                                     saveResults = FALSE, # if save the summary results to savePath
-                                     sensitivity = 0.8,
-                                     posControlOnly = TRUE,
-                                     baseExposures = TRUE,
-                                     pHeight = 8, pWidth = 12,
-                                     usePalette = wes_palette("Darjeeling2")[2:3]){
+## 05/04/2022: focus on ONE exposure only here...
+plotEarliestTimeToSignalOneExposure <- function(database_id,
+                                                method,
+                                                exposure_id,
+                                                analysesToExclude = NULL,
+                                                # analysis_ids to exclude
+                                                plotType = 'timeDensity',
+                                                resPath,
+                                                # where to find the summary files (decisions in them)
+                                                cachePath,
+                                                # where to find helper tables
+                                                savePath = NULL,
+                                                # path for saving plots
+                                                saveResults = FALSE,
+                                                # if save the summary results to savePath
+                                                sensitivity = 0.8,
+                                                posControlOnly = TRUE,
+                                                baseExposures = TRUE,
+                                                pHeight = 8,
+                                                pWidth = 12,
+                                                usePalette = wes_palette("Darjeeling2")[2:3]) {
+  
   # first check if savePath is provided when saveResults=TRUE
   if(saveResults & is.null(savePath)){
     stop('Must provide a `savePath` when saveResults=TRUE!!!\n')
   }
   
   # get the data frame needed for plotting
-  tts = computeEarliestTimeToSignal(database_id = database_id,
-                                    method = method,
-                                    resPath = resPath,
-                                    cachePath = cachePath,
-                                    savePath = savePath,
-                                    saveResults = saveResults,
-                                    returnResults = TRUE,
-                                    sensitivity = sensitivity,
-                                    posControlOnly = posControlOnly)
+  tts = selectExposureEarliestTimeToSignal(
+    database_id = database_id,
+    method = method,
+    exposure_id = exposure_id,
+    resPath = resPath,
+    cachePath = cachePath,
+    savePath = savePath,
+    saveResults = saveResults,
+    returnResults = TRUE,
+    sensitivity = sensitivity,
+    posControlOnly = posControlOnly
+  )
   # massage HistoricalComparator results a little...
   # RIGHT NOW: disregard results for "filtered" analyses (analysis_id: 13-24)
   if(method == 'HistoricalComparator'){
@@ -200,36 +227,32 @@ plotEarliestTimeToSignal <- function(database_id,
   
   # plot by plotType
   if(plotType == 'timeDensity'){
-    ## violin plot for the earliest periods
-    ## one plot for each prior
-    pls = priors$priorLabel
-    for(pl in pls){
-      this.tts = tts %>% filter(priorLabel == pl)
-      pg = ggplot(this.tts, aes(y=timeToSignal, 
-                                x=as.factor(effect_size), 
-                                fill=Type)) +
-        geom_violin(width = 1)+
-        geom_vline(xintercept = c(1.5,2.5), color='gray40')+
-        scale_y_continuous(breaks = seq(from=3, to=12, by=3)) +
-        labs(x='Effect Size', 
-             y=sprintf('Earliest time to reach %.0f%% sensitivity', sensitivity * 100),
-             fill = '',
-             caption = pl) +
-        facet_grid(d1Label~exposure_name,
-                   labeller = label_wrap_gen(width=15)) +
-        theme_bw(base_size = 14)+
-        theme(panel.grid.major.x = element_blank(),
-              axis.ticks.x = element_blank(),
-              strip.background = element_blank(),
-              legend.position = 'bottom')
-      if(!is.null(usePalette)){
-        print(
-          pg + 
-            scale_fill_manual(values = usePalette)
-        )
-      }
-      
+    ## for one exposure: combine priors and effect size + delta1 in one big plot
+    tts$priorLabel = factor(tts$priorLabel, levels = priors$priorLabel)
+    pg = ggplot(tts, aes(y=timeToSignal, 
+                         x=as.factor(effect_size), 
+                         fill=Type)) +
+      geom_violin(width = 1)+
+      geom_vline(xintercept = c(1.5,2.5), color='gray40')+
+      scale_y_continuous(breaks = seq(from=3, to=12, by=3)) +
+      labs(x='Effect Size', 
+           y=sprintf('Earliest time to reach %.0f%% sensitivity', sensitivity * 100),
+           fill = '') +
+      facet_grid(d1Label~priorLabel,
+                 labeller = label_wrap_gen(width=15)) +
+      theme_bw(base_size = 14)+
+      theme(panel.grid.major.x = element_blank(),
+            axis.ticks.x = element_blank(),
+            strip.background = element_blank(),
+            legend.position = 'bottom')
+    
+    if(!is.null(usePalette)){
+      print(
+        pg + 
+          scale_fill_manual(values = usePalette)
+      )
     }
+    
   }else{
     # bar plot for rate of finite earliest times
     tts_counts = tts %>% 
@@ -252,9 +275,8 @@ plotEarliestTimeToSignal <- function(database_id,
            y=sprintf('Rate of reaching %.0f%% sensitivity before end', 
                      sensitivity * 100),
            fill='') +
-      facet_nested(priorLabel + d1Label ~ exposure_name,
-                   labeller = label_wrap_gen(width=15),
-                   nest_line = element_line(linetype = 1)) +
+      facet_grid(d1Label ~ priorLabel, 
+                 labeller = label_wrap_gen(width=15))+
       theme_bw(base_size = 14)+
       theme(panel.grid.major.x = element_blank(),
             #axis.ticks.x = element_blank(),
@@ -273,3 +295,52 @@ plotEarliestTimeToSignal <- function(database_id,
   if(saveResults){dev.off()}
   
 }
+
+resultspath = '~/Documents/Research/betterResults/summary/'
+cachepath = './localCache/'
+savepath = '~/Documents/Research/betterResults/timeToSignalZoster/'
+
+sensitivity_level = 0.5
+
+db = 'CCAE'
+mt = 'HistoricalComparator'
+
+eid = c(211981:211983)
+
+if(mt == 'SCCS'){
+  analysesExclude = c(9:12, 15)
+}else{
+  analysesExclude = c(9:12)
+}
+
+## (1) time density
+plotEarliestTimeToSignalOneExposure(database_id = db, 
+                         method = mt,
+                         exposure_id = eid,
+                         analysesToExclude = analysesExclude,
+                         plotType = 'timeDensity',
+                         resPath = resultspath,
+                         cachePath = cachepath,
+                         savePath = savepath,
+                         saveResults = TRUE,
+                         sensitivity = sensitivity_level,
+                         posControlOnly = TRUE,
+                         baseExposures = TRUE,
+                         pHeight = 6, pWidth = 9,
+                         usePalette = wes_palette("Darjeeling2")[2:3])
+
+## (2) rate of finite times
+plotEarliestTimeToSignalOneExposure(database_id = db, 
+                         method = mt,
+                         exposure_id = eid,
+                         analysesToExclude = analysesExclude,
+                         plotType = 'finiteRates',
+                         resPath = resultspath,
+                         cachePath = cachepath,
+                         savePath = savepath,
+                         saveResults = TRUE,
+                         sensitivity = sensitivity_level,
+                         posControlOnly = TRUE,
+                         baseExposures = TRUE,
+                         pHeight = 12, pWidth = 8,
+                         usePalette = wes_palette("Darjeeling2")[2:3])
