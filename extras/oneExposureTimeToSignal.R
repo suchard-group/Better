@@ -2,7 +2,12 @@
 # focusing on ONE exposure ONLY!
 # can be used for Zoster vaccine results....
 
+library(tidyverse)
 library(ggh4x)
+library(wesanderson)
+
+source('./extras/helperFunctions.R')
+source('./extras/postProcessUtils.R')
 
 ## 1. a helper function to produce earliest period that reached a sensitivity level
 periodToSensitivity <- function(ttd, dec, sens = 0.8){
@@ -327,7 +332,7 @@ plotEarliestTimeToSignalOneExposure(database_id = db,
                          posControlOnly = TRUE,
                          baseExposures = TRUE,
                          pHeight = 6, pWidth = 9,
-                         usePalette = wes_palette("Darjeeling2")[2:3])
+                         usePalette = wes_palette("Darjeeling2")[c(2,4)])
 
 ## (2) rate of finite times
 plotEarliestTimeToSignalOneExposure(database_id = db, 
@@ -342,5 +347,5 @@ plotEarliestTimeToSignalOneExposure(database_id = db,
                          sensitivity = sensitivity_level,
                          posControlOnly = TRUE,
                          baseExposures = TRUE,
-                         pHeight = 12, pWidth = 8,
-                         usePalette = wes_palette("Darjeeling2")[2:3])
+                         pHeight = 6, pWidth = 6,
+                         usePalette = wes_palette("Darjeeling2")[c(2,4)])

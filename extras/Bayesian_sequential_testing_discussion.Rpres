@@ -1,0 +1,196 @@
+Discussion on Bayesian sequential testing with bias adjustment
+========================================================
+author: Fan Bu
+date: May 12, 2022
+autosize: true
+
+Overview
+========================================================
+
+Hypothesis: no increased risk v.s. increased risk
+
+$$
+H_0: \beta \leq 0 \quad \text{v.s.} \quad H_1: \beta > 0.
+$$
+
+- We want to conduct sequential testing with "empirical calibration"
+- ... but we want to do it in a Bayesian way
+- Unlike MaxSPRT, we want flexibility on the testing schedule
+- ... while adjusting for bias induced by systematic error
+
+
+Recall: frequentist empirical calibration
+========================================================
+
+- Goal: 5% Type I error rate over all
+
+(Martijn's method:)
+
+- Make use of negative control outcomes
+- Calibrate on p-values or the critical value (for rejecting null) so that **overall** false positive rate on negative controls $\leq 0.05$ 
+- Do-able for MaxSPRT thanks to pre-specified fixed schedule (can do via simulations)
+
+Bayesian "empirical calibration"??
+========================================================
+Well, not really "calibration", but bias adjustment, also making use of negative controls.
+
+Main points of our model:
+
+- Systematic error $\rightarrow$ bias $b$ (unknown)
+- Assuming bias is **additive** to the true effect $\beta$,  our estimand is 
+$$
+		\tilde\beta = \beta + b
+$$
+- We can make inference regarding $\tilde\beta$ given likelihood $L(\tilde\beta \mid \text{data})$ and prior $\pi(\tilde\beta)$
+- .... and also estimate a systematic error distribution from negative control outcomes: $q(b \mid \text{NCs})$
+
+Bayesian "empirical calibration"??
+========================================================
+Well, not really "calibration", but bias adjustment, also making use of negative controls.
+
+Main points of our model:
+
+- Joint posterior for $\beta, b, \tilde\beta$:
+$$
+p(\beta, b, \tilde\beta \mid \text{data, NCs}) \propto L(\tilde\beta \mid \text{data})\pi(\tilde\beta) q(b \mid \text{NCs})
+$$
+- Can use a simple Gibbs sampler to sample from this joint posterior and obtain marginal posterior distribution for $\beta$ (the ``unbiased'' effect)
+
+
+Combine sequential testing and bias adjustment
+========================================================
+(in a Bayesian framework)
+
+We do the following at time step $t$ sequentially:
+
+- Do Bayesian inference (given a prior and likelihood/model on the effect)
+- Do bias adjustment in addition to inference
+- Make a decision: 
+
+  * If $P(H_1 \mid \text{data up to time } t) > \delta_1$, accept $H_1$ (claim risk signal) and stop
+  * Otherwise, continue
+
+
+Impact of doing bias adjustment
+========================================================
+
+An example using historical comparator. 
+
+```{r, echo=FALSE, fig.width=13, fig.height=6}
+source('Bayesian_sequential_testing_discussion_helper.R')
+
+```
+
+
+Bias adjustment helps reduce Type I error; BUT **no** guarantee on Type I error rates!
+
+
+Question not (yet) answered
+========================================================
+
+**How do we choose decision thresholds if we want to achieve some desired Type I/II error rates level??**
+
+e.g., Want Type I error rate $< \alpha = 0.05$.
+
+
+My attempt at formulating the problem
+========================================================
+
+- Type I error defined with "conditional error" (proposed by Berger et al.):
+
+$$
+e_1 = \mathbb{E}_{\text{data} \in H_0} P(\text{reject }H_0 \mid \text{data}).
+$$
+
+
+- Our "empirical approximation" using negative control outcomes $o=1:O$:
+
+$$
+e_1 \approx \frac{1}{O}\sum_{o}\mathbb{I}(\text{reject }H_0 \mid \text{data on }o).
+$$
+
+
+My attempt at formulating the problem
+========================================================
+
+- Think of the Bayesian posterior prob. as "test statistic": $p_{o,1} = P(\beta > h \mid \text{data on }o)$
+- Given threshold $\delta_1$ (and $h$),
+
+$$
+e_1 \approx \frac{1}{O}\sum_{o} \mathbb{I}(p_{o,1} > \delta_1).
+$$
+
+
+My attempt at formulating the problem
+========================================================
+
+- With sequential test, at time $t$, the "test statistic" for outcome $o$ is
+$$
+p_{o,1,t} = P(\beta > h \mid \text{data on }o \text{ at } t).
+$$
+
+- **As soon as** $p_{o,1,t} > \delta_1$, $H_1$ is claimed true for outcome $o$. 
+
+- Type I error is made for outcome $o$, if
+$$
+\max_t p_{o,1,t} > \delta_1.
+$$
+
+- "Empirical approximation" for Type I error rate, sequential version:
+
+$$
+e_1 \approx \frac{1}{O}\sum_{o} \mathbb{I}(\max_t p_{o,1,t} > \delta_1).
+$$
+
+
+Looking at the "empirical" type I error rate
+========================================================
+
+$$
+e_1 \approx \frac{1}{O}\sum_{o} \mathbb{I}(\max_t p_{o,1,t} > \delta_1).
+$$
+
+- This is a quantity w.r.t. to **infinite** time horizon
+- ... and we **don't** want to have a fixed schedule
+- Might we somehow use a **finite** time horizon to further approximate it??
+
+
+Looking at the "empirical" type I error rate
+========================================================
+
+$$
+e_1 \approx \frac{1}{O}\sum_{o} \mathbb{I}(\max_t p_{o,1,t} > \delta_1).
+$$
+
+- This is a quantity w.r.t. to **infinite** time horizon
+- ... and we **don't** want to have a fixed schedule
+- Might we somehow use a **finite** time horizon to further approximate it??
+
+- Seems that we can!
+
+Looking at the "empirical" type I error rate
+========================================================
+- Short story: 
+
+   * Given **posterior consistency**, posterior $P_t(\beta \mid \text{data}_t)$ will converge to the truth $\delta_{\beta_0}$ as $t \rightarrow \infty$
+   * if $\beta_0 < 0$, $p_{o,1,t}$ will never (roughly speaking) exceed $\delta_1$ after long enough time $T_s$
+   * thus, after long enough time $T_s$, we will most likely never make a Type I error if we do okay before $T_s$
+   
+- This means we only need to worry about some limited time steps in testing, and then we will be fine 
+
+
+This all seems quite nice, but...
+========================================================
+
+We have evenmore un-answered questions :-(
+
+1. How to choose/find the "long enough" time $T_s$ for any specific analysis?
+2. Once we somehow find this $T_s$, what next? How to make sure we don't make too many mistakes before $T_s$?
+    * Specify some kind of alpha expenditure scheme for time points before $T_s$ --- but is that too inflexible?
+    * Adaptively choose thresholds at each earlier time points: choose $\delta_1$ simply to ensure Type I error rate $<0.05$ up to time $t$ --- **no** guarantee on overall $\alpha = 0.05$
+    * Something else? E.g., use conservative priors to avoid signalling at earlier time points to reduce Type I error --- this will, of course, sacrifice power. 
+
+We need feedback and suggestions
+========================================================
+
+**Any comments or thoughts will be much appreciated!**
