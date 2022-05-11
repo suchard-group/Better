@@ -8,8 +8,8 @@ BETTER: Bayesian Evaluation of Time-To-Event and Reliability (for vaccine survei
 - Tags: **-**
 - Study lead: **Fan Bu**
 - Study lead forums tag: **-**
-- Study start date: **January ???, 2022**
-- Study end date: **-**
+- Study start date: **May, 2022**
+- Study end date: **July, 2022**
 - Protocol: **-**
 - Publications: **-**
 - Results explorer: **-**
