@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ```{r source functions, echo=FALSE, message=FALSE, warning=FALSE}
 source('simpleCalibration.R')
-
+source('frequentistComparisons.R')
 ```
 
 
@@ -117,7 +117,7 @@ cachepath = '../localCache/'
 
 db = 'CCAE'
 eid = 211981
-aid = 2
+aid = 4
 pid = 3 # 1: sd=10; 2: sd=1.5; 3: sd=4 
 tolerance = 0.004
 
@@ -477,6 +477,138 @@ res = plotTempDelta1ByPriors(database_id = db,
                              stratifyByEffectSize = TRUE,
                              calibrate = TRUE)
 ```
+
+
+## Compare frequentist (MaxSPRT) results with Bayesian approach
+
+### HC design, vanilla MaxSPRT versus Bayesian bias adjustment
+
+```{r, echo = FALSE}
+# re-iterate the settings
+summarypath = '~/Documents/Research/betterResults/summary'
+#samplepath = "/Volumes/WD-Drive/betterResults-likelihoodProfiles/"
+cachepath = '../localCache/'
+
+db = 'CCAE'
+eid = 211981
+
+# me = 'SCCS'
+me = 'HistoricalComparator'
+aid = 6
+# pid = 3 # 1: sd=10; 2: sd=1.5; 3: sd=4 
+```
+
+Also try to compare raw MaxSPRT versus raw Bayesian versus bias adjusted.
+
+```{r, echo = FALSE}
+# get Bayesian temporal results first
+# (a) the raw, unadjusted Bayesian method
+res_raw = plotTempDelta1ByPriors(database_id = db,
+                             method = me, # 'SCCS'
+                             analysis_id = aid,
+                             exposure_id = eid,
+                             prior_ids = c(1:3),
+                             summaryPath = summarypath,
+                             cachePath = cachepath,
+                             useAdjusted = FALSE,
+                             stratifyByEffectSize = TRUE,
+                             calibrate = FALSE)
+
+pid = 2 # use SD = 1 results for this Bayesian example
+res_Bayes_raw = res_raw %>% 
+  filter(prior_id == pid) %>% 
+  select(period_id, y, effect_size, stats) %>%
+  mutate(approach = '2: Bayesian, raw')
+
+```
+
+```{r, echo = FALSE}
+# get Bayesian temporal results first
+# (b) bias adjusted Bayesian method
+res_adj = plotTempDelta1ByPriors(database_id = db,
+                             method = me, # 'SCCS'
+                             analysis_id = aid,
+                             exposure_id = eid,
+                             prior_ids = c(1:3),
+                             summaryPath = summarypath,
+                             cachePath = cachepath,
+                             useAdjusted = ,
+                             stratifyByEffectSize = TRUE,
+                             calibrate = FALSE)
+
+pid = 3 # use SD = 4 results for this Bayesian example
+res_Bayes = res_adj %>% 
+  filter(prior_id == pid) %>% 
+  select(period_id, y, effect_size, stats) %>%
+  mutate(approach = '3: Bayesian, bias adjusted')
+
+```
+
+```{r, echo = FALSE}
+# get MaxSPRT results
+ConnectionDetails <- DatabaseConnector::createConnectionDetails(
+  dbms = "postgresql",
+  server = paste(keyring::key_get("eumaeusServer"),
+                 keyring::key_get("eumaeusDatabase"),
+                 sep = "/"),
+  user = keyring::key_get("eumaeusUser"),
+  password = keyring::key_get("eumaeusPassword"))
+
+# set up the DB connection
+connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
+
+# here: use the raw, uncalibrated results
+resLst = frequentistDecisions(connection,
+                              'eumaeus',
+                              database_id = db,
+                              method = me,
+                              exposure_id = eid,
+                              analysis_id = aid,
+                              calibration = FALSE,
+                              cachePath = cachepath)
+maxsprt_errors = resLst$errorRate %>%
+  select(period_id, y = errorRate, effect_size, stats) %>%
+  mutate(approach = '1: MaxSPRT')
+
+```
+
+```{r mame comparison plots, echo = FALSE}
+errors_combined = rbind(res_Bayes, 
+                        res_Bayes_raw,
+                        maxsprt_errors)
+
+yinters = 0.05
+type2cols = c(wes_palette("Zissou1")[3:4],wes_palette("Royal1")[4])
+othercols =  wes_palette("Royal1")[2]
+allCols = c(othercols, type2cols)
+
+period_breaks = seq(from = min(errors_combined$period_id),
+                      to = max(errors_combined$period_id),
+                      by = 2)
+period_labels = as.integer(period_breaks)
+
+capt = '' # no caption for now...
+
+p = ggplot(errors_combined, 
+           aes(x=period_id, y=y, color=stats))+
+    geom_line(size = 1.5) +
+    geom_point(size=2)+
+    geom_hline(yintercept = yinters, 
+               color = 'gray60', 
+               size = 1, linetype=2)+
+    scale_y_continuous(limits = c(0,1))+
+    scale_x_continuous(breaks = period_breaks, labels = period_labels)+
+    labs(x='analysis period (months)', y='error rates', 
+         caption = capt, color='Error type')+
+    scale_color_manual(values = allCols) +
+    facet_grid(.~approach)+
+    theme_bw(base_size = 13)
+
+print(p)
+
+```
+
+
 
 ## Discussion
 
