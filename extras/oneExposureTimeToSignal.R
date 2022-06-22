@@ -1,6 +1,6 @@
-# 05/04/2022: simplied version of `computeEarliestTimeToSignal.R`
+# 05/04/2022: simplified version of `computeEarliestTimeToSignal.R`
 # focusing on ONE exposure ONLY!
-# can be used for Zoster vaccine results....
+# can be used for Zoster vaccine results
 
 library(tidyverse)
 library(ggh4x)
@@ -138,6 +138,7 @@ selectExposureEarliestTimeToSignal <- function(database_id,
 ##   (1) plot density of time to signal (those finite times)
 ##   (2) proportion of finite times to signal
 ## 05/04/2022: focus on ONE exposure only here...
+## 06/22/2022: add some plain English commentary on the settings for easier interpretation
 plotEarliestTimeToSignalOneExposure <- function(database_id,
                                                 method,
                                                 exposure_id,
@@ -157,7 +158,8 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
                                                 baseExposures = TRUE,
                                                 pHeight = 8,
                                                 pWidth = 12,
-                                                usePalette = wes_palette("Darjeeling2")[2:3]) {
+                                                usePalette = wes_palette("Darjeeling2")[2:3],
+                                                addCommentary = FALSE) {
   
   # first check if savePath is provided when saveResults=TRUE
   if(saveResults & is.null(savePath)){
@@ -198,11 +200,29 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
     mutate(d1Label = sprintf('delta1=%.2f',d1),
            d0Label = sprintf('delta0=%.2f',d0))  # create the character label here too
   
+  if(addCommentary){
+    thresholds = thresholds %>%
+      mutate(d1comment = 
+               case_when(d1 == 0.8 ~ "Easier reject\ndelta1=0.8",
+                         d1 == 0.9 ~ "delta1=0.9",
+                         d1 == 0.95 ~ "Harder reject\ndelta1=0.95")
+             )
+  }
+  
   # also prior table
   priors = readRDS(file.path(cachePath, 'priorTable.rds')) %>%
     arrange(Sd) %>%
     mutate(priorLabel = sprintf('Mean=%s, SD=%s', Mean, Sd)) %>%
     select(-Mean)
+  
+  if(addCommentary){
+    priors = priors %>% 
+      mutate(commentary = case_when(
+        Sd == 1.5 ~ "Conservative prior (SD=1.5)",
+        Sd == 4.0 ~ "Medium prior (SD=4)",
+        TRUE ~ "Diffuse prior (SD=10)"
+      ))
+  }
   
   # ... and exposures table as well
   exposures = getExposures(NULL, NULL, savepath = cachePath) %>%
@@ -264,9 +284,24 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
       group_by(exposure_name, effect_size, priorLabel, d1Label, Type) %>%
       summarise(finiteRate = mean(timeToSignal < Inf))
     ## fix order of prior labels by re-leveling
-    tts_counts$priorLabel = factor(tts_counts$priorLabel, levels = priors$priorLabel)
-    # prior.labs <- priors$priorLabel
-    # names(prior.labs) <- as.character(priors$Sd)
+    tts_counts$priorLabel = factor(tts_counts$priorLabel, 
+                                   levels = priors$priorLabel)
+    
+    tts_counts$Type = factor(tts_counts$Type, levels = c('Unadjusted', 'Bias adjusted'))
+    # prior.labs <- priors$commentary
+    # names(prior.labs) <- as.character(priors$priorLabel)
+    
+    if(addCommentary){
+      tts_counts = tts_counts %>% 
+        left_join(priors, by = 'priorLabel') %>%
+        select(-Sd, prior_id) %>%
+        mutate(priorLabel = factor(commentary, 
+                                   levels = priors$commentary)) %>%
+        left_join(thresholds, by = 'd1Label') %>%
+        mutate(d1Label = factor(d1comment,
+                                levels = unique(thresholds$d1comment)))
+    }
+    
     pg = 
       ggplot(tts_counts, aes(y=finiteRate, 
                              x=as.factor(effect_size),
@@ -275,18 +310,19 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
                position = position_dodge()) +
       geom_vline(xintercept = c(1.5,2.5), color='gray40')+
       scale_y_continuous(breaks = c(0.1,0.5,1)) +
+      #scale_fill_discrete(breaks = c('Unadjusted', 'Bias adjusted'))+
       coord_flip()+
       labs(x='Effect Size', 
-           y=sprintf('Rate of reaching %.0f%% sensitivity before end', 
+           y=sprintf('Fraction of analyses reaching %.0f%% sensitivity before end', 
                      sensitivity * 100),
            fill='') +
-      facet_grid(d1Label ~ priorLabel, 
-                 labeller = label_wrap_gen(width=15))+
+      facet_grid(d1Label ~ priorLabel)+
       theme_bw(base_size = 14)+
       theme(panel.grid.major.x = element_blank(),
             #axis.ticks.x = element_blank(),
             axis.ticks.y = element_blank(),
             strip.background = element_blank(),
+            strip.text.y = element_text(angle = 0),
             #panel.border = element_blank(),
             legend.position = 'bottom')
     if(!is.null(usePalette)){
@@ -294,6 +330,8 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
         pg + 
           scale_fill_manual(values = usePalette)
       )
+    }else{
+      print(pg)
     }
   }
   
@@ -307,8 +345,9 @@ savepath = '~/Documents/Research/betterResults/timeToSignalZoster/'
 
 sensitivity_level = 0.5
 
-db = 'CCAE'
+db = 'CCAE' #'OptumDod'
 mt = 'HistoricalComparator'
+#mt = 'SCCS'
 
 eid = c(211981:211983)
 
@@ -343,9 +382,10 @@ plotEarliestTimeToSignalOneExposure(database_id = db,
                          resPath = resultspath,
                          cachePath = cachepath,
                          savePath = savepath,
-                         saveResults = TRUE,
+                         saveResults = FALSE,
                          sensitivity = sensitivity_level,
                          posControlOnly = TRUE,
                          baseExposures = TRUE,
                          pHeight = 6, pWidth = 6,
-                         usePalette = wes_palette("Darjeeling2")[c(2,4)])
+                         usePalette = wes_palette("Darjeeling2")[c(2,4)],
+                         addCommentary = TRUE)

@@ -602,7 +602,8 @@ p = ggplot(errors_combined,
          caption = capt, color='Error type')+
     scale_color_manual(values = allCols) +
     facet_grid(.~approach)+
-    theme_bw(base_size = 13)
+    theme_bw(base_size = 13)+
+    theme(legend.position = 'bottom') # change to bottom legend...
 
 print(p)
 
