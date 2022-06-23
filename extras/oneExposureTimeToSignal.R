@@ -139,6 +139,7 @@ selectExposureEarliestTimeToSignal <- function(database_id,
 ##   (2) proportion of finite times to signal
 ## 05/04/2022: focus on ONE exposure only here...
 ## 06/22/2022: add some plain English commentary on the settings for easier interpretation
+## 06/23/2022: add functionality to plot some thresholds only (for d1 only for now)
 plotEarliestTimeToSignalOneExposure <- function(database_id,
                                                 method,
                                                 exposure_id,
@@ -156,6 +157,7 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
                                                 sensitivity = 0.8,
                                                 posControlOnly = TRUE,
                                                 baseExposures = TRUE,
+                                                d1ToExclude = NULL,
                                                 pHeight = 8,
                                                 pWidth = 12,
                                                 usePalette = wes_palette("Darjeeling2")[2:3],
@@ -203,10 +205,15 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
   if(addCommentary){
     thresholds = thresholds %>%
       mutate(d1comment = 
-               case_when(d1 == 0.8 ~ "Easier reject\ndelta1=0.8",
-                         d1 == 0.9 ~ "delta1=0.9",
-                         d1 == 0.95 ~ "Harder reject\ndelta1=0.95")
+               case_when(d1 == 0.8 ~ "Easier reject\n\u03b4=0.8",
+                         d1 == 0.9 ~ "Harder reject\n\u03b4=0.9",
+                         d1 == 0.95 ~ "Harder reject\n\u03b4=0.95")
              )
+  }
+  
+  # filter on thresholds 
+  if(!is.null(d1ToExclude)){
+    thresholds = thresholds %>% filter(d1 != d1ToExclude)
   }
   
   # also prior table
@@ -235,10 +242,10 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
   
   # join with exposure table and thresholds table
   tts = tts %>% 
-    left_join(exposures, by='exposure_id') %>%
-    left_join(thresholds, by = 'threshold_id') %>%
+    inner_join(exposures, by='exposure_id') %>%
+    inner_join(thresholds, by = 'threshold_id') %>%
     select(-d1, -d0) %>%
-    left_join(priors, by = 'prior_id')
+    inner_join(priors, by = 'prior_id')
   
   
   # open up pdf file if saving plots
@@ -287,7 +294,7 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
     tts_counts$priorLabel = factor(tts_counts$priorLabel, 
                                    levels = priors$priorLabel)
     
-    tts_counts$Type = factor(tts_counts$Type, levels = c('Unadjusted', 'Bias adjusted'))
+    tts_counts$Type = factor(tts_counts$Type, levels = c('Bias adjusted','Unadjusted'))
     # prior.labs <- priors$commentary
     # names(prior.labs) <- as.character(priors$priorLabel)
     
@@ -302,6 +309,11 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
                                 levels = unique(thresholds$d1comment)))
     }
     
+    # massage the counts a little so that there is something to show for 0's...
+    knot = 0.01
+    tts_counts = tts_counts %>%
+      mutate(finiteRate = if_else(finiteRate > 0, finiteRate, knot))
+    
     pg = 
       ggplot(tts_counts, aes(y=finiteRate, 
                              x=as.factor(effect_size),
@@ -309,11 +321,10 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
       geom_bar(stat = 'identity', 
                position = position_dodge()) +
       geom_vline(xintercept = c(1.5,2.5), color='gray40')+
-      scale_y_continuous(breaks = c(0.1,0.5,1)) +
-      #scale_fill_discrete(breaks = c('Unadjusted', 'Bias adjusted'))+
+      scale_y_continuous(breaks = c(0.1,0.5,1), labels = scales::percent) +
       coord_flip()+
       labs(x='Effect Size', 
-           y=sprintf('Fraction of analyses reaching %.0f%% sensitivity before end', 
+           y=sprintf('Timeliness - percentage of analyses reaching %.0f%% sensitivity', 
                      sensitivity * 100),
            fill='') +
       facet_grid(d1Label ~ priorLabel)+
@@ -328,15 +339,19 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
     if(!is.null(usePalette)){
       print(
         pg + 
-          scale_fill_manual(values = usePalette)
+          scale_fill_manual(values = usePalette,
+                            breaks = c('Unadjusted', 'Bias adjusted'))
       )
     }else{
-      print(pg)
+      print(pg) +
+        scale_fill_discrete(breaks = c('Unadjusted', 'Bias adjusted'))
     }
   }
   
   if(saveResults){dev.off()}
   
+  #return(tts_counts)
+
 }
 
 resultspath = '~/Documents/Research/betterResults/summary/'
@@ -346,8 +361,8 @@ savepath = '~/Documents/Research/betterResults/timeToSignalZoster/'
 sensitivity_level = 0.5
 
 db = 'CCAE' #'OptumDod'
-mt = 'HistoricalComparator'
-#mt = 'SCCS'
+#mt = 'HistoricalComparator'
+mt = 'SCCS'
 
 eid = c(211981:211983)
 
@@ -374,6 +389,7 @@ plotEarliestTimeToSignalOneExposure(database_id = db,
                          usePalette = wes_palette("Darjeeling2")[c(2,4)])
 
 ## (2) rate of finite times
+#tts_counts = 
 plotEarliestTimeToSignalOneExposure(database_id = db, 
                          method = mt,
                          exposure_id = eid,
@@ -386,6 +402,7 @@ plotEarliestTimeToSignalOneExposure(database_id = db,
                          sensitivity = sensitivity_level,
                          posControlOnly = TRUE,
                          baseExposures = TRUE,
+                         d1ToExclude = 0.95,
                          pHeight = 6, pWidth = 6,
                          usePalette = wes_palette("Darjeeling2")[c(2,4)],
                          addCommentary = TRUE)
