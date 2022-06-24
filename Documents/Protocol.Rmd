@@ -50,8 +50,8 @@ longtable: yes
 mainfont: Arial
 bibliography: Protocol.bib
 params:
-  date: '2021-12-20'
-  version: 1.0.1
+  date: '2022-4-1'
+  version: 1.0.0
 subtitle: 'Version: `r params$version`'
 link-citations: true
 csl: jamia.csl

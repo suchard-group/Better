@@ -269,7 +269,7 @@ div.tocify {
 <h1 class="title toc-ignore"><div class="line-block">RESEARCH PROTOCOL<br />
 <br />
 BETTER: Bayesian Evaluation of Time-To-Event and Reliability (for vaccine surveillance)</div></h1>
-<h3 class="subtitle">Version: 1.0.1</h3>
+<h3 class="subtitle">Version: 1.0.0</h3>
 
 </div>
 
@@ -525,7 +525,6 @@ Department of Biostatistics, University of California, Los Angeles, Los Angeles,
 </div>
 <div id="disclosures" class="section level2" number="2.2">
 <h2><span class="header-section-number">2.2</span> Disclosures</h2>
-<p><strong>(need editing on info below)</strong></p>
 <p>This study is undertaken within Observational Health Data Sciences and Informatics (OHDSI), an open collaboration.
 <strong>GH</strong> receives grant funding from the US National Institutes of Health and the US Food &amp; Drug Administration.
 <strong>PBR</strong> and is an employee of Janssen Research and Development and shareholders in John &amp; Johnson.
@@ -540,7 +539,7 @@ Department of Biostatistics, University of California, Los Angeles, Los Angeles,
 The current standard method of safety surveillance adopted by the FDA is MaxSPRT, which suffers from the inflexibility of a pre-specified sequential analysis schedule.
 We hope to develop and implement a more flexible Bayesian surveillance framework and compare its performance with MaxSPRT in real-world data.</p>
 <p><strong>Study Aims</strong></p>
-<p>To compare the real-data performance (precision, bias, testing errors, and timeliness) of
+<p>To compare the real-data performance (testing errors, timeliness, precision and bias) of
 Bayesian and frequentist sequential analysis methods for the study of comparative vaccine safety.</p>
 <p>We will also produce a reference table of Type I and II error rates and signal detection times for all combinations of design and threshold choices, as exploration of the operating characteristics of Bayesian sequential methods.</p>
 <p><strong>Study Description</strong></p>
@@ -575,10 +574,10 @@ Bayesian and frequentist sequential analysis methods for the study of comparativ
 <li>Sensitivity and specificity based on the various decision rules</li>
 <li>Detection time: the number of analyses (months) until signals are claimed for 80% of positive controls. Will be stratified by true effect size of the positive controls.</li>
 <li>Rate of contradictory early decisions. For all controls, how often did an earlier signal/futility decision contradict the decision based on full analysis of all data.</li>
-<li>Rate of “undetermined’’ decisions. At each analysis stage, for all controls, how often are the decisions”undetermined” (i.e., neither decision threshold is crossed). For most analyses, we would expect this rate to be high at earlier stages when there isn’t enough data evidence but gradually lower as more data accrue.</li>
+<li>Rate of “undetermined’’ decisions. At each analysis stage, for all controls, how often are the decisions”undetermined” (i.e., neither decision threshold is crossed). For most analyses, we would expect this rate to be high at earlier stages when there isn’t enough data evidence but gradually lower as more data accrue.
+<br>
+<br></li>
 </ul>
-<p><br>
-<br></p>
 <ol start="2" style="list-style-type: decimal">
 <li>Estimation related metrics</li>
 </ol>
@@ -625,7 +624,6 @@ Reason
 </div>
 <div id="milestones" class="section level1" number="5">
 <h1><span class="header-section-number">5</span> Milestones</h1>
-<p><strong>(need further editing on the timeline)</strong></p>
 <p>Table <a href="#tab:dates">5.1</a> lists the study milestones.</p>
 <table class="table table-striped" style="margin-left: auto; margin-right: auto;">
 <caption>
@@ -644,17 +642,10 @@ Planned / actual date
 <tbody>
 <tr>
 <td style="text-align:left;">
-EU PAS Registration
-</td>
-<td style="text-align:left;">
-02/28/2022
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
 Start of analysis
 </td>
 <td style="text-align:left;">
+02/01/2022
 </td>
 </tr>
 <tr>
@@ -662,6 +653,7 @@ Start of analysis
 End of analysis
 </td>
 <td style="text-align:left;">
+05/31/2022
 </td>
 </tr>
 <tr>
@@ -669,6 +661,7 @@ End of analysis
 Results presentation
 </td>
 <td style="text-align:left;">
+06/30/2022
 </td>
 </tr>
 </tbody>
@@ -697,12 +690,12 @@ We believe the results of our comprehensive evaluations will help us better unde
 </div>
 <div id="study-objectives" class="section level1" number="7">
 <h1><span class="header-section-number">7</span> Study Objectives</h1>
-<p>The overarching aim is to compare the performance of Frequentist and Bayesian sequential analysis methods for the generation of evidence of vaccine safety in observational, real-world data.
+<p>The overarching aim is to compare the performance of frequentist and Bayesian sequential analysis methods for the generation of evidence of vaccine safety in observational, real-world data.
 Specific aims:</p>
 <ul>
-<li>To evaluate and compare the operating characteristics (Type I and II errors, sensitivity and specificity, etc.) of Frequentist and Bayesian sequential testing methods</li>
+<li>To evaluate and compare the operating characteristics (Type I and II errors, sensitivity and specificity, etc.) of frequentist and Bayesian sequential testing methods</li>
 <li>To compare the ‘timeliness’ of these methods for the identification of vaccine safety signals</li>
-<li>To estimate the bias and precision associated with the use of Frequentist and Bayesian methods with self-controlled or historical rates designs for the study of vaccine safety</li>
+<li>To estimate the bias and precision associated with the use of frequentist and Bayesian methods with self-controlled or historical rates designs for the study of vaccine safety</li>
 <li>To gain a deeper understanding of the behavior of Bayesian sequential methods; specifically, the relationship between threshold choices, Type I and II errors, and time-to-signal – the study will produce <strong>a reference table of estimated Type I and II errors and time-to-signal</strong> for each combination of Bayesian sequential testing choices</li>
 </ul>
 </div>
@@ -1056,13 +1049,14 @@ Although typically MaxSPRT uses a historic rate as counterfactual, any counterfa
 </ul>
 <p>For the Bayesian method, we also evaluate different prior distribution choices for the effect-size:</p>
 <ul>
-<li>A log-normal prior with mean <span class="math inline">\(= 0\)</span> and SD <span class="math inline">\(= 10\)</span> (a <strong>diffuse</strong> prior)</li>
 <li>A log-normal prior with mean <span class="math inline">\(= 0\)</span> and SD <span class="math inline">\(= 1.5\)</span> (a <strong>conservative</strong> prior with &gt;90% mass below 2)</li>
-<li>A log-normal prior with mean <span class="math inline">\(= 0\)</span> and SD <span class="math inline">\(= 4\)</span> (a weakly informed prior with ~70% mass below 2)</li>
+<li>A log-normal prior with mean <span class="math inline">\(= 0\)</span> and SD <span class="math inline">\(= 4\)</span> (a <strong>weakly informed</strong> prior with ~70% mass below 2)</li>
+<li>A log-normal prior with mean <span class="math inline">\(= 0\)</span> and SD <span class="math inline">\(= 10\)</span> (a <strong>diffuse</strong> prior)</li>
 </ul>
 <p>We choose to use log-normal priors for their simplicity and wide use, in order to focus mainly on comparison between Bayesian and frequentist testing methods.
 We will consider adopting other prior distributions (e.g., Laplace priors) in subsequent studies.</p>
-<p>For both frequentist and Bayesian methods, estimation will be conducted both <em>with</em> and <em>without</em> empirical calibration. <span class="citation">[<a href="#ref-Schuemie2014-bv" role="doc-biblioref">10</a>,<a href="#ref-Schuemie2018-hq" role="doc-biblioref">11</a>]</span>. Empirical calibration will be done using leave-one-out: when calibrating the estimate for a control, the systematic error distribution will be fitted uses all controls except the one being calibrated.</p>
+<p>For the frequentist method (MaxSPRT), analyses will be conducted <em>with</em> and <em>without</em> empirical calibration. <span class="citation">[<a href="#ref-Schuemie2014-bv" role="doc-biblioref">10</a>,<a href="#ref-Schuemie2018-hq" role="doc-biblioref">11</a>]</span>. Empirical calibration will be done using leave-one-out: when calibrating the estimate for a control, the systematic error distribution will be fitted uses all controls except the one being calibrated.</p>
+<p>For the Bayesian method, inference will be conducted <em>with</em> and <em>without</em> Bayesian bias adjustment using negative control analyses. Similarly, bias adjustment will be done using leave-one-out.</p>
 </div>
 <div id="decision-rule" class="section level3" number="8.3.4">
 <h3><span class="header-section-number">8.3.4</span> Decision rule</h3>
@@ -1082,7 +1076,7 @@ That is, we will reject the null and claim a signal when <span class="math inlin
 <div id="metrics" class="section level2" number="8.4">
 <h2><span class="header-section-number">8.4</span> Metrics</h2>
 <p>As we will conduct both estimation and testing tasks at the same time, we will compute two sets of metrics based on the study outcomes:
-(1) metrics for testing, and (2) metrics for estimation. (The following metrics are adapted from previous work <span class="citation">[<a href="#ref-Schuemie2020-wx" role="doc-biblioref">12</a>]</span>.)</p>
+(1) metrics for testing, and (2) metrics for estimation. (Some of the following metrics are adapted from previous work <span class="citation">[<a href="#ref-Schuemie2020-wx" role="doc-biblioref">12</a>]</span>.)</p>
 <ol style="list-style-type: decimal">
 <li>Testing-related metrics:</li>
 </ol>
@@ -1173,7 +1167,6 @@ For each month the methods will be executed using the data that had accumulated 
 <li>We assume hazards are <strong>not</strong> time varying, and we (at this stage) do not investigate time-varying confounding.</li>
 <li>We only adopt two commonly used study designs (at this stage) which may not be the most suitable design for vaccine safety surveillance situations with complex roll-out schedules (e.g., COVID-19 vaccines).</li>
 <li>Misclassification of study variables is unavoidable in secondary use of health data, so it is possible to misclassify treatments, covariates, and outcomes; we do not expect differential misclassification, so bias will most likely be towards the null.</li>
-<li>The electronic health record databases may be missing care episodes for patients due to care outside the respective health systems; bias will most likely be towards the null.</li>
 </ul>
 </div>
 </div>
