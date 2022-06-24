@@ -1,8 +1,8 @@
-Package: better
+Package: Better
 Title: Bayesian Evaluation of Time-To-Event and Reliability (for vaccine surveillance)
 Version: 1.0.0
 Date: 2022-01-10
-Author: Fan Bu, Martijn J. Schuemie [aut, cre]
+Author: Fan Bu [aut, cre], Martijn J. Schuemie [aut], Marc A. Suchard [aut]
 Maintainer: Fan Bu <fanbu@ucla.edu>
 Description: Following our previous EUMAEUS study, this study compares frequentist and Bayesian sequential analysis methods for vaccine safety surveillance.
 Depends:
