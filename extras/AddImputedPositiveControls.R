@@ -99,7 +99,7 @@ imputePositiveControls <- function(estimates, effectSizesToImpute = c(1.5, 2, 4)
     full_join(tibble(effectSize = effectSizesToImpute), by = character()) %>%
     rename(negativeControlId = .data$outcomeId,) %>%
     mutate(rr = .data$rr * .data$effectSize,
-           logRr = log(.data$rr * .data$effectSize),
+           logRr = log(.data$rr * .data$effectSize), # --> this is where the PCs are imputed
            outcomeId = .data$effectSize*1000000 + .data$exposureId*999 + .data$negativeControlId,
            outcomeName = sprintf("%s, RR=%s", .data$outcomeName, .data$effectSize)) %>%
     mutate(ci95Lb = exp(.data$logRr + qnorm(0.025) * .data$seLogRr),
