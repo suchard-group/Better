@@ -4,6 +4,7 @@
 library(tidyverse)
 library(ggpubr)
 library(xtable)
+library(wesanderson)
 
 # set up EUMAEUS results query connection-----
 ## connection details
@@ -583,8 +584,8 @@ print(
 (
 effect_dist = festimates %>% group_by(index) %>%
   arrange(effect_size) %>%
-  summarize(log_rr_dist = diff(log_rr),
-            cali_log_rr_dist = diff(calibrated_log_rr),
+  summarize(log_rr_dist = log_rr[-1] - log_rr[1],
+            cali_log_rr_dist = calibrated_log_rr[-1] - calibrated_log_rr[1],
             effect_diff = effect_size[-1]) %>%
   ungroup()
 )
@@ -592,4 +593,263 @@ effect_dist = festimates %>% group_by(index) %>%
 ## is the shift all the same?
 ggplot(effect_dist, aes(x=index, y=log_rr_dist, color = as.factor(effect_diff))) +
   geom_point()
+
+## what's happening with the imputation shifting??
+exp(effect_dist$log_rr_dist)
+# [1]  2.25  4.00 16.00  2.25  4.00 16.00 ....
+
+
+
+# check synthetic PC results
+# frequentistDecisions_synPC <- function(connection,
+#                                  schema,
+#                                  database_id,
+#                                  method,
+#                                  exposure_id,
+#                                  analysis_id,
+#                                  estimates = NULL,
+#                                  calibration = FALSE,
+#                                  cachePath = './localCache/'){
+#   # pull estimates
+#   if(is.null(estimates)){
+#     sql <- "SELECT estimate.*
+#     FROM @schema.ESTIMATE estimate
+#     WHERE database_id = '@database_id'
+#           AND method = '@method'
+#           AND analysis_id = @analysis_id
+#           AND exposure_id = @exposure_id"
+#     sql <- SqlRender::render(sql, 
+#                              schema = schema,
+#                              database_id = database_id,
+#                              method = method,
+#                              analysis_id = analysis_id,
+#                              exposure_id = exposure_id)
+#     sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+#     estimates <- DatabaseConnector::querySql(connection, sql)
+#   }
+#   
+#   names(estimates) = tolower(names(estimates))
+#   estimates = estimates %>%
+#     filter(!is.na(log_rr) & !is.na(se_log_rr) & !is.na(llr) & !is.na(critical_value)) %>%
+#     select(database_id, method, analysis_id, 
+#            exposure_id, outcome_id, period_id, 
+#            p, log_rr, se_log_rr, llr, critical_value,
+#            calibrated_p, calibrated_log_rr, calibrated_se_log_rr,
+#            calibrated_llr)
+#   
+#   
+#   # get effect sizes
+#   sPCs = readRDS(file.path(cachePath, 'allsPCs.rds'))
+#   names(sPCs) = tolower(names(sPCs))
+#   
+#   estimates = estimates %>%
+#     left_join(sPCs) %>%
+#     select(database_id, method, analysis_id, 
+#            exposure_id, outcome_id, period_id, 
+#            p, log_rr, se_log_rr, llr, critical_value,
+#            calibrated_p, calibrated_log_rr, calibrated_se_log_rr,
+#            calibrated_llr, effect_size) %>%
+#     mutate(effect_size = if_else(is.na(effect_size), 1, effect_size),
+#            negativeControl = (effect_size == 1))
+#   
+#   
+#   # make decisions
+#   if(calibration){
+#     decisions = estimates %>%
+#       group_by(outcome_id) %>%
+#       arrange(period_id) %>%
+#       mutate(yes = (calibrated_llr > critical_value)) %>%
+#       mutate(reject = cumsum(yes)) %>%
+#       mutate(reject = (reject > 0)) %>%
+#       select(-yes) %>%
+#       ungroup()
+#   }else{
+#     decisions = estimates %>%
+#       group_by(outcome_id) %>%
+#       arrange(period_id) %>%
+#       mutate(yes = (llr > critical_value)) %>%
+#       mutate(reject = cumsum(yes)) %>%
+#       mutate(reject = (reject > 0)) %>%
+#       select(-yes) %>%
+#       ungroup()
+#   }
+#   
+#   
+#   # summarize Type I and Type II errors
+#   errorRate = decisions %>%
+#     group_by(database_id, method, analysis_id, 
+#              exposure_id, negativeControl,
+#              effect_size, period_id) %>%
+#     summarize(rejectRate = mean(reject)) %>%
+#     mutate(errorRate = if_else(negativeControl, rejectRate, 1-rejectRate),
+#            stats = if_else(negativeControl, 'type 1',
+#                            sprintf('type 2 (effect=%.1f)', effect_size))) %>%
+#     ungroup()
+#   
+#   
+#   # return
+#   return(list(estimates = estimates, calibrate = calibration,
+#               decisions = decisions, errorRate = errorRate))
+#   
+# }
+
+frequentistMSE_synPC <- function(connection,
+                           schema,
+                           database_id,
+                           method,
+                           exposure_id,
+                           analysis_id,
+                           estimates = NULL,
+                           calibration = FALSE,
+                           cachePath = './localCache/'){
+  # pull estimates
+  if(is.null(estimates)){
+    sql <- "SELECT estimate.*
+    FROM @schema.ESTIMATE estimate
+    WHERE database_id = '@database_id'
+          AND method = '@method'
+          AND analysis_id = @analysis_id
+          AND exposure_id = @exposure_id"
+    sql <- SqlRender::render(sql, 
+                             schema = schema,
+                             database_id = database_id,
+                             method = method,
+                             analysis_id = analysis_id,
+                             exposure_id = exposure_id)
+    sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+    estimates<- DatabaseConnector::querySql(connection, sql)
+  }
   
+  names(estimates) = tolower(names(estimates))
+  estimates = estimates %>%
+    filter(!is.na(log_rr) & !is.na(se_log_rr)) %>%
+    filter(period_id == max(period_id)) %>%
+    select(database_id, method, analysis_id, 
+           exposure_id, outcome_id, period_id, 
+           p, log_rr, se_log_rr, llr, critical_value,
+           calibrated_p, calibrated_log_rr, calibrated_se_log_rr,
+           calibrated_llr,
+           calibrated_ci_95_lb, calibrated_ci_95_ub,
+           ci_95_lb, ci_95_ub)
+  
+  
+  # get effect sizes
+  sPCs = readRDS(file.path(cachePath, 'allsPCs.rds'))
+  names(sPCs) = tolower(names(sPCs))
+  sPCs = sPCs %>% select(-exposure_id)
+
+  estimates = estimates %>%
+    #filter(outcome_id %in% all_outcome_ids) %>%
+    #distinct() %>%
+    left_join(sPCs, by='outcome_id') %>%
+    select(database_id, method, analysis_id, 
+           exposure_id, outcome_id, period_id,
+           p, log_rr, se_log_rr, llr, critical_value,
+           calibrated_p, calibrated_log_rr, calibrated_se_log_rr,
+           calibrated_llr, 
+           ci_95_lb, ci_95_ub,
+           calibrated_ci_95_lb, calibrated_ci_95_ub,
+           effect_size, negative_control_id) %>%
+    mutate(effect_size = if_else(is.na(effect_size), 1, effect_size),
+           negativeControl = (effect_size == 1),
+           negative_control_id = if_else(is.na(negative_control_id), 
+                                         outcome_id, negative_control_id))
+  
+  # calculate estimation error and MSE across effect sizes
+  # do this for both calibrated and uncalibrated results
+  MSEs = estimates %>%
+    mutate(truth = log(effect_size)) %>%
+    group_by(outcome_id) %>%
+    filter(period_id == max(period_id)) %>%
+    mutate(error = log_rr - truth,
+           calibrated_error = calibrated_log_rr - truth) %>%
+    ungroup() %>%
+    group_by(database_id, method, analysis_id, 
+             exposure_id, effect_size) %>%
+    summarise(mse = mean(error^2), calibrated_mse = mean(calibrated_error^2)) %>%
+    ungroup()
+  
+  return(list(MSEs = MSEs, estimates = estimates))
+  
+}
+
+## try it
+db = 'CCAE'
+me = 'HistoricalComparator'
+#me = 'SCCS'
+eid = 211981
+aid = 5
+#aid = 6
+
+#(
+freqMSEs_synPC = frequentistMSE_synPC(connection,
+                          'eumaeus',
+                          database_id = db,
+                          method = me,
+                          exposure_id = eid,
+                          analysis_id = aid)
+#)
+
+# look at estimates and CIs with synthetic PCs instead
+festimates_synPC = freqMSEs_synPC$estimates %>%
+  mutate(ci_95_lb = log(ci_95_lb),
+         ci_95_ub = log(ci_95_ub),
+         calibrated_ci_95_lb = log(calibrated_ci_95_lb),
+         calibrated_ci_95_ub = log(calibrated_ci_95_ub)) %>%
+  mutate(effect_size_label = factor(effect_size,
+                                    levels = as.character(sort(unique(effect_size)))))
+
+## make plots of estimates and CIs
+type2cols = c(wes_palette("Zissou1")[3:4],wes_palette("Royal1")[4])
+othercols =  wes_palette("Royal1")[2]
+allCols = c(othercols, type2cols)
+
+allEffects = c(1,1.5,2,4)
+effect_set = c(1,1.5,2,4)
+
+festimates_synPC = festimates_synPC %>% filter(effect_size %in% effect_set)
+#bestimates = bestimates %>% filter(effect_size %in% effect_set)
+allCols = allCols[allEffects %in% effect_set]
+
+ylims = c(-8,5)
+
+(
+  p1b_synPC =
+    ggplot(festimates_synPC, 
+           aes(y=log_rr, x=as.factor(negative_control_id),
+               color=effect_size_label)) +
+    geom_hline(yintercept = log(effect_set), 
+               size = 1, color='gray50')+
+    geom_point() +
+    geom_errorbar(aes(ymax = ci_95_ub, ymin = ci_95_lb))+
+    scale_x_discrete(breaks = NULL)+
+    scale_y_continuous(limits = ylims)+
+    scale_color_manual(values = allCols)+
+    labs(y='estimate (log scale)', x='', color='effect size',
+         caption='uncalibrated estimates (frequentist)')+
+    theme_bw(base_size = 14) +
+    theme(legend.position = 'none')
+)
+
+(
+  p2b_synPC =
+    ggplot(festimates_synPC, 
+           aes(y=calibrated_log_rr, 
+               x=as.factor(negative_control_id),
+               color=effect_size_label)) +
+    geom_hline(yintercept = log(effect_set), 
+               size = 1, color='gray50')+
+    geom_point() +
+    geom_errorbar(aes(ymax = ci_95_ub, ymin = ci_95_lb))+
+    scale_x_discrete(breaks = NULL)+
+    scale_y_continuous(limits = ylims)+
+    scale_color_manual(values = allCols)+
+    labs(y='estimate (log scale)', x='', color='effect size',
+         caption='calibrated estimates (frequentist)')+
+    theme_bw(base_size = 14) +
+    theme(legend.position = 'none')
+)
+
+# the synthetic PC results don't look wayyy off
+# BUT they are only available for cases with a lot of data
+# for cases of insufficient data for the NC, there are no estimates produced
