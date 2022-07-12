@@ -1,5 +1,4 @@
-# 06/16/2022
-# add frequentist comparisons
+# 07/12/2022: move the estimation checking code here
 
 library(tidyverse)
 library(ggpubr)
@@ -8,153 +7,6 @@ library(wesanderson)
 
 # set up EUMAEUS results query connection-----
 ## connection details
-ConnectionDetails <- DatabaseConnector::createConnectionDetails(
-  dbms = "postgresql",
-  server = paste(keyring::key_get("eumaeusServer"),
-                 keyring::key_get("eumaeusDatabase"),
-                 sep = "/"),
-  user = keyring::key_get("eumaeusUser"),
-  password = keyring::key_get("eumaeusPassword"))
-
-## set up the DB connection
-connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
-
-
-# 1 function to extract results from EUMAEUS data server and make decisions using MaxSPRT-------
-# do this for one analysis and all outcomes
-frequentistDecisions <- function(connection,
-                                 schema,
-                                 database_id,
-                                 method,
-                                 exposure_id,
-                                 analysis_id,
-                                 estimates = NULL,
-                                 calibration = FALSE,
-                                 correct_shift = FALSE,
-                                 cachePath = './localCache/'){
-  # pull estimates
-  if(is.null(estimates)){
-    # sql <- "SELECT estimate.*
-    # FROM @schema.ESTIMATE estimate
-    # WHERE database_id = '@database_id'
-    #       AND method = '@method'
-    #       AND analysis_id = @analysis_id
-    #       AND exposure_id = @exposure_id"
-    # sql <- SqlRender::render(sql, 
-    #                          schema = schema,
-    #                          database_id = database_id,
-    #                          method = method,
-    #                          analysis_id = analysis_id,
-    #                          exposure_id = exposure_id)
-    # sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
-    # estimatesNC <- DatabaseConnector::querySql(connection, sql)
-    
-    sql <- "SELECT estimate.*
-    FROM @schema.ESTIMATE_IMPUTED_PCS estimate
-    WHERE database_id = '@database_id'
-          AND method = '@method'
-          AND analysis_id = @analysis_id
-          AND exposure_id = @exposure_id"
-    sql <- SqlRender::render(sql, 
-                             schema = schema,
-                             database_id = database_id,
-                             method = method,
-                             analysis_id = analysis_id,
-                             exposure_id = exposure_id)
-    sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
-    estimatesPC <- DatabaseConnector::querySql(connection, sql)
-  }
-  
-  # names(estimatesNC) = tolower(names(estimatesNC))
-  # estimatesNC = estimatesNC %>%
-  #   filter(!is.na(log_rr) & !is.na(se_log_rr) & !is.na(llr) & !is.na(critical_value)) %>%
-  #   select(database_id, method, analysis_id, 
-  #          exposure_id, outcome_id, period_id, 
-  #          p, log_rr, se_log_rr, llr, critical_value,
-  #          calibrated_p, calibrated_log_rr, calibrated_se_log_rr,
-  #          calibrated_llr)
-  
-  names(estimatesPC) = tolower(names(estimatesPC))
-  estimatesPC = estimatesPC %>%
-    filter(!is.na(log_rr) & !is.na(se_log_rr) & !is.na(llr) & !is.na(critical_value)) %>%
-    select(database_id, method, analysis_id, 
-           exposure_id, outcome_id, period_id, 
-           p, log_rr, se_log_rr, llr, critical_value,
-           calibrated_p, calibrated_log_rr, calibrated_se_log_rr,
-           calibrated_llr)
-  
-  ## combine NCs and PCs 
-  #estimates = rbind(estimatesNC, estimatesPC)
-  estimates = rbind(estimatesPC)
-  
-  # get effect sizes
-  IPCs = readRDS(file.path(cachePath, 'allIPCs.rds'))
-  names(IPCs) = tolower(names(IPCs))
-  
-  estimates = estimates %>%
-    left_join(IPCs) %>%
-    select(database_id, method, analysis_id, 
-           exposure_id, outcome_id, period_id, 
-           p, log_rr, se_log_rr, llr, critical_value,
-           calibrated_p, calibrated_log_rr, calibrated_se_log_rr,
-           calibrated_llr, effect_size) %>%
-    mutate(effect_size = if_else(is.na(effect_size), 1, effect_size),
-           negativeControl = (effect_size == 1))
-  
-  # 07/12/2022: correct for the amount of shift for IPCs
-  if(correct_shift){
-    estimates = correctShift(estimates, log_CI = FALSE, cachePath = cachePath)$shifted
-  }
-  
-  
-  # make decisions
-  if(calibration){
-    decisions = estimates %>%
-      group_by(outcome_id) %>%
-      arrange(period_id) %>%
-      mutate(yes = (calibrated_llr > critical_value)) %>%
-      mutate(reject = cumsum(yes)) %>%
-      mutate(reject = (reject > 0)) %>%
-      select(-yes) %>%
-      ungroup()
-  }else{
-    decisions = estimates %>%
-      group_by(outcome_id) %>%
-      arrange(period_id) %>%
-      mutate(yes = (llr > critical_value)) %>%
-      mutate(reject = cumsum(yes)) %>%
-      mutate(reject = (reject > 0)) %>%
-      select(-yes) %>%
-      ungroup()
-  }
-  
-  
-  # summarize Type I and Type II errors
-  errorRate = decisions %>%
-    group_by(database_id, method, analysis_id, 
-             exposure_id, negativeControl,
-             effect_size, period_id) %>%
-    summarize(rejectRate = mean(reject)) %>%
-    mutate(errorRate = if_else(negativeControl, rejectRate, 1-rejectRate),
-           stats = if_else(negativeControl, 'type 1',
-                           sprintf('type 2 (effect=%.1f)', effect_size))) %>%
-    ungroup()
-    
-             
-  # return
-  return(list(estimates = estimates, calibrate = calibration,
-              decisions = decisions, errorRate = errorRate))
-  
-}
-
-
-# try it-----
-db = 'CCAE'
-me = 'HistoricalComparator'
-eid = 211981
-aid = 2
-# 
-# 
 # ConnectionDetails <- DatabaseConnector::createConnectionDetails(
 #   dbms = "postgresql",
 #   server = paste(keyring::key_get("eumaeusServer"),
@@ -163,28 +15,8 @@ aid = 2
 #   user = keyring::key_get("eumaeusUser"),
 #   password = keyring::key_get("eumaeusPassword"))
 # 
-# # set up the DB connection
+# ## set up the DB connection
 # connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
-# 
-# resLst = frequentistDecisions(connection, 
-#                               'eumaeus',
-#                               database_id = db,
-#                               method = me,
-#                               exposure_id = eid,
-#                               analysis_id = aid)
-#   
-# DatabaseConnector::disconnect(connection)
-
-## correctiong shift version
-resLst = frequentistDecisions(connection,
-                              'eumaeus',
-                              database_id = db,
-                              method = me,
-                              exposure_id = eid,
-                              analysis_id = aid,
-                              calibration = TRUE,
-                              correct_shift = TRUE)
-
 
 # 2. compute estimation error (MSE?)-----
 # 06/28/2022: add 95% CIs
@@ -302,7 +134,7 @@ frequentistMSE <- function(connection,
     ungroup()
   
   return(list(MSEs = MSEs, estimates = estimates))
-
+  
 }
 
 ## try it
@@ -315,21 +147,21 @@ aid = 8
 
 #(
 freqMSEs = frequentistMSE(connection,
-                              'eumaeus',
-                              database_id = db,
-                              method = me,
-                              exposure_id = eid,
-                              analysis_id = aid)
-#)
-
-# 07/12/2022: try a version with shift correction
-freqMSEs2 = frequentistMSE(connection,
                           'eumaeus',
                           database_id = db,
                           method = me,
                           exposure_id = eid,
-                          analysis_id = aid,
-                          correct_shift = TRUE)
+                          analysis_id = aid)
+#)
+
+# 07/12/2022: try a version with shift correction
+freqMSEs2 = frequentistMSE(connection,
+                           'eumaeus',
+                           database_id = db,
+                           method = me,
+                           exposure_id = eid,
+                           analysis_id = aid,
+                           correct_shift = TRUE)
 
 # 2.b MSEs for Bayesian version as well
 # 06/28/2022: add 95% credible intervals
@@ -497,38 +329,38 @@ ylims = c(-5, 5)
 
 ## (1) unadjusted estimates
 (
-p1 =
-ggplot(bestimates, aes(y=postMedian,x=index,
-                       color=effect_size_label)) +
-  geom_hline(yintercept = log(effect_set), 
-             size = 1, color='gray50')+
-  geom_point() +
-  geom_errorbar(aes(ymax = CI95_ub, ymin = CI95_lb))+
-  scale_x_continuous(breaks = NULL)+
-  scale_y_continuous(limits = ylims)+
-  scale_color_manual(values = allCols)+
-  labs(y='estimate (log scale)', x='', color='effect size',
-       caption='unadjusted inference results (Bayesian)')+
-  theme_bw(base_size = 14) +
-  theme(legend.position = 'none')
+  p1 =
+    ggplot(bestimates, aes(y=postMedian,x=index,
+                           color=effect_size_label)) +
+    geom_hline(yintercept = log(effect_set), 
+               size = 1, color='gray50')+
+    geom_point() +
+    geom_errorbar(aes(ymax = CI95_ub, ymin = CI95_lb))+
+    scale_x_continuous(breaks = NULL)+
+    scale_y_continuous(limits = ylims)+
+    scale_color_manual(values = allCols)+
+    labs(y='estimate (log scale)', x='', color='effect size',
+         caption='unadjusted inference results (Bayesian)')+
+    theme_bw(base_size = 14) +
+    theme(legend.position = 'none')
 )
 
 ## (1.b) uncalibrated estimates (frequentists)
 (
-p1b =
-  ggplot(festimates, aes(y=log_rr, x=index,
-                         color=effect_size_label)) +
-  geom_hline(yintercept = log(effect_set), 
-             size = 1, color='gray50')+
-  geom_point() +
-  geom_errorbar(aes(ymax = ci_95_ub, ymin = ci_95_lb))+
-  scale_x_continuous(breaks = NULL)+
-  scale_y_continuous(limits = ylims)+
-  scale_color_manual(values = allCols)+
-  labs(y='estimate (log scale)', x='', color='effect size',
-       caption='uncalibrated estimates (frequentist)')+
-  theme_bw(base_size = 14) +
-  theme(legend.position = 'none')
+  p1b =
+    ggplot(festimates, aes(y=log_rr, x=index,
+                           color=effect_size_label)) +
+    geom_hline(yintercept = log(effect_set), 
+               size = 1, color='gray50')+
+    geom_point() +
+    geom_errorbar(aes(ymax = ci_95_ub, ymin = ci_95_lb))+
+    scale_x_continuous(breaks = NULL)+
+    scale_y_continuous(limits = ylims)+
+    scale_color_manual(values = allCols)+
+    labs(y='estimate (log scale)', x='', color='effect size',
+         caption='uncalibrated estimates (frequentist)')+
+    theme_bw(base_size = 14) +
+    theme(legend.position = 'none')
 )
 
 ## (2) adjusted estimates
@@ -629,6 +461,7 @@ print(
 # ## what's happening with the imputation shifting??
 # exp(effect_dist$log_rr_dist)
 # # [1]  2.25  4.00 16.00  2.25  4.00 16.00 ....
+# seems that the shifting was done twice!!! that's why it was off!
 
 
 # 07/12/2022
@@ -698,9 +531,9 @@ correctShift <- function(estimates,
 }
 
 
-
-# # don't run ------
-# # check synthetic PC results-------
+#######
+# # don't run
+# # check synthetic PC results
 # frequentistMSE_synPC <- function(connection,
 #                            schema,
 #                            database_id,
