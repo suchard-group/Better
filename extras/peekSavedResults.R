@@ -175,4 +175,10 @@ sql <- "SELECT outcome_id, exposure_id, negative_control_id, effect_size
 sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
 IPCs <- DatabaseConnector::querySql(connection, sql)
 
+# 6. pull synthetic positive controls 
+sql <- "SELECT outcome_id, exposure_id, negative_control_id, effect_size
+        FROM eumaeus.POSITIVE_CONTROL_OUTCOME"
+sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+sPCs <- DatabaseConnector::querySql(connection, sql)
+
 DatabaseConnector::disconnect(connection)
