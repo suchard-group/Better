@@ -134,7 +134,7 @@ frequentistDecisions <- function(connection,
     group_by(database_id, method, analysis_id, 
              exposure_id, negativeControl,
              effect_size, period_id) %>%
-    summarize(rejectRate = mean(reject)) %>%
+    summarize(rejectRate = mean(reject, na.rm =TRUE)) %>%
     mutate(errorRate = if_else(negativeControl, rejectRate, 1-rejectRate),
            stats = if_else(negativeControl, 'type 1',
                            sprintf('type 2 (effect=%.1f)', effect_size))) %>%

@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ```{r source functions, echo=FALSE, message=FALSE, warning=FALSE}
 source('simpleCalibration.R')
-source('frequentistComparisons.R')
+source('frequentistDecisionComparisons.R')
 ```
 
 
