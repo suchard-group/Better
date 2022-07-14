@@ -16,9 +16,9 @@ cachepath = './localCache/'
 # analyses results to check
 db = 'CCAE'
 eid = 211981
-#me = 'HistoricalComparator'
-me = 'SCCS'
-aid = 6
+me = 'HistoricalComparator'
+#me = 'SCCS'
+aid = 8
 #pid = 3 # 1: sd=10; 2: sd=1.5; 3: sd=4 
 #tolerance = 0.004
 
@@ -171,4 +171,7 @@ p = ggplot(errors_combined,
 
 print(p)
 
+
+## usually don't run; check that estimates are correct ---
+## oh no! Martijn has removed the imputed PCs results...
 

@@ -85,7 +85,7 @@ frequentistDecisions <- function(connection,
   
   ## combine NCs and PCs 
   #estimates = rbind(estimatesNC, estimatesPC)
-  estimates = rbind(estimatesPC)
+  estimates = estimatesPC
   
   # get effect sizes
   IPCs = readRDS(file.path(cachePath, 'allIPCs.rds'))
