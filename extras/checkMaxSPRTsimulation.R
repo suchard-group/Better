@@ -33,14 +33,14 @@ simulatePoissonTest <- function(S, numLooks=12,
     
     for(i in 1:numLooks){
       ## simulate Poisson count data
-      obsCounts = sum(rpois(Nbatch, expectedCount/Nbatch*effectSize))
+      obsCounts = sum(rpois(Nbatch, expectedCount/Nbatch))
       
       ## test
       res = Analyze.Poisson('Poisson1', test = i, 
                             mu0 = expectedCount, 
                             events = obsCounts)
       
-      if(res[nrow(res),'Reject H0'] == 'Yes'){
+      if(res[1,'Reject H0'] == 'Yes'){
         cat(sprintf('Null rejected at %sth data look.\n', i))
         rejects = rejects + 1
         break
@@ -58,95 +58,24 @@ simulatePoissonTest <- function(S, numLooks=12,
 
 cachepath = '~/Documents/Research/better/localCache/'
 
-# rejects = simulatePoissonTest(1, numLooks = 12, 
-#                               Nbatch = 100,
-#                               expectedCount = 5,
-#                               effectSize = 5, 
-#                               alphaSpend = 'Wald',
-#                               cachePath = cachepath)
+rejects = simulatePoissonTest(1, numLooks = 12, 
+                              Nbatch = 100,
+                              expectedCount = 5,
+                              effectSize = 1, 
+                              alphaSpend = 'Wald',
+                              cachePath = cachepath)
 # somehow there is an internal stuff that doesn't allow me to repeat testing inside the function???
 
-## do this manually
-set.seed(42)
-
-## basic settings
 S = 100
-nL = 12
-Nt = 20
-eC = 1
-alphaSpendType = 'Wald'
-
-
-## under H0:
-effect = 1
 allRejects = 0
-
 for(s in 1:S){
-  cat(sprintf('\n\nROUND %s...\n\n', s))
-  reject = simulatePoissonTest(1, numLooks = nL,
-                               Nbatch = Nt,
-                               expectedCount = eC,
-                               effectSize = effect,
-                               alphaSpend = alphaSpendType,
+  reject = simulatePoissonTest(1, numLooks = 12, 
+                               Nbatch = 100,
+                               expectedCount = 5,
+                               effectSize = 1, 
+                               alphaSpend = 'Wald',
                                cachePath = cachepath)
   allRejects = allRejects + reject
 }
 
-(Type1error = allRejects/S) #0.06
-
-
-## under H1: effectSize = 1.5
-effect = 1.5
-allRejects = 0
-
-for(s in 1:S){
-  cat(sprintf('\n\nROUND %s...\n\n', s))
-  reject = simulatePoissonTest(1, numLooks = nL,
-                               Nbatch = Nt,
-                               expectedCount = eC,
-                               effectSize = effect,
-                               alphaSpend = alphaSpendType,
-                               cachePath = cachepath)
-  allRejects = allRejects + reject
-}
-
-(Type2error15 = 1 - allRejects/S) #0.07 0.62
-
-
-## under H1: effectSize = 2
-effect = 2
-allRejects = 0
-
-for(s in 1:S){
-  cat(sprintf('\n\nROUND %s...\n\n', s))
-  reject = simulatePoissonTest(1, numLooks = nL,
-                               Nbatch = Nt,
-                               expectedCount = eC,
-                               effectSize = effect,
-                               alphaSpend = alphaSpendType,
-                               cachePath = cachepath)
-  allRejects = allRejects + reject
-}
-
-(Type2error20 = 1 - allRejects/S) # ... 0.1
-
-
-## under H1: effectSize = 4
-effect = 4
-allRejects = 0
-
-for(s in 1:S){
-  cat(sprintf('\n\nROUND %s...\n\n', s))
-  reject = simulatePoissonTest(1, numLooks = nL,
-                               Nbatch = Nt,
-                               expectedCount = eC,
-                               effectSize = effect,
-                               alphaSpend = alphaSpendType,
-                               cachePath = cachepath)
-  allRejects = allRejects + reject
-}
-
-(Type2error40 = 1 - allRejects/S) # 0 0
-
-
-
+Type1error = allRejects/S
