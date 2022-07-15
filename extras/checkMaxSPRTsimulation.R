@@ -70,8 +70,9 @@ cachepath = '~/Documents/Research/better/localCache/'
 
 # we'll just run it one by one then...----
 nL = 12
-Nt = 20
-eC = 1
+Nt = 60
+eC = 3
+S = 500
 
 # (1) effect = 1
 
@@ -79,7 +80,6 @@ set.seed(41)
 
 effect = 1
 
-S = 100
 allRejects = 0
 for(s in 1:S){
   cat(sprintf('\n\n ROUND %s ...\n\n', s))
@@ -99,7 +99,6 @@ for(s in 1:S){
 
 effect = 1.5
 
-S = 100
 allRejects = 0
 for(s in 1:S){
   cat(sprintf('\n\n ROUND %s ...\n\n', s))
@@ -119,7 +118,6 @@ for(s in 1:S){
 
 effect = 2
 
-S = 100
 allRejects = 0
 for(s in 1:S){
   cat(sprintf('\n\n ROUND %s ...\n\n', s))
@@ -140,7 +138,6 @@ for(s in 1:S){
 
 effect = 4
 
-S = 100
 allRejects = 0
 for(s in 1:S){
   cat(sprintf('\n\n ROUND %s ...\n\n', s))
@@ -159,3 +156,67 @@ for(s in 1:S){
 # 2. Bayesian test -----
 
 ## a function to simulate data streams
+## and also get posterior probs
+simulatePoissonBayes <- function(S, numLooks=12, 
+                                 Nbatch = 100, 
+                                 expectedCount = 5,
+                                 effectSize = 1, 
+                                 priorAlpha = 0.01,
+                                 priorBeta = 0.01,
+                                 alpha = 0.05){
+  
+  # results storage
+  P1s = rep(0.01,S*numLooks)
+  Rounds = rep(1:S, each = numLooks)
+  Period = rep(1:numLooks, S)
+  Reject = rep(FALSE, S*numLooks)
+  
+  # the expected rate
+  expectedRate = expectedCount/Nbatch
+  
+  for(s in 1:S){
+    cat(sprintf('\n\nSimulation round %s:...\n', s))
+    
+    # set up posterior starting point
+    postAlpha = priorAlpha
+    postBeta = priorBeta
+
+    flag = FALSE
+    
+    for(i in 1:numLooks){
+      ## simulate Poisson count data
+      obsCounts = sum(rpois(Nbatch, expectedRate * effectSize))
+      
+      ## update posterior
+      postAlpha = postAlpha + obsCounts
+      postBeta = postBeta + Nbatch
+      
+      ## get P1
+      this.P1 = pgamma(expectedRate, 
+                       shape = postAlpha, rate = postBeta,
+                       upper = TRUE) #???
+      
+      ## save the P1 entry
+      ind = (s-1)*numLooks + i
+      P1s[ind] = P1
+      
+      ## decision making using delta_1 = 1-alpha
+      if(P1 > 1-alpha){
+        Reject[ind] = TRUE
+        if(!flag){
+          flag = TRUE
+          cat(sprintf('\nNull rejected at data look %s!\n'), i)
+        }
+      }
+
+    }
+  }
+  
+  # results saved in a dataframe
+  res = data.frame(Simulation = Rounds,
+                   Period = Period,
+                   P1 = P1s,
+                   Reject = Reject)
+  
+  return(res)
+}
