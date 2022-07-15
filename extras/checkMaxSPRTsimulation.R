@@ -34,7 +34,7 @@ simulatePoissonTest <- function(S, numLooks=12,
     
     for(i in 1:numLooks){
       ## simulate Poisson count data
-      obsCounts = sum(rpois(Nbatch, expectedCount/Nbatch))
+      obsCounts = sum(rpois(Nbatch, expectedCount/Nbatch * effectSize))
       
       ## test
       res = Analyze.Poisson('Poisson1', test = i, 
@@ -48,7 +48,7 @@ simulatePoissonTest <- function(S, numLooks=12,
       }
     }
     
-    rm()
+    #rm()
   }
   
   return(rejects)
@@ -59,13 +59,13 @@ simulatePoissonTest <- function(S, numLooks=12,
 
 cachepath = '~/Documents/Research/better/localCache/'
 
-rejects = simulatePoissonTest(1, numLooks = 12, 
-                              Nbatch = 100,
-                              expectedCount = 5,
-                              effectSize = 1, 
-                              alphaSpend = 'Wald',
-                              cachePath = cachepath)
-# somehow there is an internal stuff that doesn't allow me to repeat testing inside the function???
+# rejects = simulatePoissonTest(1, numLooks = 12, 
+#                               Nbatch = 100,
+#                               expectedCount = 5,
+#                               effectSize = 1, 
+#                               alphaSpend = 'Wald',
+#                               cachePath = cachepath)
+# # somehow there is an internal stuff that doesn't allow me to repeat testing inside the function???
 
 
 # we'll just run it one by one then...----
@@ -74,6 +74,8 @@ Nt = 20
 eC = 1
 
 # (1) effect = 1
+
+set.seed(41)
 
 effect = 1
 
@@ -152,3 +154,8 @@ for(s in 1:S){
 }
 
 (Type2error40 = 1-allRejects/S)
+
+
+# 2. Bayesian test -----
+
+## a function to simulate data streams
