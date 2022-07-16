@@ -55,10 +55,96 @@ simulatePoissonTest <- function(S, numLooks=12,
   return(rejects)
 }
 
+# another function:
+## pre-compute critical values (CVs)
+## and then simulate to get llr's
+maxSprtPoisson <- function(S, numLooks=12, 
+                           expectedCount = 5,
+                           effectSize = 1,
+                           alpha = 0.05){
+  
+  ## pre-compute CV
+  theCV = CV.Poisson(SampleSize = expectedCount * numLooks,
+                     M = 4, # recommended by Kulldorff et al.
+                     alpha = alpha,
+                     GroupSizes = rep(expectedCount, numLooks))
+  
+  ## results storage
+  LLRs = rep(0.01,S*numLooks)
+  Rounds = rep(1:S, each = numLooks)
+  Period = rep(1:numLooks, S)
+  Reject = rep(FALSE, S*numLooks)
+  
+  for(s in 1:S){
+    cat(sprintf('\n\nSimulation round %s:...\n', s))
+    
+    ## simulate data
+    ## across all data looks in one go...
+    obsCounts = rpois(numLooks, expectedCount * effectSize)
+    
+    ## accumulate observations
+    cumCounts = cumsum(obsCounts)
+    cumExpected = expectedCount * c(1:numLooks)
+    
+    ## evaluate LLR's
+    this.LLRs = dpois(cumCounts, cumCounts, log = TRUE) - 
+      dpois(cumCounts, cumExpected, log = TRUE)
+    
+    ## reject?
+    this.reject = this.LLRs > theCV
+    
+    ## save results
+    inds = seq(from = (s-1)*numLooks + 1,
+               to = (s-1)*numLooks + numLooks,
+               by = 1)
+    
+    LLRs[inds] = this.LLRs
+    Reject[inds] = this.reject
+    
+    if(any(this.reject)){
+      cat(sprintf('Null rejected in simulation round %s!\n', s))
+    }
+  }
+  
+  res = data.frame(Simulation = Rounds,
+                   Period = Period,
+                   LLR = LLRs,
+                   Reject = Reject)
+  
+  return(list(res = res,
+              numLooks = numLooks,
+              expectedCount = expectedCount))
+}
 
-## try simulation run
+## utils function to get rejection
+getMaxSprtRejectRate <- function(resLs, alpha = 0.05){
+  
+  res = resLs$res
+  
+  if(alpha != 0.05){
+    theCV = CV.Poisson(SampleSize = resLs$expectedCount * resLs$numLooks,
+                       M = 4, # recommended by Kulldorff et al.
+                       alpha = alpha,
+                       GroupSizes = rep(resLs$expectedCount, resLs$numLooks))
+    
+    res$Reject = res$LLR > theCV
+  }
+  
+  Decisions = res %>% group_by(Simulation) %>%
+    summarize(overallReject = any(Reject)) %>%
+    ungroup()
+  
+  ## sanity check
+  cat(sprintf('Out of %s total simulations, %s final decisions are reached.\n', 
+              max(res$Simulation), nrow(Decisions)))
+  
+  mean(Decisions$overallReject)
+}
 
-cachepath = '~/Documents/Research/better/localCache/'
+
+## try simulation run----
+
+# cachepath = '~/Documents/Research/better/localCache/'
 
 # rejects = simulatePoissonTest(1, numLooks = 12, 
 #                               Nbatch = 100,
@@ -68,6 +154,8 @@ cachepath = '~/Documents/Research/better/localCache/'
 #                               cachePath = cachepath)
 # # somehow there is an internal stuff that doesn't allow me to repeat testing inside the function???
 
+# try the updated function --- a lot faster!!
+# resLs = maxSprtPoisson(10, numLooks = 12, expectedCount = 3, effectSize = 1, alpha = 0.05)
 
 # we'll just run it one by one then...----
 nL = 12
@@ -152,6 +240,69 @@ for(s in 1:S){
 }
 
 (Type2error40 = 1-allRejects/S)
+
+
+
+# run simulations using the updated, faster function-----
+nL = 12
+#Nt = 60
+eC = 3
+
+alpha = 0.05
+
+S = 5000
+
+set.seed(41)
+
+# (1) effect = 1
+
+effect = 1
+
+simsMPRT1 = maxSprtPoisson(S, numLooks = nL, 
+                           expectedCount = eC,
+                           effectSize = effect,
+                           alpha = alpha)
+getMaxSprtRejectRate(simsMPRT1, alpha = alpha) # >0.14 if alpha = 0.05???
+getMaxSprtRejectRate(simsMPRT1, alpha = 0.0245) # 0.0474
+
+
+# (2) effect = 1.5
+
+effect = 1.5
+
+simsMPRT15 = maxSprtPoisson(S, numLooks = nL, 
+                           expectedCount = eC,
+                           effectSize = effect,
+                           alpha = alpha)
+1-getMaxSprtRejectRate(simsMPRT15, alpha = alpha) # 0.229 if alpha = 0.05
+1-getMaxSprtRejectRate(simsMPRT15, alpha = 0.0245) # 0.336
+
+
+# (3) effect = 2
+
+effect = 2
+
+simsMPRT20 = maxSprtPoisson(S, numLooks = nL, 
+                            expectedCount = eC,
+                            effectSize = effect,
+                            alpha = alpha)
+1-getMaxSprtRejectRate(simsMPRT20, alpha = alpha) # 0.0022 if alpha = 0.05
+1-getMaxSprtRejectRate(simsMPRT20, alpha = 0.0245) # 0.0048
+
+
+# (4) effect = 4
+
+effect = 4
+
+simsMPRT40 = maxSprtPoisson(S, numLooks = nL, 
+                            expectedCount = eC,
+                            effectSize = effect,
+                            alpha = alpha)
+1-getMaxSprtRejectRate(simsMPRT40, alpha = alpha) # 0 alpha = 0.05
+1-getMaxSprtRejectRate(simsMPRT40, alpha = 0.0245) # 0
+
+
+
 
 
 # 2. Bayesian test -----
