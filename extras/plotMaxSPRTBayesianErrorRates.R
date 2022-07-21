@@ -16,9 +16,9 @@ cachepath = './localCache/'
 # analyses results to check
 db = 'CCAE'
 eid = 211981
-me = 'HistoricalComparator'
-#me = 'SCCS'
-aid = 8
+#me = 'HistoricalComparator'
+me = 'SCCS'
+aid = 4
 #pid = 3 # 1: sd=10; 2: sd=1.5; 3: sd=4 
 #tolerance = 0.004
 
@@ -32,7 +32,7 @@ res_raw = plotTempDelta1ByPriors(database_id = db,
                                  analysis_id = aid,
                                  exposure_id = eid,
                                  prior_ids = c(1:3), # include all priors for easier query later
-                                 alpha = 0.06,
+                                 alpha = 0.03,
                                  summaryPath = summarypath,
                                  cachePath = cachepath,
                                  useAdjusted = FALSE,
@@ -41,7 +41,8 @@ res_raw = plotTempDelta1ByPriors(database_id = db,
                                  calibrate = FALSE)
 
 # pick a prior as example
-pid = 1 # use SD = 1 results for this Bayesian example
+#pid = 1 # use SD = 1.5 results for this Bayesian example
+pid = 3 # use SD = 4 result
 res_Bayes_raw = res_raw %>% 
   filter(prior_id == pid) %>% 
   select(period_id, y, effect_size, stats) %>%
@@ -56,7 +57,7 @@ res_adj = plotTempDelta1ByPriors(database_id = db,
                                  prior_ids = c(1:3),
                                  summaryPath = summarypath,
                                  cachePath = cachepath,
-                                 alpha = 0.085, 
+                                 alpha = 0.04, 
                                  useAdjusted = TRUE,
                                  showPlots = TRUE,
                                  stratifyByEffectSize = TRUE,
