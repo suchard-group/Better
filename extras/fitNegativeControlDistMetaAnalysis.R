@@ -87,3 +87,14 @@ hist(null2btraces[,1])
 hist(null2btraces[,2])
 
 # there isn't much difference w.r.t. posterior of global bias mu even if we change prior for tau...
+
+
+## (1) try using more conservative prior for mu
+null2c = EvidenceSynthesis::computeBayesianMetaAnalysis(data = LPlist,
+                                                        priorSd = c(0.1,0.5))
+## check summary
+null2c
+null2ctraces = attr(null2c, "traces")
+## plot global mean and sd posteriors
+hist(null2ctraces[,1])
+hist(null2ctraces[,2])
