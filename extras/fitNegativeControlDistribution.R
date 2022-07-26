@@ -8,6 +8,8 @@
 # as well as equal number of predictive samples of the systematic error
 # (return numeric(0) if no negative controls results exist for required analysis)
 
+source('./extras/getLikelihoodProfile.R')
+
 # Feb 2022 update: make use of pre-pulled estimates if available 
 fitNegativeControlDistribution <- function(connection,
                                            schema,
@@ -119,3 +121,112 @@ fitNegativeControlDistribution <- function(connection,
 #                                      outcomeToExclude = 43020446, # (Sedative withdrawal)
 #                                      numsamps = 10000,
 #                                      plot = TRUE)
+
+
+# July 2022 update: 
+# use likelihood profiles to fit null distribution
+fitNegativeControlDistributionLikelihood <- function(connection,
+                                                     schema,
+                                                     database_id,
+                                                     method,
+                                                     exposure_id,
+                                                     analysis_id, 
+                                                     period_id,
+                                                     savedLPs = NULL,
+                                                     outcomeToExclude=NULL,
+                                                     priorSds = c(2,0.5),
+                                                     numsamps = 10000,
+                                                     thin = 10,
+                                                     minNCs = 5,
+                                                     plot = FALSE){
+  # outcomeToExclude: one or more (negative) outcomes to NOT include
+  # numsamps: total num of posterior samples to acquire (default = 10)
+  # thin: thinning iters (default = 10)
+  
+  # get relevant data first
+  if(is.null(savedLPs)){
+    sql <- "SELECT database_id, 
+    method, 
+    exposure_id, 
+    analysis_id, 
+    period_id,
+    likelihood_profile.outcome_id AS outcome_id,
+    point,
+    value
+    FROM @schema.likelihood_profile
+    INNER JOIN @schema.NEGATIVE_CONTROL_OUTCOME
+    ON likelihood_profile.outcome_id = NEGATIVE_CONTROL_OUTCOME.outcome_id
+    WHERE database_id = '@database_id'
+          AND method = '@method'
+          AND exposure_id = @exposure_id
+          AND analysis_id = @analysis_id
+          AND period_id = @period_id"
+    sql <- SqlRender::render(sql, 
+                             schema = schema,
+                             database_id = database_id,
+                             method = method,
+                             exposure_id = exposure_id,
+                             period_id = period_id,
+                             analysis_id = analysis_id)
+    LPs <- DatabaseConnector::querySql(connection, sql)
+    cat('Negative controls estimates pulled...\n')
+  }else{
+    LPs = savedLPs
+  }
+  
+  # exclude outcomes
+  if(!is.null(outcomeToExclude)){
+    LPs = LPs %>% filter(!OUTCOME_ID %in% outcomeToExclude)
+  }
+  
+  # check if there are at least minNCs rows 
+  if(nrow(LPs) < minNCs){
+    message(sprintf('Less than %s NC likelihood profiles available! Notting fitting null distribution.\n',
+                    minNCs))
+    return(numeric(0))
+  }
+
+  # post-process to a list of dataframes
+  LPlist = postProcessLPs(LPs)
+  
+  # fit null distribution
+  null = EvidenceSynthesis::computeBayesianMetaAnalysis(data = LPlist,
+                                                        chainLength = numsamps + numsamps * thin,
+                                                        burnIn = numsamps,
+                                                        subSampleFrequency = thin,
+                                                        priorSd = priorSds)
+  traces = attr(null, "traces")
+  means = traces[,1]
+  sds = traces[,2]
+  
+  biases = rnorm(numsamps, means, sds)
+  
+  res = list(mean = means, sd = sds, bias = biases)
+
+  # plotting
+  if(plot & length(res) > 0){
+    dat = data.frame(x=res$bias)
+    print(
+      ggplot(dat, aes(x=x)) +
+        geom_density() +
+        labs(x='log effect size', y=NULL, 
+             title='Estimated systematic error bias distribution') +
+        theme_bw(base_size = 14)
+    )
+  }
+  
+  res
+}
+
+# try it
+NCs = fitNegativeControlDistributionLikelihood(connection, 'eumaeus',
+                                     database_id = "CCAE",
+                                     method = "HistoricalComparator",
+                                     exposure_id = 211981,
+                                     period_id = 12,
+                                     analysis_id = 2,
+                                     outcomeToExclude = 43020446, # (Sedative withdrawal)
+                                     numsamps = 10000,
+                                     priorSds = c(0.2,0.2),
+                                     plot = TRUE)
+

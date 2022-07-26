@@ -75,6 +75,11 @@ null2traces = attr(null2a, "traces")
 hist(null2traces[,1])
 hist(null2traces[,2])
 
+## plot posterior predictive samples for the bias
+postsamps2a = rnorm(10000, null2traces[,1], null2traces[,2])
+hist(postsamps2a)
+summary(postsamps2a)
+
 
 ## (2) try using more conservative prior for tau
 null2b = EvidenceSynthesis::computeBayesianMetaAnalysis(data = LPlist,
@@ -89,7 +94,7 @@ hist(null2btraces[,2])
 # there isn't much difference w.r.t. posterior of global bias mu even if we change prior for tau...
 
 
-## (1) try using more conservative prior for mu
+## (3) try using more conservative prior for mu
 null2c = EvidenceSynthesis::computeBayesianMetaAnalysis(data = LPlist,
                                                         priorSd = c(0.1,0.5))
 ## check summary
@@ -98,3 +103,26 @@ null2ctraces = attr(null2c, "traces")
 ## plot global mean and sd posteriors
 hist(null2ctraces[,1])
 hist(null2ctraces[,2])
+
+postsamps2c = rnorm(10000, null2ctraces[,1], null2ctraces[,2])
+summary(postsamps2c)
+hist(postsamps2c)
+
+
+## (4) try using more conservative priors for mu and tau
+null2d = EvidenceSynthesis::computeBayesianMetaAnalysis(data = LPlist,
+                                                        priorSd = c(0.1,0.1))
+## check summary
+null2d
+null2dtraces = attr(null2d, "traces")
+## plot global mean and sd posteriors
+hist(null2dtraces[,1])
+hist(null2dtraces[,2])
+
+postsamps2d = rnorm(10000, null2dtraces[,1], null2dtraces[,2])
+summary(postsamps2d)
+hist(postsamps2d)
+
+
+## (5) try t distribution model
+
