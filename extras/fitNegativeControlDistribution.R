@@ -218,15 +218,15 @@ fitNegativeControlDistributionLikelihood <- function(connection,
   res
 }
 
-# try it
-NCs = fitNegativeControlDistributionLikelihood(connection, 'eumaeus',
-                                     database_id = "CCAE",
-                                     method = "HistoricalComparator",
-                                     exposure_id = 211981,
-                                     period_id = 12,
-                                     analysis_id = 2,
-                                     outcomeToExclude = 43020446, # (Sedative withdrawal)
-                                     numsamps = 10000,
-                                     priorSds = c(0.2,0.2),
-                                     plot = TRUE)
+# # try it
+# NCs = fitNegativeControlDistributionLikelihood(connection, 'eumaeus',
+#                                      database_id = "CCAE",
+#                                      method = "HistoricalComparator",
+#                                      exposure_id = 211981,
+#                                      period_id = 12,
+#                                      analysis_id = 2,
+#                                      outcomeToExclude = 43020446, # (Sedative withdrawal)
+#                                      numsamps = 10000,
+#                                      priorSds = c(0.2,0.2),
+#                                      plot = TRUE)
 
