@@ -127,22 +127,34 @@ oneBayesianAnalysisMeta <- function(connection,
     if(outcome %in% NCs){
       # negative control: LOO null distribution needed
       
-      this.null = null = fitNegativeControlDistributionLikelihood(connection, 
-                                                                  schema, 
-                                                                  database_id, 
-                                                                  method, 
-                                                                  exposure_id, 
-                                                                  analysis_id, 
-                                                                  period_id, 
-                                                                  savedLPs = NC_LPs, 
-                                                                  outcomeToExclude = outcome,
-                                                                  priorSds = nullPriorSds, 
-                                                                  minNCs = minNCs,
-                                                                  numsamps = numsamps, thin = thin)
+      ## handle errors from Java MCMC run for meta analysis
+      this.null = tryCatch(
+        expr = {
+          fitNegativeControlDistributionLikelihood(connection, 
+                                                   schema, 
+                                                   database_id, 
+                                                   method, 
+                                                   exposure_id, 
+                                                   analysis_id, 
+                                                   period_id, 
+                                                   savedLPs = NC_LPs, 
+                                                   outcomeToExclude = outcome,
+                                                   priorSds = nullPriorSds, 
+                                                   minNCs = minNCs,
+                                                   numsamps = numsamps, 
+                                                   thin = thin)
+        },
+        error = function(e){
+          cat('Error occurred while trying to run MCMC for meta analysis! Skipped...\n\n')
+          'error'
+        }
+      )
       
-      # if can't fit null (no other negative control results available)
-      # set biases to NULL
-      if(length(this.null) == 0){
+      # if can't fit null 
+      # (no other negative control results available)
+      # (or... Java encountered error when running MCMC for meta analysis somehow)
+      # then set biases to NULL
+      if(length(this.null) == 0 || this.null == 'error'){
         biases = NULL
       }else{
         biases = this.null$bias
@@ -252,8 +264,12 @@ summarizeOneOutcome <- function(res, getCI = TRUE) {
     prefix = ifelse(s == 'postSamps', '', 'adjusted')
     # 95% credible intervals
     if (getCI) {
-      res[[paste0(prefix, 'CI95_lb')]] = quantile(res[[s]], 0.025) %>% as.numeric()
-      res[[paste0(prefix, 'CI95_ub')]] = quantile(res[[s]], 0.975) %>% as.numeric()
+      res[[paste0(prefix, 'CI95_lb')]] = 
+        quantile(res[[s]], 0.025, na.rm = TRUE) %>% 
+        as.numeric()
+      res[[paste0(prefix, 'CI95_ub')]] = 
+        quantile(res[[s]], 0.975, na.rm = TRUE) %>% 
+        as.numeric()
     }
     # posterior hypothesis probs
     res[[paste0(prefix, 'P1')]] = mean(res[[s]] > 0)
@@ -744,21 +760,21 @@ multiBayesianAnalysesMeta <- function(connection,
 }
 
 
-## try it
-IPCs = getIPCs(connection, 'eumaeus', 'localCache/')
-selNCs = c(438945, 434455, 316211, 201612, 438730)
-#selNCs = NCs
-
-multiRes = multiBayesianAnalysesMeta(connection,
-                                     'eumaeus',
-                                     'CCAE',
-                                     'HistoricalComparator',
-                                     exposure_id = 211981,
-                                     analysis_ids = 2,
-                                     period_ids = 12,
-                                     IPCtable = IPCs,
-                                     nullPriorSds = c(.5,.5),
-                                     preLearnNull = FALSE,
-                                     negControls = selNCs)
+# ## try it
+# IPCs = getIPCs(connection, 'eumaeus', 'localCache/')
+# #selNCs = c(438945, 434455, 316211, 201612, 438730)
+# selNCs = NCs
+# 
+# multiRes = multiBayesianAnalysesMeta(connection,
+#                                      'eumaeus',
+#                                      'CCAE',
+#                                      'HistoricalComparator',
+#                                      exposure_id = 211981,
+#                                      analysis_ids = 2,
+#                                      period_ids = 12,
+#                                      IPCtable = IPCs,
+#                                      nullPriorSds = c(.5,.5),
+#                                      preLearnNull = FALSE,
+#                                      negControls = selNCs)
 
 

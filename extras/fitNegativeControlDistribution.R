@@ -181,7 +181,7 @@ fitNegativeControlDistributionLikelihood <- function(connection,
   
   # check if there are at least minNCs rows 
   if(nrow(LPs) < minNCs){
-    message(sprintf('Less than %s NC likelihood profiles available! Notting fitting null distribution.\n',
+    message(sprintf('Less than %s NC likelihood profiles available! Not fitting null distribution.\n',
                     minNCs))
     return(numeric(0))
   }
