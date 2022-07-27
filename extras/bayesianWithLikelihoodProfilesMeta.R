@@ -118,7 +118,10 @@ oneBayesianAnalysisMeta <- function(connection,
                                        outcome,
                                        analysis_id)
     # if there isn't an entry
-    if(length(lik)==0) next
+    if(length(lik)==0){
+      cat(sprintf('No likelihood profile available for outcome %s! Skipped.\n', outcome))
+      next
+    } 
     
     # check if it's a negative control outcome
     if(outcome %in% NCs){
@@ -230,8 +233,9 @@ oneBayesianAnalysisMeta <- function(connection,
 # IPCs = readRDS('localCache/allIPCs.rds')
 # resLst = oneBayesianAnalysisMeta(connection, 'eumaeus',
 #                                  'CCAE', 'HistoricalComparator',
-#                                  211981, 2,
-#                                  12, 
+#                                  exposure_id = 211981, 
+#                                  analysis_id = 2,
+#                                  period_id = 12,
 #                                  IPCtable = IPCs,
 #                                  priorSd = 4,
 #                                  nullPriorSds = c(0.5,0.5))
@@ -407,7 +411,7 @@ multiBayesianAnalysesMeta <- function(connection,
     )
     # if no LPs returned, skip this one
     if (nrow(LPs) == 0) {
-      #cat('No pre-saved likelihood profiles available! Skipped.\n')
+      cat('No pre-saved likelihood profiles available! Skipped.\n')
       next
     }
     
@@ -434,7 +438,10 @@ multiBayesianAnalysesMeta <- function(connection,
       
       ## check LPs
       LPs.a = LPs %>% filter(ANALYSIS_ID == a)
-      if(nrow(LPs.a) == 0) next
+      if(nrow(LPs.a) == 0){
+        cat(sprintf('No likelihood profiles available for analysis %s! Skipped.\n', a))
+        next
+      } 
       
       ## get NC LPs 
       NC_LPs.a = LPs.a %>% filter(OUTCOME_ID %in% NCs)
@@ -493,7 +500,6 @@ multiBayesianAnalysesMeta <- function(connection,
         
         ## run analysis to get results
         this.res = oneBayesianAnalysisMeta(connection, 
-                                           'eumaeus',
                                            schema,
                                            database_id,
                                            method,
@@ -741,6 +747,7 @@ multiBayesianAnalysesMeta <- function(connection,
 ## try it
 IPCs = getIPCs(connection, 'eumaeus', 'localCache/')
 selNCs = c(438945, 434455, 316211, 201612, 438730)
+#selNCs = NCs
 
 multiRes = multiBayesianAnalysesMeta(connection,
                                      'eumaeus',
