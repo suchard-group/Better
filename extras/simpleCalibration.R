@@ -182,7 +182,9 @@ calibrateByDelta1 <- function(database_id,
 
 # 04/27/2022: calibrate on delta1 over time periods and see how thresholds and errors change over time
 # main function for delta1 "calibration"
-# 07/28/2022: handle potential NA entries for calibrated results
+# 07/28/2022: 
+# (1) handle potential NA entries for calibrated results
+# (2) restrict outcomes to those with available estimates up to an obs. period
 tempCalibrateByDelta1 <- function(database_id,
                                   method,
                                   analysis_id,
@@ -195,7 +197,8 @@ tempCalibrateByDelta1 <- function(database_id,
                                   minOutcomes = 5,
                                   useAdjusted = FALSE,
                                   evalType2 = TRUE,
-                                  stratifyByEffectSize = FALSE){
+                                  stratifyByEffectSize = FALSE,
+                                  outcomesInEstimates = NULL){
   # if summ is provided, directly query from given dataframe
   # otherwise, load it from saved summary file
   if(is.null(summ)){
@@ -233,13 +236,25 @@ tempCalibrateByDelta1 <- function(database_id,
   
   ## helper function to process data up to a period
   calibrateUpToPeriod <- function(period){
+    # get outcomes with available estimates if provided
+    if(!is.null(outcomesInEstimates)){
+      outcomeSubset = outcomesInEstimates %>%
+        filter(period_id == period) %>% 
+        select(outcome_id) %>% 
+        distinct() %>% 
+        pull()
+    }else{
+      outcomeSubset = unique(c(IPCs$outcome_id, dat$outcome_id))
+    }
+    
     # get relevant data up to period
     dat.p = summ %>% 
       filter(analysis_id == !!analysis_id, 
              exposure_id == !!exposure_id,
              prior_id == !! prior_id,
              negativeControl == TRUE,
-             period_id <= period)
+             period_id <= period,
+             outcome_id %in% outcomeSubset)
     # check if having enough data
     if(nrow(dat.p) == 0 || length(unique(dat.p$outcome_id)) < minOutcomes){
       mes = sprintf('Num. of negative controls for period %s, is smaller than minimum %s!\n',
@@ -295,7 +310,8 @@ tempCalibrateByDelta1 <- function(database_id,
                exposure_id == !!exposure_id,
                prior_id == !! prior_id,
                negativeControl == FALSE,
-               period_id <= period)
+               period_id <= period,
+               outcome_id %in% outcomeSubset)
       
       # 04/28: stratify by effect size if....
       if(stratifyByEffectSize){
