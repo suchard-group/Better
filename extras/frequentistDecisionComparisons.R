@@ -1,5 +1,8 @@
 # 06/16/2022
 # add frequentist comparisons
+# 07/27/2022
+# add a naive Bonferroni correction sequential test version
+# and also include a list of outcome_ids with available estimates
 
 library(tidyverse)
 library(ggpubr)
@@ -31,6 +34,8 @@ frequentistDecisions <- function(connection,
                                  estimates = NULL,
                                  calibration = FALSE,
                                  correct_shift = FALSE,
+                                 bonferroni_baseline = TRUE,
+                                 alpha = 0.05,
                                  cachePath = './localCache/'){
   # pull estimates
   if(is.null(estimates)){
@@ -79,8 +84,9 @@ frequentistDecisions <- function(connection,
     filter(!is.na(log_rr) & !is.na(se_log_rr) & !is.na(llr) & !is.na(critical_value)) %>%
     select(database_id, method, analysis_id, 
            exposure_id, outcome_id, period_id, 
-           p, log_rr, se_log_rr, llr, critical_value,
-           calibrated_p, calibrated_log_rr, calibrated_se_log_rr,
+           p, one_sided_p, log_rr, se_log_rr, llr, critical_value,
+           calibrated_p, calibrated_one_sided_p, 
+           calibrated_log_rr, calibrated_se_log_rr,
            calibrated_llr)
   
   ## combine NCs and PCs 
@@ -95,8 +101,9 @@ frequentistDecisions <- function(connection,
     left_join(IPCs) %>%
     select(database_id, method, analysis_id, 
            exposure_id, outcome_id, period_id, 
-           p, log_rr, se_log_rr, llr, critical_value,
-           calibrated_p, calibrated_log_rr, calibrated_se_log_rr,
+           p, one_sided_p, log_rr, se_log_rr, llr, critical_value,
+           calibrated_p, calibrated_one_sided_p, 
+           calibrated_log_rr, calibrated_se_log_rr,
            calibrated_llr, effect_size) %>%
     mutate(effect_size = if_else(is.na(effect_size), 1, effect_size),
            negativeControl = (effect_size == 1))
@@ -108,6 +115,9 @@ frequentistDecisions <- function(connection,
   
   
   # make decisions
+  if(bonferroni_baseline){
+    bon_alpha = alpha/max(estimates$period_id)
+  }
   if(calibration){
     decisions = estimates %>%
       group_by(outcome_id) %>%
@@ -117,6 +127,17 @@ frequentistDecisions <- function(connection,
       mutate(reject = (reject > 0)) %>%
       select(-yes) %>%
       ungroup()
+    # also with the bonferroni correction...
+    if(bonferroni_baseline){
+      decisions_bonferroni = estimates %>%
+        group_by(outcome_id) %>%
+        arrange(period_id) %>%
+        mutate(yes = (calibrated_one_sided_p < bon_alpha)) %>%
+        mutate(reject = cumsum(yes)) %>%
+        mutate(reject = (reject > 0)) %>%
+        select(-yes) %>%
+        ungroup()
+    }
   }else{
     decisions = estimates %>%
       group_by(outcome_id) %>%
@@ -126,6 +147,16 @@ frequentistDecisions <- function(connection,
       mutate(reject = (reject > 0)) %>%
       select(-yes) %>%
       ungroup()
+    if(bonferroni_baseline){
+      decisions_bonferroni = estimates %>%
+        group_by(outcome_id) %>%
+        arrange(period_id) %>%
+        mutate(yes = (one_sided_p < bon_alpha)) %>%
+        mutate(reject = cumsum(yes)) %>%
+        mutate(reject = (reject > 0)) %>%
+        select(-yes) %>%
+        ungroup()
+    }
   }
   
   
@@ -139,11 +170,24 @@ frequentistDecisions <- function(connection,
            stats = if_else(negativeControl, 'type 1',
                            sprintf('type 2 (effect=%.1f)', effect_size))) %>%
     ungroup()
+  ## also with Bonferroni correction baseline
+  if(bonferroni_baseline){
+    errorRate_bonferroni = decisions_bonferroni %>%
+      group_by(database_id, method, analysis_id, 
+               exposure_id, negativeControl,
+               effect_size, period_id) %>%
+      summarize(rejectRate = mean(reject, na.rm =TRUE)) %>%
+      mutate(errorRate = if_else(negativeControl, rejectRate, 1-rejectRate),
+             stats = if_else(negativeControl, 'type 1',
+                             sprintf('type 2 (effect=%.1f)', effect_size))) %>%
+      ungroup()
+  }
     
              
   # return
   return(list(estimates = estimates, calibrate = calibration,
-              decisions = decisions, errorRate = errorRate))
+              decisions = decisions, errorRate = errorRate,
+              errorRate_bonferroni = errorRate_bonferroni))
   
 }
 
