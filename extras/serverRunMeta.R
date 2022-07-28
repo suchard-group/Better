@@ -1,7 +1,7 @@
 # July 2022
 # re-run on Hoffman2
 # to experiment on prior settings for negative control meta analysis 
-
+# (on-server debug run again...)
 
 ## setup
 #source('./extras/bayesianWithLikelihoodProfiles.R')
@@ -12,13 +12,13 @@ array_id = Sys.getenv('SGE_TASK_ID') %>% as.numeric()
 
 if(array_id %% 3 == 0){
   nullPriorSds = c(2, 0.5)
-  dir_suffix = 'default'
+  dir_suffix = 'default2'
 }else if(array_id %% 3 == 1){
   nullPriorSds = c(0.5, 0.5)
-  dir_suffix = 'shrinkMu'
+  dir_suffix = 'shrinkMu2'
 }else{
   nullPriorSds = c(0.2, 0.2)
-  dir_suffix = 'shrinkBoth'
+  dir_suffix = 'shrinkBoth2'
 }
 
 ## directory setup------
