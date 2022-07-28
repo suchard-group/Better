@@ -77,15 +77,15 @@
     },
     "EvidenceSynthesis": {
       "Package": "EvidenceSynthesis",
-      "Version": "0.2.4",
+      "Version": "0.3.0",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "EvidenceSynthesis",
       "RemoteUsername": "OHDSI",
       "RemoteRef": "develop",
-      "RemoteSha": "e7fe85d521403a8c89de3f539ed61bcf81bd52be",
-      "Hash": "a91ba4fd2e938b354f29f7640db224f2"
+      "RemoteSha": "12d31f1e5e3cc11e2ddd1393b8d7029003f4c92c",
+      "Hash": "763d1c447897061b00a680709504ef04"
     },
     "HDInterval": {
       "Package": "HDInterval",
