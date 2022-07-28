@@ -182,19 +182,20 @@ calibrateByDelta1 <- function(database_id,
 
 # 04/27/2022: calibrate on delta1 over time periods and see how thresholds and errors change over time
 # main function for delta1 "calibration"
+# 07/28/2022: handle potential NA entries for calibrated results
 tempCalibrateByDelta1 <- function(database_id,
-                              method,
-                              analysis_id,
-                              exposure_id,
-                              prior_id,
-                              resPath,
-                              cachePath = './localCache/',
-                              summ = NULL,
-                              alpha = 0.05,
-                              minOutcomes = 5,
-                              useAdjusted = FALSE,
-                              evalType2 = TRUE,
-                              stratifyByEffectSize = FALSE){
+                                  method,
+                                  analysis_id,
+                                  exposure_id,
+                                  prior_id,
+                                  resPath,
+                                  cachePath = './localCache/',
+                                  summ = NULL,
+                                  alpha = 0.05,
+                                  minOutcomes = 5,
+                                  useAdjusted = FALSE,
+                                  evalType2 = TRUE,
+                                  stratifyByEffectSize = FALSE){
   # if summ is provided, directly query from given dataframe
   # otherwise, load it from saved summary file
   if(is.null(summ)){
@@ -250,19 +251,43 @@ tempCalibrateByDelta1 <- function(database_id,
     # proceed if okay
     if(useAdjusted){
       p1s = dat.p %>% group_by(outcome_id) %>%
-        summarize(maxP1 = max(adjustedP1))
+        summarize(maxP1 = max(adjustedP1, na.rm = TRUE))
     }else{
       p1s = dat.p %>% group_by(outcome_id) %>%
-        summarize(maxP1 = max(P1))
+        summarize(maxP1 = max(P1, na.rm = TRUE))
     }
     p1s = p1s %>% ungroup() %>% select(maxP1) %>% pull()
-    calibratedThres = quantile(p1s, 1-alpha) %>% as.numeric()
+    ## deal with cases with NA entries
+    ## if for an outcome, P1 is all NA, then max() = -Inf
+    p1s = p1s[p1s != -Inf]
+    if(length(p1s) > 0){
+      # i there are at least some P1s non-NA
+      calibratedThres = quantile(p1s, 1-alpha) %>% as.numeric()
+      
+      # evaluate the actual type1 error rate using calibrated threshold
+      type1 = mean(p1s > calibratedThres)
+      untype1 = mean(p1s > (1-alpha)) # an "uncalibrated" version
+    }else{
+      # if all P1s are NA
+      calibratedThres = 1-alpha # don't do any calibration...
+      type1 = NA
+      untype1 = NA
+    }
     
-    # evaluate the actual type1 error rate using calibrated threshold
-    type1 = mean(p1s > calibratedThres)
-    untype1 = mean(p1s > (1-alpha)) # an "uncalibrated" version
     
     # evaluate type 2 error as well if...
+    ## small helper funcion to check rejection rate
+    checkRejectRate <- function(P1s, threshold){
+      if(is.na(threshold)){
+        return(NA)
+      }
+      P1s = P1s[(P1s != -Inf) & !is.na(P1s)]
+      if(length(P1s) == 0){
+        return(NA)
+      }
+      return(mean(P1s > threshold))
+    }
+    
     if(evalType2){
       # get relevant rows for PCs first
       pc.dat.p = summ %>% 
@@ -278,29 +303,29 @@ tempCalibrateByDelta1 <- function(database_id,
         if(useAdjusted){
           p1s = pc.dat.p %>% 
             group_by(outcome_id, effect_size) %>%
-            summarize(maxP1 = max(adjustedP1))
+            summarize(maxP1 = max(adjustedP1, na.rm = TRUE))
         }else{
           p1s = pc.dat.p %>% 
             group_by(outcome_id, effect_size) %>%
-            summarize(maxP1 = max(P1))
+            summarize(maxP1 = max(P1, na.rm = TRUE))
         }
         type2s = p1s %>% ungroup() %>% 
           group_by(effect_size) %>%
-          summarize(type2 = 1 - mean(maxP1 > calibratedThres),
-                    uncalibratedType2 = 1 - mean(maxP1 > (1-alpha))) %>%
+          summarize(type2 = 1 - checkRejectRate(maxP1, calibratedThres),
+                    uncalibratedType2 = 1 - checkRejectRate(maxP1, (1-alpha))) %>%
           ungroup()
       }else{
         if(useAdjusted){
           p1s = pc.dat.p %>% group_by(outcome_id) %>%
-            summarize(maxP1 = max(adjustedP1))
+            summarize(maxP1 = max(adjustedP1, na.rm = TRUE))
         }else{
           p1s = pc.dat.p %>% group_by(outcome_id) %>%
-            summarize(maxP1 = max(P1))
+            summarize(maxP1 = max(P1, na.rm = TRUE))
         }
         p1s = p1s %>% ungroup() %>% select(maxP1) %>% pull()
         # evaluate type 2 error rates
-        type2 = 1 - mean(p1s > calibratedThres)
-        untype2 = 1 - mean(p1s > (1-alpha))
+        type2 = 1 - checkRejectRate(p1s, calibratedThres)
+        untype2 = 1 - checkRejectRate(p1s, (1-alpha))
         type2s = data.frame(type2 = type2,
                             uncalibratedType2 = untype2)
       }
