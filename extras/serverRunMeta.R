@@ -71,6 +71,8 @@ ConnectionDetails = DatabaseConnector::createConnectionDetails(
 
 connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
 
+cat('EUMAEUS server connection established!\n\n')
+
 ## check if big IPC table is available in cache and get it if not saved-----
 IPCs = getIPCs(connection, 'eumaeus', output_dir)
 
