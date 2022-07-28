@@ -35,6 +35,10 @@ pullResults <- function(database_id,
   
   # if savePath provided, save...
   if(!is.null(savePath)){
+    ## create the savePath if not exist
+    if(!dir.exists(savePath)){
+      dir.create(savePath)
+    }
     ## if exposures are NOT all, then include there ids in file name
     ## otherwise, no exposure ids included
     if(length(exposure_id) == 10){
