@@ -766,23 +766,23 @@ multiBayesianAnalysesMeta <- function(connection,
 }
 
 
-## try it
-IPCs = getIPCs(connection, 'eumaeus', 'localCache/')
-#selNCs = c(438945, 434455, 316211, 201612, 438730)
-selNCs = NCs[1:15]
-
-multiRes = multiBayesianAnalysesMeta(connection,
-                                     'eumaeus',
-                                     'CCAE',
-                                     'HistoricalComparator',
-                                     exposure_id = 211981,
-                                     analysis_ids = 2,
-                                     period_ids = 12,
-                                     IPCtable = IPCs,
-                                     priors = list(Mean = 0,
-                                                   Sd = 4),
-                                     nullPriorSds = c(.5,.5),
-                                     preLearnNull = FALSE,
-                                     negControls = selNCs)
+# ## try it
+# IPCs = getIPCs(connection, 'eumaeus', 'localCache/')
+# #selNCs = c(438945, 434455, 316211, 201612, 438730)
+# selNCs = NCs[1:15]
+# 
+# multiRes = multiBayesianAnalysesMeta(connection,
+#                                      'eumaeus',
+#                                      'CCAE',
+#                                      'HistoricalComparator',
+#                                      exposure_id = 211981,
+#                                      analysis_ids = 2,
+#                                      period_ids = 12,
+#                                      IPCtable = IPCs,
+#                                      priors = list(Mean = 0,
+#                                                    Sd = 4),
+#                                      nullPriorSds = c(.5,.5),
+#                                      preLearnNull = FALSE,
+#                                      negControls = selNCs)
 
 
