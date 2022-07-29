@@ -1237,7 +1237,8 @@ plotTempDelta1ByPriors <- function(database_id,
                            useAdjusted = TRUE,
                            showPlots = TRUE,
                            stratifyByEffectSize = TRUE,
-                           calibrate = TRUE){
+                           calibrate = TRUE,
+                           outcomesInEstimates = NULL){
   # calibrate Delta1 temporally over the priors
   res = NULL
   for(pid in prior_ids){
@@ -1246,7 +1247,8 @@ plotTempDelta1ByPriors <- function(database_id,
                                       resPath = summaryPath, cachePath = cachePath,
                                       alpha = alpha, minOutcomes = minOutcomes, 
                                       useAdjusted = useAdjusted, evalType2 = TRUE,
-                                      stratifyByEffectSize = stratifyByEffectSize)
+                                      stratifyByEffectSize = stratifyByEffectSize,
+                                      outcomesInEstimates = outcomesInEstimates)
     if(calibrate){
       if(stratifyByEffectSize){
         this.res = 
@@ -1377,6 +1379,9 @@ plotTempDelta1ByPriors <- function(database_id,
   if(showPlots){
     print(p)
   }
+  
+  ## attach plot to result dataframe as an attribute
+  attr(res, 'plot') = p
   
   return(res)
 }
