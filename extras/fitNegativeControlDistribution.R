@@ -125,6 +125,8 @@ fitNegativeControlDistribution <- function(connection,
 
 # July 2022 update: 
 # use likelihood profiles to fit null distribution
+# Aug 2022 update:
+# add "robust" option to allow a t-model
 fitNegativeControlDistributionLikelihood <- function(connection,
                                                      schema,
                                                      database_id,
@@ -138,6 +140,7 @@ fitNegativeControlDistributionLikelihood <- function(connection,
                                                      numsamps = 10000,
                                                      thin = 10,
                                                      minNCs = 5,
+                                                     robust = FALSE,
                                                      plot = FALSE){
   # outcomeToExclude: one or more (negative) outcomes to NOT include
   # numsamps: total num of posterior samples to acquire (default = 10)
@@ -194,7 +197,8 @@ fitNegativeControlDistributionLikelihood <- function(connection,
                                                         chainLength = numsamps + numsamps * thin,
                                                         burnIn = numsamps,
                                                         subSampleFrequency = thin,
-                                                        priorSd = priorSds)
+                                                        priorSd = priorSds,
+                                                        robust = robust)
   traces = attr(null, "traces")
   means = traces[,1]
   sds = traces[,2]

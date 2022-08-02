@@ -15,6 +15,7 @@ registerDoParallel()
 
 # 1. function to carry out one single analyses (over all outcomes) ------
 # using meta analysis for negative control analysis
+# Aug 2022 update: add robust option for t-model
 oneBayesianAnalysisMeta <- function(connection,
                                     schema,
                                     database_id,
@@ -27,6 +28,7 @@ oneBayesianAnalysisMeta <- function(connection,
                                     priorMean = 0,
                                     priorSd = 1, 
                                     nullPriorSds = c(2,0.5),
+                                    robustMetaAnalysis = FALSE,
                                     numsamps = 10000,
                                     thin = 10,
                                     minNCs = 5,
@@ -91,7 +93,9 @@ oneBayesianAnalysisMeta <- function(connection,
                                                       outcomeToExclude = NULL,
                                                       priorSds = nullPriorSds, 
                                                       minNCs = minNCs,
-                                                      numsamps = numsamps, thin = thin)
+                                                      numsamps = numsamps, 
+                                                      thin = thin,
+                                                      robust = robustMetaAnalysis)
     }else{
       null = preSaveNull
     }
@@ -142,7 +146,8 @@ oneBayesianAnalysisMeta <- function(connection,
                                                    priorSds = nullPriorSds, 
                                                    minNCs = minNCs,
                                                    numsamps = numsamps, 
-                                                   thin = thin)
+                                                   thin = thin,
+                                                   robust = robustMetaAnalysis)
         },
         error = function(e){
           cat('\n')
@@ -356,6 +361,7 @@ multiBayesianAnalysesMeta <- function(connection,
                                       numsamps = 10000,
                                       thin = 10,
                                       nullPriorSds = c(2,0.5),
+                                      robustMetaAnalysis = FALSE,
                                       minNCs = 5,
                                       preLearnNull = TRUE,
                                       negControls = NULL,
@@ -483,7 +489,8 @@ multiBayesianAnalysesMeta <- function(connection,
           priorSds = nullPriorSds,
           minNCs = minNCs,
           numsamps = numsamps,
-          thin = thin
+          thin = thin,
+          robust = robustMetaAnalysis
         )
       } else{
         ## otherwise, just set it to NULL
@@ -537,7 +544,8 @@ multiBayesianAnalysesMeta <- function(connection,
                                            thin = thin,
                                            preSaveLPs = LPs.a,
                                            preSaveNull = learnedNull,
-                                           negControls = NCs)
+                                           negControls = NCs,
+                                           robustMetaAnalysis = robustMetaAnalysis)
         
         ## if no results returned, skip
         if (length(this.res) == 0) {
@@ -767,6 +775,7 @@ multiBayesianAnalysesMeta <- function(connection,
 
 
 # ## try it
+# ## test again after "robustification"
 # IPCs = getIPCs(connection, 'eumaeus', 'localCache/')
 # #selNCs = c(438945, 434455, 316211, 201612, 438730)
 # selNCs = NCs[1:15]
@@ -776,13 +785,14 @@ multiBayesianAnalysesMeta <- function(connection,
 #                                      'CCAE',
 #                                      'HistoricalComparator',
 #                                      exposure_id = 211981,
-#                                      analysis_ids = 2,
+#                                      analysis_ids = 6,
 #                                      period_ids = 12,
 #                                      IPCtable = IPCs,
 #                                      priors = list(Mean = 0,
 #                                                    Sd = 4),
 #                                      nullPriorSds = c(.5,.5),
 #                                      preLearnNull = FALSE,
-#                                      negControls = selNCs)
+#                                      negControls = selNCs,
+#                                      robustMetaAnalysis = TRUE)
 
 

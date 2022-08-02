@@ -3,6 +3,10 @@
 # to experiment on prior settings for negative control meta analysis 
 # (on-server debug run again...)
 
+# Aug 2022
+# run with "robust" meta analysis (t-distribution for NC meta analysis)
+robustFlag = TRUE # TRUE for t-model, FALSE for normal model
+
 ## setup
 #source('./extras/bayesianWithLikelihoodProfiles.R')
 source('./extras/bayesianWithLikelihoodProfilesMeta.R')
@@ -12,13 +16,13 @@ array_id = Sys.getenv('SGE_TASK_ID') %>% as.numeric()
 
 if(array_id %% 3 == 0){
   nullPriorSds = c(2, 0.5)
-  dir_suffix = 'default2'
+  dir_suffix = 'default3'
 }else if(array_id %% 3 == 1){
   nullPriorSds = c(0.5, 0.5)
-  dir_suffix = 'shrinkMu2'
+  dir_suffix = 'shrinkMu3'
 }else{
   nullPriorSds = c(0.2, 0.2)
-  dir_suffix = 'shrinkBoth2'
+  dir_suffix = 'shrinkBoth3'
 }
 
 ## directory setup------
@@ -38,17 +42,23 @@ database_id = 'CCAE'
 ## fix exposure to Zoster vaccine
 exposures = 211981
 
+## Aug 1 2022 debug:
 ## method and analysis
 ## only run: 
 # SCCS & HC
 # analysis_ids: 2,4,6,8
 q = array_id %% 8
-if(q %% 2 == 1){
+if(q %/% 4 == 1){
   me = 'SCCS'
 }else{
   me = 'HistoricalComparator'
 }
-aid = ((q %% 4) + 1) * 2
+
+if(q <= 3){
+  aid = (q+1) * 2
+}else{
+  aid = (q-3) * 2
+}
 
 ## run periods 1-12
 period_ids = c(1:12)
@@ -102,7 +112,8 @@ for(expo in exposures){
                             sampspath = cache_dir,
                             removeTempSummary = FALSE,
                             nullPriorSds = nullPriorSds,
-                            minNCs = 5)
+                            minNCs = 5,
+                            robustMetaAnalysis = robustFlag)
 }
 
 
