@@ -1,6 +1,8 @@
 # July 2022
 # compare results with different prior choices for negative control analysis
 # (using Bayesian meta analysis)
+# Aug 2022
+# add t-model for meta analysis
 
 source('./extras/postProcessUtils.R')
 source('./extras/simpleCalibration.R')
@@ -37,12 +39,14 @@ cachepath = './localCache/'
 adjust = TRUE
 pid = 3 # choose SD = 4.0 prior from each result
 
+dir_suffixes = c('default3', 'shrinkMu3', 'shrinkBoth3')
+
 errors_combined = NULL
 
-for(dir_suffix in c('default2', 'shrinkMu2', 'shrinkBoth2')){
-  if(dir_suffix == 'default2'){
+for(dir_suffix in dir_suffixes){
+  if(dir_suffix == dir_suffixes[1]){
     title = 'muPriorSd = 2, tauPriorSd = 0.5'
-  }else if(dir_suffix == 'shrinkMu2'){
+  }else if(dir_suffix == dir_suffixes[2]){
     title = 'muPriorSd = 0.5, tauPriorSd = 0.5'
   }else{
     title = 'muPriorSd = 0.2, tauPriorSd = 0.2'
