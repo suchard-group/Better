@@ -24,9 +24,9 @@ summarizeAndPlotTempDelta1ByPrior <- function(database_id, method, exposures, ra
 
 ## specify database, method, analysis and exposure
 db = 'CCAE'
-#me = 'SCCS' 
-me = 'HistoricalComparator'
-aid = 6
+me = 'SCCS' 
+#me = 'HistoricalComparator'
+aid = 8
 eid = 211981
 # summarypath = outputPath
 cachepath = './localCache/'
@@ -35,6 +35,9 @@ cachepath = './localCache/'
 ## go through the different prior settings
 
 adjust = TRUE
+pid = 3 # choose SD = 4.0 prior from each result
+
+errors_combined = NULL
 
 for(dir_suffix in c('default2', 'shrinkMu2', 'shrinkBoth2')){
   if(dir_suffix == 'default2'){
@@ -64,8 +67,12 @@ for(dir_suffix in c('default2', 'shrinkMu2', 'shrinkBoth2')){
                                           calibrate = FALSE, 
                                           outcomesInEstimates = NULL)
   
-  pp = attr(res, 'plot')
-  print(pp + labs(title = title))
+  errors_combined = rbind(errors_combined, 
+                          res %>% filter(prior_id == pid) %>%
+                            mutate(hyperLabel = title))
+  
+  # pp = attr(res, 'plot')
+  # print(pp + labs(title = title))
 }
 
 ## the prior choices only make some difference in earlier periods
@@ -74,35 +81,68 @@ for(dir_suffix in c('default2', 'shrinkMu2', 'shrinkBoth2')){
 ## perhaps sdPriors = c(0.5, 0.5) has the best performance
 ## (in hitting 0.05 Type I and having reasonable power)
 
+# combined error plot ----
+yinters = 0.05
+type2cols = c(wes_palette("Zissou1")[3:4],wes_palette("Royal1")[4])
+othercols =  wes_palette("Royal1")[2]
+allCols = c(othercols, type2cols)
+
+period_breaks = seq(from = min(errors_combined$period_id),
+                    to = max(errors_combined$period_id),
+                    by = 2)
+period_labels = as.integer(period_breaks)
+
+capt = sprintf('%s analysis %s, on %s',
+               me, aid, db)
+
+## (i) frequentist, raw Bayes, adjusted Bayes
+p = ggplot(errors_combined, 
+           aes(x=period_id, y=y, color=stats))+
+  geom_line(size = 1.5) +
+  geom_point(size=2)+
+  geom_hline(yintercept = yinters, 
+             color = 'gray60', 
+             size = 1, linetype=2)+
+  scale_y_continuous(limits = c(0,1))+
+  scale_x_continuous(breaks = period_breaks, labels = period_labels)+
+  labs(x='analysis period (months)', y='error rates', 
+       caption = capt, color='Error type')+
+  scale_color_manual(values = allCols) +
+  facet_grid(.~hyperLabel)+
+  theme_bw(base_size = 13)+
+  theme(legend.position = 'bottom') # change to bottom legend...
+
+print(p)
 
 
-##### not run-----
-## set suffix
-dir_suffix = 'default2'
 
-##
-
-
-
-## default prior setting 
-summDefault = pullResults(database_id = db,
-                          method = me,
-                          exposure_id = allExposure_ids,
-                          resultsPath = resultPath,
-                          savePath = outputPath)
-
-res_default_raw = plotTempDelta1ByPriors(database_id = db,
-                                         method = me, 
-                                         analysis_id = aid,
-                                         exposure_id = eid,
-                                         prior_ids = c(1:3), # include all priors for easier query later
-                                         alpha = 0.05,
-                                         summaryPath = summarypath,
-                                         cachePath = cachepath,
-                                         useAdjusted = FALSE,
-                                         showPlots = TRUE,
-                                         stratifyByEffectSize = TRUE,
-                                         calibrate = FALSE, 
-                                         outcomesInEstimates = NULL)
+##### don't run-----
+# ## set suffix
+# dir_suffix = 'default2'
+# 
+# ##
+# 
+# 
+# 
+# ## default prior setting 
+# summDefault = pullResults(database_id = db,
+#                           method = me,
+#                           exposure_id = allExposure_ids,
+#                           resultsPath = resultPath,
+#                           savePath = outputPath)
+# 
+# res_default_raw = plotTempDelta1ByPriors(database_id = db,
+#                                          method = me, 
+#                                          analysis_id = aid,
+#                                          exposure_id = eid,
+#                                          prior_ids = c(1:3), # include all priors for easier query later
+#                                          alpha = 0.05,
+#                                          summaryPath = summarypath,
+#                                          cachePath = cachepath,
+#                                          useAdjusted = FALSE,
+#                                          showPlots = TRUE,
+#                                          stratifyByEffectSize = TRUE,
+#                                          calibrate = FALSE, 
+#                                          outcomesInEstimates = NULL)
 
 
