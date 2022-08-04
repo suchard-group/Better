@@ -35,6 +35,7 @@ frequentistDecisions <- function(connection,
                                  calibration = FALSE,
                                  correct_shift = FALSE,
                                  bonferroni_baseline = TRUE,
+                                 bonferroni_adjust_factor = 1,
                                  alpha = 0.05,
                                  cachePath = './localCache/'){
   # pull estimates
@@ -116,7 +117,7 @@ frequentistDecisions <- function(connection,
   
   # make decisions
   if(bonferroni_baseline){
-    bon_alpha = alpha/max(estimates$period_id)
+    bon_alpha = alpha/(max(estimates$period_id) * bonferroni_adjust_factor)
   }
   if(calibration){
     decisions = estimates %>%
