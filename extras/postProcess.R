@@ -116,30 +116,56 @@ postProcess <- function(database_id,
 
 
 #### RUN command to post process -------------
+# library(doSNOW)
+# 
+# ## run setup
+# savepath = '~/Documents/Research/betterResults/summary'
+# 
+# database_id = 'MDCR'
+# 
+# if(stringr::str_starts(database_id, 'IBM')){
+#   resultspath = sprintf('~/Documents/Research/betterResults/betterResults-%s/',
+#                         unlist(stringr::str_split(database_id, '_'))[2])
+# }else{
+#   resultspath = sprintf('~/Documents/Research/betterResults/betterResults-%s/',
+#                         database_id)
+# }
+# 
+# 
+# for(method in c('SCCS','HistoricalComparator')){
+# 
+# postProcess(database_id = database_id, 
+#             method = method,
+#             resultsPath = resultspath,
+#             savePath = savepath,
+#             maxCores = 8)
+# 
+# }
+
+
+#### Aug 2022 post processing-------
+## using meta analysis for negative control analysis
 library(doSNOW)
 
 ## run setup
-savepath = '~/Documents/Research/betterResults/summary'
+dir_suffix = 'shrinkMu4' # use the lastest normal-model meta analysis
 
-database_id = 'MDCR'
+## directories
+savepath = sprintf('~/Documents/Research/betterResults/summary-%s', dir_suffix)
+resultspath = sprintf('~/Documents/Research/betterResults/betterResults-%s/',
+                      dir_suffix)
 
-if(stringr::str_starts(database_id, 'IBM')){
-  resultspath = sprintf('~/Documents/Research/betterResults/betterResults-%s/',
-                        unlist(stringr::str_split(database_id, '_'))[2])
-}else{
-  resultspath = sprintf('~/Documents/Research/betterResults/betterResults-%s/',
-                        database_id)
-}
+database_id = 'CCAE'
 
 
 for(method in c('SCCS','HistoricalComparator')){
-
-postProcess(database_id = database_id, 
-            method = method,
-            resultsPath = resultspath,
-            savePath = savepath,
-            maxCores = 8)
-
+  
+  postProcess(database_id = database_id, 
+              method = method,
+              resultsPath = resultspath,
+              savePath = savepath,
+              maxCores = 8)
+  
 }
 
 
