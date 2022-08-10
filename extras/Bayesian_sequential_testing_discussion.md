@@ -50,12 +50,12 @@ Well, not really "calibration", but bias adjustment, also making use of negative
 
 Main points of our model:
 
-- Joint posterior for $\beta, b, \tilde\beta$:
+- Joint posterior for $b, \tilde\beta$:
 $$
-p(\beta, b, \tilde\beta \mid \text{data, NCs}) \propto L(\tilde\beta \mid \text{data})\pi(\tilde\beta) q(b \mid \text{NCs})
+p(b, \tilde\beta \mid \text{data, NCs}) \propto L(\tilde\beta \mid \text{data})\pi(\tilde\beta) q(b \mid \text{NCs})
 $$
-- Can use a simple Gibbs sampler to sample from this joint posterior and obtain marginal posterior distribution for $\beta$ (the ``unbiased'' effect)
-
+- Separate terms for $b$ and $\tilde\beta$, inference can be run independently
+- Then use $\beta = \tilde\beta - b$ to obtain marginal posterior distribution for $\beta$ (the ``unbiased'' effect)
 
 Combine sequential testing and bias adjustment
 ========================================================
@@ -186,6 +186,14 @@ We have evenmore un-answered questions :-(
     * Specify some kind of alpha expenditure scheme for time points before $T_s$ --- but is that too inflexible?
     * Adaptively choose thresholds at each earlier time points: choose $\delta_1$ simply to ensure Type I error rate $<0.05$ up to time $t$ --- **no** guarantee on overall $\alpha = 0.05$
     * Something else? E.g., use conservative priors to avoid signalling at earlier time points to reduce Type I error --- this will, of course, sacrifice power. 
+    
+<!-- Adaptively choosing the decision threshold -->
+<!-- ======================================================== -->
+
+<!-- Something we've been exploring -->
+
+
+
 
 We need feedback and suggestions
 ========================================================

@@ -139,10 +139,10 @@ frequentistMSE <- function(connection,
 
 ## try it
 db = 'CCAE'
-me = 'HistoricalComparator'
-#me = 'SCCS'
+#me = 'HistoricalComparator'
+me = 'SCCS'
 eid = 211981
-aid = 8
+aid = 4
 #aid = 6
 
 #(
