@@ -8,6 +8,8 @@
 ## pretty much the same thing as those under original scale
 # and see what happens with Bonferroni correction if adjust on 2 years
 ## difference is minimal!!
+# 08/11/2022
+# check a different database-exposure-analysis pair
 
 
 # 1. plot Type 1 and 2 error rates by time ------
@@ -21,11 +23,13 @@ summarypath = '~/Documents/Research/betterResults/summary'
 cachepath = './localCache/'
 
 # analyses results to check
-db = 'CCAE'
-eid = 211981
-me = 'HistoricalComparator'
-#me = 'SCCS'
-aid = 6
+#db = 'CCAE'
+db = 'OptumEhr'
+#eid = 211981 # Zoster 1st dose
+eid = 21184 #H1N1
+#me = 'HistoricalComparator'
+me = 'SCCS'
+aid = 2
 #pid = 3 # 1: sd=10; 2: sd=1.5; 3: sd=4 
 #tolerance = 0.004
 
@@ -120,16 +124,16 @@ res_adj = plotTempDelta1ByPriors(database_id = db,
                                  prior_ids = c(1:3),
                                  summaryPath = summarypath,
                                  cachePath = cachepath,
-                                 alpha = 0.05, 
+                                 alpha = 0.04, 
                                  useAdjusted = TRUE,
                                  showPlots = TRUE,
                                  stratifyByEffectSize = TRUE,
                                  calibrate = FALSE, 
                                  outcomesInEstimates = resLst$estimates)
 
-#pid = 3 # use SD = 4 results for this Bayesian example
+pid = 3 # use SD = 4 results for this Bayesian example
 #pid = 1 # use SD = 10
-pid = 2 # use SD = 1.5
+#pid = 2 # use SD = 1.5
 res_Bayes = res_adj %>% 
   filter(prior_id == pid) %>% 
   select(period_id, y, effect_size, stats) %>%
