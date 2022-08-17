@@ -3,16 +3,6 @@ title: "| RESEARCH PROTOCOL\n| \n| BETTER: Bayesian Evaluation of Time-To-Event 
 fontsize: 12pt
 geometry: margin=1in
 output:
-  bookdown::html_document2:
-    df_print: paged
-    toc: yes
-    toc_depth: 2
-    toc_float: yes
-    number_sections: yes
-    number_tables: yes
-    css: "style.css"
-  bookdown::word_document2:
-    toc: yes
   bookdown::pdf_document2:
     keep_tex: yes
     latex_engine: xelatex
@@ -21,6 +11,16 @@ output:
     # citation_package: natbib
     includes:
       before_body: title.tex
+  bookdown::word_document2:
+    toc: yes
+  bookdown::html_document2:
+    df_print: paged
+    toc: yes
+    toc_depth: 2
+    toc_float: yes
+    number_sections: yes
+    number_tables: yes
+    css: "style.css"
 header-includes:
 - \usepackage[numbers,sort&compress]{natbib}
 - \usepackage{booktabs}
@@ -155,7 +155,7 @@ if (knitr::is_latex_output()) {
 
 This study is undertaken within Observational Health Data Sciences and Informatics (OHDSI), an open collaboration.
 **GH** receives grant funding from the US National Institutes of Health and the US Food & Drug Administration.
-**PBR** and is an employee of Janssen Research and Development and shareholders in John & Johnson.
+**PBR** and is an employee of Janssen Research and Development and shareholders in Johnson & Johnson.
 **FB** and **MAS** receive grant funding from the US National Institutes of Health and the US Food & Drug Administration and contracts from the US Department of Veterans Affairs and Janssen Research and Development.
 
 # Abstract
@@ -247,8 +247,8 @@ Table \@ref(tab:dates) lists the study milestones.
 dates <- readr::read_delim(col_names = TRUE, delim = ";", trim_ws = TRUE, file = "
   Milestone; Planned / actual date
   Start of analysis; 02/01/2022
-  End of analysis; 05/31/2022
-  Results presentation; 06/30/2022
+  End of analysis; 08/31/2022
+  Results presentation; 09/30/2022
 ")
 
 tab <- kable(dates, booktabs = TRUE, linesep = "", caption = "Study milestones")
@@ -304,7 +304,7 @@ Specific aims:
 The evaluation will center on six existing (groups of) vaccines, for specific time periods (start date to end date), as shown in Table \@ref(tab:exposures-of-interest).
 
 ```{r exposures-of-interest, echo=FALSE, warning=FALSE}
-eois <- readr::read_csv(system.file("settings", "ExposuresOfInterest.csv", package = "better"), col_types = readr::cols()) %>%
+eois <- readr::read_csv(system.file("settings", "ExposuresOfInterest.csv", package = "Better"), col_types = readr::cols()) %>%
   select(exposureName, startDate, endDate, historyStartDate, historyEndDate)
 colnames(eois) <- SqlRender::camelCaseToTitleCase(colnames(eois))
 
@@ -664,7 +664,7 @@ With dedicated support from the OHDSI communications specialist, we will deliver
 # Exposure Cohort Definitions
 
 ```{r h1n1-cohort, echo=FALSE, results="asis", warning=FALSE, message=FALSE}
-baseCohortJson <- SqlRender::readSql(system.file("cohorts", "H1N1vaccination.json", package = "better"))
+baseCohortJson <- SqlRender::readSql(system.file("cohorts", "H1N1vaccination.json", package = "Better"))
 baseCohort <- RJSONIO::fromJSON(baseCohortJson)
 
 baseCohortJson <- RJSONIO::toJSON(baseCohort, digits = 50)
@@ -674,7 +674,7 @@ printCohortDefinitionFromNameAndJson(name = "H1N1pdm Vaccines",
 ```
 
 ```{r fluvirin-cohort, echo=FALSE, results="asis", warning=FALSE, message=FALSE}
-baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Fluvirin.json", package = "better"))
+baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Fluvirin.json", package = "Better"))
 baseCohort <- RJSONIO::fromJSON(baseCohortJson)
 
 baseCohortJson <- RJSONIO::toJSON(baseCohort, digits = 50)
@@ -684,7 +684,7 @@ printCohortDefinitionFromNameAndJson(name = "Seasonal Flu Vaccines (Fluvirin)",
 ```
 
 ```{r fluzone-cohort, echo=FALSE, results="asis", warning=FALSE, message=FALSE}
-baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Fluzone.json", package = "better"))
+baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Fluzone.json", package = "Better"))
 baseCohort <- RJSONIO::fromJSON(baseCohortJson)
 
 baseCohortJson <- RJSONIO::toJSON(baseCohort, digits = 50)
@@ -694,7 +694,7 @@ printCohortDefinitionFromNameAndJson(name = "Seasonal Flu Vaccines (Fluzone)",
 ```
 
 ```{r flu-cohort, echo=FALSE, results="asis", warning=FALSE, message=FALSE}
-baseCohortJson <- SqlRender::readSql(system.file("cohorts", "AllFluVaccines.json", package = "better"))
+baseCohortJson <- SqlRender::readSql(system.file("cohorts", "AllFluVaccines.json", package = "Better"))
 baseCohort <- RJSONIO::fromJSON(baseCohortJson)
 
 baseCohortJson <- RJSONIO::toJSON(baseCohort, digits = 50)
@@ -704,7 +704,7 @@ printCohortDefinitionFromNameAndJson(name = "Seasonal Flu Vaccines (All)",
 ```
 
 ```{r hpv-cohort, echo=FALSE, results="asis", warning=FALSE, message=FALSE}
-baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Gardasil9.json", package = "better"))
+baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Gardasil9.json", package = "Better"))
 baseCohort <- RJSONIO::fromJSON(baseCohortJson)
 
 baseCohortJson <- RJSONIO::toJSON(baseCohort, digits = 50)
@@ -714,7 +714,7 @@ printCohortDefinitionFromNameAndJson(name = "HPV Vaccines",
 ```
 
 ```{r zoster-cohort, echo=FALSE, results="asis", warning=FALSE, message=FALSE}
-baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Shingrix.json", package = "better"))
+baseCohortJson <- SqlRender::readSql(system.file("cohorts", "Shingrix.json", package = "Better"))
 baseCohort <- RJSONIO::fromJSON(baseCohortJson)
 
 baseCohortJson <- RJSONIO::toJSON(baseCohort, digits = 50)
@@ -727,7 +727,7 @@ printCohortDefinitionFromNameAndJson(name = "Zoster Vaccines",
 # Negative controls
 
 ```{r ncs, echo=FALSE, warning=FALSE}
-ncs <- readr::read_csv(system.file("settings", "NegativeControls.csv", package = "better"), col_types = readr::cols())
+ncs <- readr::read_csv(system.file("settings", "NegativeControls.csv", package = "Better"), col_types = readr::cols())
 colnames(ncs) <- SqlRender::camelCaseToTitleCase(colnames(ncs))
 
 tab <- kable(ncs, booktabs = TRUE, linesep = "",
@@ -747,7 +747,7 @@ if (knitr::is_latex_output()) {
 # Additional investigated outcome cohort
 
 ```{r guillainBarre-cohort, echo=FALSE, results="asis", warning=FALSE, message=FALSE}
-baseCohortJson <- SqlRender::readSql(system.file("cohorts", "GBS.json", package = "better"))
+baseCohortJson <- SqlRender::readSql(system.file("cohorts", "GBS.json", package = "Better"))
 baseCohort <- RJSONIO::fromJSON(baseCohortJson)
 baseCohortJson <- RJSONIO::toJSON(baseCohort, digits = 50)
 printCohortDefinitionFromNameAndJson(name = "Adverse Event Outcome - Guillain Barre Syndrome",
