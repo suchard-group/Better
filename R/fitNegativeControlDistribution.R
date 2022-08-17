@@ -8,7 +8,7 @@
 # as well as equal number of predictive samples of the systematic error
 # (return numeric(0) if no negative controls results exist for required analysis)
 
-source('./extras/getLikelihoodProfile.R')
+#source('./R/getLikelihoodProfile.R')
 
 # Feb 2022 update: make use of pre-pulled estimates if available 
 fitNegativeControlDistribution <- function(connection,
