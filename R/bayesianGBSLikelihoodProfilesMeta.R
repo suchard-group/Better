@@ -742,7 +742,7 @@ multiGBSAnalysesMeta <- function(connection,
 # IPCs = getIPCs(connection, 'eumaeus', 'localCache/')
 # multiRes = multiGBSAnalysesMeta(connection,
 #                                 'eumaeus',
-#                                 'CCAE',
+#                                 'OptumDod',
 #                                 'HistoricalComparator',
 #                                 exposure_id = 211981,
 #                                 analysis_ids = c(6,8),
