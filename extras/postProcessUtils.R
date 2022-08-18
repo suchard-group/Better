@@ -146,6 +146,23 @@ getPeriodID <- function(fname){
   as.numeric(chunks[2])
 }
 
+#### examples tried ------------
+# ## try it
+# IPCs = readRDS('./localCache/allIPCs.rds')
+# resPath = '~/Documents/Research/betterResults/betterResults-CCAE/' # -MDCD
+# comb_res = pullResultsOneExpo(database_id = 'CCAE', # 'IBM_MDCD'
+#                               method = 'SCCS',
+#                               exposure_id = 211981,
+#                               resultsPath = resPath,
+#                               IPCtable = IPCs, verbose=TRUE)
+# 
+# all_expos = sort(unique(IPCs$EXPOSURE_ID))
+# big_comb_res = pullResults(database_id = 'CCAE', # 'IBM_MDCD'
+#                            method = 'SCCS',
+#                            exposure_id = all_expos,
+#                            resultsPath = resPath,
+#                            IPCpath = './localCache/')
+
 # 04/06/2022: GBS specific functions
 pullGBSResultsOneExpo <- function(database_id, 
                                   method, 
@@ -322,26 +339,6 @@ plotP1ByPeriod <- function(allSamps,
   return()
 }
 
-
-  
-
-
-#### examples tried ------------
-# ## try it
-# IPCs = readRDS('./localCache/allIPCs.rds')
-# resPath = '~/Documents/Research/betterResults/betterResults-CCAE/' # -MDCD
-# comb_res = pullResultsOneExpo(database_id = 'CCAE', # 'IBM_MDCD'
-#                               method = 'SCCS',
-#                               exposure_id = 211981,
-#                               resultsPath = resPath,
-#                               IPCtable = IPCs, verbose=TRUE)
-# 
-# all_expos = sort(unique(IPCs$EXPOSURE_ID))
-# big_comb_res = pullResults(database_id = 'CCAE', # 'IBM_MDCD'
-#                            method = 'SCCS',
-#                            exposure_id = all_expos,
-#                            resultsPath = resPath,
-#                            IPCpath = './localCache/')
 
 
 #### Feb 17 updated faster functions to make decisions and judge them---------------
