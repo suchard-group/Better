@@ -23,6 +23,11 @@ pullResults <- function(database_id,
   # get IPC table
   IPCtable = readRDS(file.path(IPCpath, 'allIPCs.rds'))
   
+  # create savePath if not exist
+  if(!dir.exists(savePath)){
+    dir.create(savePath)
+  }
+  
   res = 
     foreach(expo = exposure_id, .combine = 'bind_rows', 
             .multicombine = TRUE, .export = 'pullResultsOneExpo') %dopar% {
