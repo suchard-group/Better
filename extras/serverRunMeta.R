@@ -8,7 +8,7 @@ source('./R/bayesianGBSLikelihoodProfilesMeta.R')
 nullPriorSds = c(0.5,0.5)
 
 ## on cluster setup------
-cache_dir = '/u/scratch/f/fanbu42/samples'
+cache_dir = '/u/scratch/f/fanbu42/GBSsamples'
 output_dir = '/u/home/f/fanbu42/betterGBSResults'
 GBSdata_dir = '/u/home/f/fanbu42/GBSdata'
 
