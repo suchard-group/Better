@@ -5,6 +5,7 @@ library(tidyverse)
 library(foreach)
 library(doParallel)
 #registerDoParallel(cores = 4)
+library(ggridges)
 
 #####
 ## function to put together all summaries for each (or a set of) exposure
@@ -181,6 +182,149 @@ pullGBSResults <- function(database_id,
   
   df
 }
+
+## Aug 2022: pull posterior samples for posterior distribution plot-----
+# a function to pull all posterior samples for
+# one (database, exposure, method, anlaysis, prior) combo for GBS
+pullPostSamples <- function(database_id, 
+                            method,
+                            analysis_id,
+                            exposure_id,
+                            outcome_id = 343, # default to GBS id
+                            prior_id = 3, # default SD=4 prior
+                            resultsPath = '~/Documents/Research/betterGBSanalysesResults/GBSsamples/',
+                            savePath = NULL){
+  if(!dir.exists(savePath)){
+    dir.create(savePath)
+  }
+  
+  fnamePattern = sprintf(
+    '%s_%s_%s_period[1-9]*_analysis%s_samples.rds',
+    database_id,
+    method,
+    exposure_id,
+    analysis_id
+  )
+  
+  sample_files = list.files(path = resultsPath, 
+                            pattern = fnamePattern)
+  
+  if(length(sample_files) == 0){
+    cat(sprintf('No samples exist for %s, %s analysis %s, exposure %s. Skipped!\n',
+                database_id,
+                method, analysis_id,
+                exposure_id))
+    return(numeric())
+  }
+  
+  postSamps = NULL
+  adjustedPostSamps = NULL
+  period_ids = NULL
+  
+  for(f in sample_files){
+    samps = readRDS(file.path(resultsPath, f))[[prior_id]]
+    postSamps = c(postSamps, 
+                  samps$postSamps[as.character(outcome_id),] %>% as.vector())
+    adjustedPostSamps = c(adjustedPostSamps,
+                          samps$adjustedPostSamps[as.character(outcome_id),] %>% as.vector())
+    
+    period_ids = c(period_ids,
+                   unlist(str_split(f, 'period|_'))[5] %>% as.numeric())
+    
+    if(which(sample_files == f) == 1){
+      numsamps = ncol(samps$postSamps)
+    }
+  }
+  
+  # construct a longggg-format dataframe of posterior samples
+  res = data.frame(posteriorSample = c(postSamps, adjustedPostSamps),
+                   method = rep(c('unadjusted', 'adjusted'), each = length(postSamps)),
+                   period_id = rep(rep(period_ids, each = numsamps), 2)
+  )
+  
+  if(!is.null(savePath)){
+    fname = sprintf('AllSamples-%s-%s-%s-analysis%s-prior%s.rds',
+                    database_id, method, exposure_id, analysis_id, prior_id)
+    saveRDS(res, file.path(savePath, fname))
+  }
+  
+  return(res)
+  
+}
+
+# ## try it
+# saveSamplePath = '~/Documents/Research/betterGBSanalysesResults/SamplesDataFrame/'
+# allSamps = pullPostSamples(database_id = 'CCAE',
+#                            method = 'HistoricalComparator',
+#                            analysis_id = 2,
+#                            exposure_id = 211981,
+#                            savePath = saveSamplePath)
+
+# function to plot the posterior distribution by period_id
+plotGBSPosteriors <- function(allSamps, 
+                              adjust = FALSE, 
+                              fillColor = 'gray80',
+                              markMedian = TRUE){
+  
+  if(adjust){
+    dat = allSamps %>% filter(method == 'adjusted')
+  }else{
+    dat = allSamps %>% filter(method == 'unadjusted')
+  }
+  
+  if(markMedian){
+    medians = dat %>% group_by(period_id) %>%
+      summarize(med = median(posteriorSample)) %>%
+      ungroup() %>%
+      mutate(period_id = as.factor(period_id))
+    
+    p = ggplot(dat %>% filter(method == 'unadjusted'), 
+               aes(y=as.factor(period_id), x = posteriorSample)) +
+      geom_density_ridges(scale = 0.9, fill = fillColor) +
+      geom_vline(xintercept = 0, size = 0.8, color = 'gray60')+ 
+      geom_point(data = medians, 
+                 mapping = aes(y = period_id, x = med),
+                 shape = 4, 
+                 size = 1.5,
+                 position = position_nudge(y = 0.3)) +
+      scale_x_continuous(limits = c(-5,10)) +
+      scale_y_discrete(expand = expansion(add = c(0.5, 1)))+
+      labs(y = 'Analysis time (month)', 
+           x = 'Effect size (log relative rate ratio)')+
+      coord_flip() +
+      theme_bw()
+    
+  }else{
+    p = ggplot(dat %>% filter(method == 'unadjusted'), 
+               aes(y=as.factor(period_id), x = posteriorSample)) +
+      geom_density_ridges(scale = 0.9, fill = fillColor) +
+      geom_vline(xintercept = 0, size = 0.8, color = 'gray60')+
+      scale_x_continuous(limits = c(-5,10)) +
+      scale_y_discrete(expand = expansion(add = c(0.5, 1)))+
+      labs(y = 'Analysis time (month)', 
+           x = 'Effect size (log relative rate ratio)')+
+      coord_flip() +
+      theme_bw()
+  }
+  
+  print(p)
+  
+}
+
+# ## try it
+# plotGBSPosteriors(allSamps)
+
+
+# another function to plot posterior median/mean and P(H1 true) over time
+# TBD...
+plotP1ByPeriod <- function(allSamps,
+                           fillColor = 'gray30'){
+  return()
+}
+
+
+  
+
 
 #### examples tried ------------
 # ## try it
