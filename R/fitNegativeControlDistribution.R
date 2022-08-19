@@ -234,3 +234,93 @@ fitNegativeControlDistributionLikelihood <- function(connection,
 #                                      priorSds = c(0.2,0.2),
 #                                      plot = TRUE)
 
+
+# Aug 2022 function to return the fitted null only
+fitNegativeControlNullOnly <- function(connection,
+                                       schema,
+                                       database_id,
+                                       method,
+                                       exposure_id,
+                                       analysis_id, 
+                                       period_id,
+                                       savedEstimates = NULL,
+                                       outcomeToExclude=NULL,
+                                       numsamps = 10000,
+                                       thin = 10,
+                                       minNCs = 5){
+  # outcomeToExclude: one or more (negative) outcomes to NOT include
+  # numsamps: total num of posterior samples to acquire (default = 10)
+  # thin: thinning iters (default = 10)
+  
+  # get relevant data first
+  if(is.null(savedEstimates)){
+    sql <-  "SELECT database_id,
+    method,
+    exposure_id,
+    analysis_id,
+    period_id,
+    estimate.outcome_id AS outcome_id,
+    log_rr,
+    se_log_rr
+  FROM @schema.estimate
+  INNER JOIN @schema.negative_control_outcome
+    ON estimate.outcome_id = negative_control_outcome.outcome_id
+  WHERE database_id = '@database_id'
+    AND method = '@method'
+    AND exposure_id = @exposure_id
+    AND analysis_id = @analysis_id
+    AND period_id = @period_id;"
+    sql <- SqlRender::render(sql, 
+                             schema = schema,
+                             database_id = database_id,
+                             method = method,
+                             exposure_id = exposure_id,
+                             period_id = period_id,
+                             analysis_id = analysis_id)
+    estimates <- DatabaseConnector::querySql(connection, sql)
+    cat('Negative controls estimates pulled...\n')
+  }else{
+    estimates = savedEstimates %>%
+      filter(EXPOSURE_ID == exposure_id,
+             METHOD == method,
+             ANALYSIS_ID == analysis_id, 
+             PERIOD_ID == period_id)
+  }
+  
+  
+  # check if at least `minNCs` results are available
+  if(nrow(estimates) < minNCs){
+    cat(sprintf('Available negative control estimates < %s! Skipped.\n', minNCs))
+    return(numeric(0))
+  }
+  if(!is.null(outcomeToExclude)){
+    estimates = estimates %>% filter(!OUTCOME_ID %in% outcomeToExclude)
+    if(nrow(estimates) < minNCs){
+      cat(sprintf('Available negative control estimates < %s! Skipped.\n', minNCs))
+      return(numeric(0))
+    }
+  }
+  
+  # fit a systematic error (normal) distribution with MCMC
+  names(estimates) = tolower(names(estimates))
+  
+  ## run MCMC to get post samples for mean and precision
+  null <- EmpiricalCalibration::fitMcmcNull(logRr = estimates$log_rr, 
+                                            seLogRr = estimates$se_log_rr,
+                                            iter = numsamps * thin)
+  cat('Systematic error distribution fitted...\n')
+  
+  return(null)
+}
+
+# # try it
+# null = fitNegativeControlNullOnly(connection, 'eumaeus',
+#                                      database_id = "IBM_MDCD",
+#                                      method = "SCCS",
+#                                      exposure_id = 21184,
+#                                      period_id = 9,
+#                                      analysis_id = 1,
+#                                      outcomeToExclude = 43020446, # (Sedative withdrawal)
+#                                      numsamps = 10000,
+#                                   savedEstimates = CompNegControls %>% filter(DATABASE_ID == 'IBM_MDCD'))
+
