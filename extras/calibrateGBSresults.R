@@ -71,6 +71,7 @@ calibrateGBSresults <- function(connection,
   
   if(saveResults){
     savePath = file.path(resultsPath, sprintf('Results_%s', database_id), 'estimate_withCalibration.csv')
+    write.csv(estimates, savePath)
     cat(sprintf('Empirical calibration for results of database %s is done!\n Results saved at: %s\n',
                 database_id, savePath))
   }
@@ -176,11 +177,19 @@ calibrateGBS <- function(subset,
 
 ## RUN CODE BELOW ------
 CompNegControls = readRDS('./localCache/CompNegControls.rds')
+GBSresultsPath = '~/Documents/Research/better_gbs/'
+
+database = 'MDCD'
+maxCores = 4
+
 calibratedGBS = calibrateGBSresults(connection, 
                                     'eumaeus',
-                                    'MDCR',
+                                    database_id = database,
                                     localEstimates = CompNegControls,
-                                    maxCores = 1)
+                                    resultsPath = GBSresultsPath,
+                                    maxCores = maxCores)
+# write.csv(calibratedGBS, 
+#           file.path(GBSresultsPath, 'Results_MDCR', 'estimate_withCalibration.csv'))
   
   
   
