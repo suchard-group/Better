@@ -200,6 +200,94 @@ pullGBSResults <- function(database_id,
   df
 }
 
+## Aug 2022: 
+## updated pull results functions for meta analysis of negative controls
+pullGBSResultsOneExpoMeta <- function(database_id, 
+                                  method, 
+                                  exposure_id, 
+                                  resultsPath){
+  
+  fnamePattern = sprintf(
+    'Summary_%s_%s_%s_period.*_analysis.*\\.rds',
+    database_id,
+    method,
+    exposure_id
+  )
+  
+  allFiles = list.files(path = resultsPath, 
+                              pattern = fnamePattern)
+  
+  if(length(allFiles) == 0) return()
+  
+  res = 
+    foreach(fname = allFiles, .combine = 'bind_rows',
+            .multicombine = TRUE) %dopar% {
+                readRDS(file.path(resultsPath, fname))
+            } %>% 
+    distinct() %>% 
+    mutate(database_id = database_id,
+           method = method,
+           exposure_id = exposure_id)
+  
+  res
+}
+
+pullGBSResultsMeta <- function(database_id, 
+                           methods, 
+                           exposure_ids, 
+                           resultsPath,
+                           savePath = NULL){
+  
+  # check if the AllSummary file is already there...
+  if(!is.null(savePath)){
+    if(!dir.exists(savePath)){
+      dir.create(savePath)
+    }
+    if(length(methods) > 1){
+      fname = sprintf('AllSummary-%s-%s.rds', 
+                      database_id,
+                      paste(exposure_ids, collapse = '+'))
+    }else{
+      fname = sprintf('AllSummary-%s-%s-%s.rds', 
+                      database_id,
+                      methods,
+                      paste(exposure_ids, collapse = '+'))
+    }
+    
+    fpath = file.path(savePath, fname)
+    if(file.exists(fpath)){
+      cat(sprintf('Results summary for %s, method(s) %s, exposure(s) %s are already available! Pulling local summary file...\n',
+                   database_id,
+                   paste(methods, collapse = ' & '),
+                   paste(exposure_ids, collapse = ' & ')))
+      return(readRDS(fpath))
+    }
+  }
+  
+  # if not, then pull from the original results path
+  df = NULL
+  for(me in methods){
+    for(expo in exposure_ids){
+      df = rbind(df, 
+                 pullGBSResultsOneExpoMeta(database_id = database_id,
+                                           method = me,
+                                           exposure_id = expo,
+                                           resultsPath = resultsPath))
+    }
+  }
+  
+  if(!is.null(savePath)){
+    saveRDS(df, file.path(savePath, fname))
+    cat(sprintf('Results summary for %s, method %s, exposures %s are pulled and saved at %s\n',
+                database_id,
+                paste(methods, collapse = ' & '),
+                paste(exposure_ids, collapse = ' & '),
+                file.path(savePath, fname)))
+  }
+  
+  df
+}
+
 ## Aug 2022: pull posterior samples for posterior distribution plot-----
 # a function to pull all posterior samples for
 # one (database, exposure, method, anlaysis, prior) combo for GBS
