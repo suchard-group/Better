@@ -15,7 +15,8 @@ calibrateGBSresults <- function(connection,
                                 resultsPath = '~/Documents/Research/better_gbs/',
                                 localEstimates = NULL,
                                 maxCores = 4,
-                                saveResults = TRUE){
+                                saveResults = TRUE,
+                                changeColnames = TRUE){
   # load GBS estimates
   EumaeusDataname = c("IBM_MDCR", "CCAE", "OptumDod", "IBM_MDCD", "OptumEhr")
   names(EumaeusDataname) = c('MDCR', 'CCAE', 'OptumDod', 'MDCD', 'OptumEHR')
@@ -69,12 +70,18 @@ calibrateGBSresults <- function(connection,
   estimates <- bind_rows(estimates)
   ParallelLogger::stopCluster(cluster)
   
+  if(changeColnames){
+    names(estimates) = SqlRender::camelCaseToSnakeCase(names(estimates))
+  }
+  
   if(saveResults){
     savePath = file.path(resultsPath, sprintf('Results_%s', database_id), 'estimate_withCalibration.csv')
     write.csv(estimates, savePath)
     cat(sprintf('Empirical calibration for results of database %s is done!\n Results saved at: %s\n',
                 database_id, savePath))
   }
+  
+  
   
   return(estimates)
   
