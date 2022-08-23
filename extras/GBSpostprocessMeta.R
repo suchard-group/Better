@@ -6,10 +6,13 @@ source('./extras/postProcessUtils.R')
 source('./R/betterHelperFunctions.R')
 #source('./extras/simpleCalibration.R')
 
+#library(wesanderson)
+
 
 resultspath = '~/Documents/Research/betterGBSanalysesResults/betterGBSResults/'
 summarypath = '~/Documents/Research/betterGBSanalysesResults/resultsSummary/'
 
+## try one database
 db = 'CCAE'
 methods = c('SCCS', 'HistoricalComparator')
 exposures = c(211981:211983)
@@ -20,156 +23,12 @@ summ = pullGBSResultsMeta(database_id = db,
                           resultsPath = resultspath,
                           savePath = summarypath)
 
-# 1. function to plot effect estimates for GBS-Zoster ----
-# (also plot 95% Bayesian CIs)
-plotEffectEstimates <- function(summ,
-                                database_id,
-                                method,
-                                exposure_id,
-                                analysis_ids,
-                                period_id,
-                                prior_id = 3, # default prior SD = 4
-                                adjust = FALSE,
-                                showPlot = TRUE,
-                                cachePath = './localCache/'){
-  dat = summ %>%
-    filter(database_id == !!database_id,
-           method == !!method,
-           exposure_id == !!exposure_id,
-           analysis_id %in% analysis_ids,
-           period_id == !!period_id,
-           prior_id == !!prior_id)
-  
-  if(nrow(dat) == 0){
-    cat('No results available!!\n')
-    return()
-  }
-  
-  if(adjust){
-    dat = dat %>% 
-      select(estimate = adjustedPostMedian, 
-             lb = adjustedCI95_lb,
-             ub = adjustedCI95_ub,
-             analysis_id)
-  }else{
-    dat = dat %>% 
-      select(estimate = postMedian, 
-             lb = CI95_lb,
-             ub = CI95_ub,
-             analysis_id)
-  }
 
-  # cross reference analysis description
-  analyses = readRDS(file.path(cachePath, 'analyses.rds')) %>%
-    filter(method == !!method) %>% 
-    select(analysis_id, description, time_at_risk)
-  
-  ## manual fix for SCCS 12 TaR
-  if(method == 'SCCS'){
-    analyses[analyses$analysis_id == 12,]$time_at_risk = '0-1'
-  }
-  
-  ## generate description text string
-  analyses = analyses %>%
-    mutate(analysis_text = sprintf('%s, TaR %s days', description, time_at_risk))
-  
-  # join with dat
-  dat = dat %>% left_join(analyses, by = 'analysis_id') %>%
-    arrange(analysis_id)
-  
-  y_breaks = as.character(unique(dat$analysis_id))
-  y_labels = unique(dat$analysis_text)
-  
-  p = ggplot(dat, aes(x=estimate, y = as.factor(analysis_id))) +
-    geom_point(shape = 18, size = 5) +
-    geom_errorbarh(aes(xmin = lb, xmax = ub), height = 0.1) +
-    geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
-    scale_y_discrete(breaks = y_breaks, labels = y_labels)+
-    labs(x='Log relative rate ratio (95% CI)',
-         y = '') +
-    theme_bw()
-  
-  ## add "adjust" label to data
-  dat$adjust = ifelse(adjust, 'adjusted', 'unadjusted')
-  
-  attr(p, 'data') = dat
-  
-  if(showPlot){
-    print(p)
-  }
-  
-  return(p)
+# try post processing all databases
+for(db in c('IBM_MDCD', 'IBM_MDCR', 'OptumDod', 'OptumEhr')){
+  summ = pullGBSResultsMeta(database_id = db,
+                            methods = methods,
+                            exposure_ids = exposures,
+                            resultsPath = resultspath,
+                            savePath = summarypath)
 }
-
-
-## do the plotting (a bit rough for now...) -----
-p1 = plotEffectEstimates(summ, 
-                         database_id = 'CCAE', 
-                         method = 'SCCS', 
-                         exposure_id = 211981, 
-                         analysis_ids = c(1:8, 13:14), # exclude 0-1 days 
-                         period_id = 12,
-                         prior_id = 3,
-                         adjust = TRUE)
-
-p2 = plotEffectEstimates(summ, 
-                         database_id = 'CCAE', 
-                         method = 'HistoricalComparator', 
-                         exposure_id = 211981, 
-                         analysis_ids = 1:12, 
-                         period_id = 12,
-                         prior_id = 2,
-                         adjust = FALSE)
-
-
-# 2. function to compare adjusted and unadjusted results
-compareEffectEstimates <- function(colors = NULL,
-                                   ...){
-  adjusted = plotEffectEstimates(...,adjust = TRUE,  
-                                 showPlot = FALSE)
-  unadjusted = plotEffectEstimates(..., adjust = FALSE,  
-                                   showPlot = FALSE)
-  
-  dat.adj = attr(adjusted, 'data')
-  dat.unadj = attr(unadjusted, 'data')
-  
-  dat = rbind(dat.adj, dat.unadj) %>% 
-    arrange(analysis_id) %>%
-    mutate(adjust = factor(adjust, 
-                           levels = c('unadjusted', 'adjusted')))
-  
-  y_breaks = as.character(unique(dat$analysis_id))
-  y_labels = unique(dat$analysis_text)
-  
-  p = ggplot(dat, aes(x=estimate, 
-                      y = as.factor(analysis_id),
-                      color = adjust)) +
-    geom_point(shape = 18, size = 5,
-               position = position_dodge(width = 0.5)) +
-    geom_errorbarh(aes(xmin = lb, xmax = ub), 
-                   height = 0.1,
-                   position = position_dodge(width = 0.5)) +
-    geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
-    scale_y_discrete(breaks = y_breaks, labels = y_labels)+
-    labs(x='Log relative rate ratio (95% CI)',
-         y = '',
-         color = '') +
-    theme_bw() + 
-    theme(legend.position = 'bottom')
-  
-  if(!is.null(colors)){
-    p = p + scale_color_manual(values = colors)
-  }
-  
-  print(p)
-}
-
-
-## make comparison plots ----
-compareEffectEstimates(summ = summ, 
-                       database_id = 'CCAE', 
-                       method = 'HistoricalComparator', 
-                       exposure_id = 211981, 
-                       analysis_ids = 1:12, 
-                       period_id = 12,
-                       prior_id = 2)
