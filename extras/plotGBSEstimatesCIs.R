@@ -11,8 +11,8 @@ library(wesanderson)
 resultspath = '~/Documents/Research/betterGBSanalysesResults/betterGBSResults/'
 summarypath = '~/Documents/Research/betterGBSanalysesResults/resultsSummary/'
 
-#db = 'CCAE'
-db = 'OptumEhr'
+db = 'CCAE'
+#db = 'OptumEhr'
 methods = c('SCCS', 'HistoricalComparator')
 exposures = c(211981:211983)
 
@@ -171,7 +171,7 @@ compareEffectEstimates <- function(colors = NULL,
 
 ## make comparison plots ----
 compareEffectEstimates(summ = summ, 
-                       database_id = 'OptumEhr', 
+                       database_id = db, 
                        method = 'HistoricalComparator', 
                        exposure_id = 211981, 
                        analysis_ids = 1:12, 

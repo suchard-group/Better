@@ -372,10 +372,12 @@ plotGBSPosteriors <- function(allSamps,
                               markMedian = TRUE){
   
   if(adjust){
-    dat = allSamps %>% filter(method == 'adjusted')
+    methodText = 'adjusted'
   }else{
-    dat = allSamps %>% filter(method == 'unadjusted')
+    methodText = 'unadjusted'
   }
+  
+  dat = allSamps %>% filter(method == methodText)
   
   if(markMedian){
     medians = dat %>% group_by(period_id) %>%
@@ -383,7 +385,7 @@ plotGBSPosteriors <- function(allSamps,
       ungroup() %>%
       mutate(period_id = as.factor(period_id))
     
-    p = ggplot(dat %>% filter(method == 'unadjusted'), 
+    p = ggplot(dat, 
                aes(y=as.factor(period_id), x = posteriorSample)) +
       geom_density_ridges(scale = 0.9, fill = fillColor) +
       geom_vline(xintercept = 0, size = 0.8, color = 'gray60')+ 
