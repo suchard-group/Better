@@ -8,17 +8,19 @@ library(dplyr)
 pullGBSfreqEstimates <- function(database_id,
                                  method,
                                  exposure_id,
+                                 analysis_ids,
                                  resultsPath = '~/Documents/Research/better_gbs/',
                                  removeNA = TRUE){
   
-  subpath = sprintf('Results-%s', database_id)
+  subpath = sprintf('Results_%s', database_id)
   estimatesFile = file.path(resultsPath, subpath, 'estimate_withCalibration.csv')
   
   estimates = readr::read_csv(estimatesFile)
   
   estimates = estimates %>% 
     filter(method == !!method,
-           exposure_id == !!exposure_id) %>%
+           exposure_id == !!exposure_id,
+           analysis_id %in% analysis_ids) %>%
     select(database_id,
            method,
            analysis_id,
@@ -47,12 +49,14 @@ pullGBSfreqEstimates <- function(database_id,
 
 
 # 2. function to plot estimates and CIs ----
-plotGBSfreqEstimatesCIs <- function(colors = NULL,
+plotGBSfreqEstimatesCIs <- function(method,
+                                    colors = NULL,
                                     showPlot = TRUE,
                                     cachePath = './localCache', 
                                     ...){
   
-  estimates = pullGBSfreqEstimates(...)
+  estimates = pullGBSfreqEstimates(method = method,...) %>%
+    filter(period_id == max(period_id))
   
   uncalibrated = estimates %>% 
     select(database_id,
@@ -83,7 +87,7 @@ plotGBSfreqEstimatesCIs <- function(colors = NULL,
     mutate(approach = 'calibrated')
   
   dat = rbind(calibrated, uncalibrated) %>%
-    mutate(calibrate = factor(approach, 
+    mutate(adjust = factor(approach, 
                               levels = c('uncalibrated', 'calibrated'))) %>%
     mutate(lb = log(lb),
            ub = log(ub))
@@ -141,3 +145,27 @@ plotGBSfreqEstimatesCIs <- function(colors = NULL,
     
   return(p)
 }
+
+# try it ----
+
+resultspath = '~/Documents/Research/better_gbs/'
+db = 'CCAE'
+me = 'HistoricalComparator'
+eid = 211981
+
+freqPlot = plotGBSfreqEstimatesCIs(database_id = db,
+                        method = me,
+                        exposure_id = eid,
+                        analysis_ids = 1:12,
+                        colors = wes_palette("Darjeeling2")[2:3])
+
+# not doing OptumEhr yet...----
+# haven't run calibration for it somehow
+#
+# freqPlot2 = plotGBSfreqEstimatesCIs(database_id = 'OptumEHR',
+#                                    method = me,
+#                                    exposure_id = eid,
+#                                    analysis_ids = 1:12,
+#                                    colors = wes_palette("Darjeeling2")[2:3])
+# 
+
