@@ -424,7 +424,8 @@ resultspath = sprintf('~/Documents/Research/betterResults/summary-%s', dir_suffi
 cachepath = './localCache/'
 savepath = sprintf('~/Documents/Research/betterResults/timeToSignalZoster-%s/', dir_suffix)
 
-sensitivity_level = 0.5
+#sensitivity_level = 0.5
+sensitivity_level = 0.25
 
 db = 'CCAE' #'OptumDod'
 mt = 'HistoricalComparator'
