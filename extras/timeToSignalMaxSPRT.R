@@ -136,12 +136,15 @@ plotTimeToSignalMaxSPRTOneExposure <- function(localFile,
           axis.ticks.x = element_blank(),
           strip.background = element_blank(),
           strip.text.y = element_text(angle = 0),
-          legend.position = 'none')
+          legend.position = 'bottom')+
+    guides(fill=guide_legend(nrow=2,byrow=TRUE))
   
   if(!is.null(colors)){
     pg = pg + 
         scale_fill_manual(values = colors,
-                          breaks = c('uncalibrated', 'calibrated'))
+                          breaks = c('uncalibrated', 'calibrated'),
+                          labels = c('uncalibrated MaxSPRT',
+                                     'calibrated MaxSPRT'))
   }
   
   attr(pg, 'data') = tts_long
@@ -154,8 +157,17 @@ plotTimeToSignalMaxSPRTOneExposure <- function(localFile,
 }
 
 
+## plots----
+
 p1 = plotTimeToSignalMaxSPRTOneExposure(localFile = './localCache/EstimateswithImputedPcs_CCAE.rds',
                                         method = 'HistoricalComparator',
                                         analysis_ids = 1:4,
                                         sensitivity_level = 0.5,
+                                        colors = wes_palette("Darjeeling2")[c(2,4)])
+
+
+p1 = plotTimeToSignalMaxSPRTOneExposure(localFile = './localCache/EstimateswithImputedPcs_CCAE.rds',
+                                        method = 'HistoricalComparator',
+                                        analysis_ids = 1:4,
+                                        sensitivity_level = 0.25,
                                         colors = wes_palette("Darjeeling2")[c(2,4)])
