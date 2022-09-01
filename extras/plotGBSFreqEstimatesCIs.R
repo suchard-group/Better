@@ -17,6 +17,8 @@ pullGBSfreqEstimates <- function(database_id,
   
   estimates = readr::read_csv(estimatesFile)
   
+  names(estimates) = SqlRender::camelCaseToSnakeCase(names(estimates))
+  
   estimates = estimates %>% 
     filter(method == !!method,
            exposure_id == !!exposure_id,
@@ -149,7 +151,8 @@ plotGBSfreqEstimatesCIs <- function(method,
 # try it ----
 
 resultspath = '~/Documents/Research/better_gbs/'
-db = 'CCAE'
+#db = 'CCAE'
+db = 'MDCR'
 me = 'HistoricalComparator'
 eid = 211981
 

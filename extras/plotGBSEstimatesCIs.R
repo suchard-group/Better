@@ -11,8 +11,9 @@ library(wesanderson)
 resultspath = '~/Documents/Research/betterGBSanalysesResults/betterGBSResults/'
 summarypath = '~/Documents/Research/betterGBSanalysesResults/resultsSummary/'
 
-db = 'CCAE'
+#db = 'CCAE'
 #db = 'OptumEhr'
+db = 'IBM_MDCR'
 methods = c('SCCS', 'HistoricalComparator')
 exposures = c(211981:211983)
 
@@ -106,24 +107,24 @@ plotEffectEstimates <- function(summ,
 }
 
 
-## do the plotting (a bit rough for now...) -----
-p1 = plotEffectEstimates(summ, 
-                         database_id = 'CCAE', 
-                         method = 'SCCS', 
-                         exposure_id = 211981, 
-                         analysis_ids = c(1:8, 13:14), # exclude 0-1 days 
-                         period_id = 12,
-                         prior_id = 3,
-                         adjust = TRUE)
-
-p2 = plotEffectEstimates(summ, 
-                         database_id = 'CCAE', 
-                         method = 'HistoricalComparator', 
-                         exposure_id = 211981, 
-                         analysis_ids = 1:12, 
-                         period_id = 12,
-                         prior_id = 2,
-                         adjust = FALSE)
+# ## do the plotting (a bit rough for now...) -----
+# p1 = plotEffectEstimates(summ, 
+#                          database_id = 'CCAE', 
+#                          method = 'SCCS', 
+#                          exposure_id = 211981, 
+#                          analysis_ids = c(1:8, 13:14), # exclude 0-1 days 
+#                          period_id = 12,
+#                          prior_id = 3,
+#                          adjust = TRUE)
+# 
+# p2 = plotEffectEstimates(summ, 
+#                          database_id = 'CCAE', 
+#                          method = 'HistoricalComparator', 
+#                          exposure_id = 211981, 
+#                          analysis_ids = 1:12, 
+#                          period_id = 12,
+#                          prior_id = 2,
+#                          adjust = FALSE)
 
 
 # 2. function to compare adjusted and unadjusted results
