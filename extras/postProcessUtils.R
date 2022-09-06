@@ -2,6 +2,8 @@
 # (from using likelihood profiles)
 
 library(tidyverse)
+library(ggplot2)
+library(ggridges)
 library(foreach)
 library(doParallel)
 #registerDoParallel(cores = 4)
@@ -359,6 +361,205 @@ getRank <- function(v){
   sorted = sort(unique(v))
   sapply(v, function(x) which(sorted==x)) %>% as.vector()
 }
+
+
+## 09/06/2022 updates:
+## functions for pulling posterior samples for an outcome----
+pullPostSamples <- function(database_id, 
+                            method,
+                            analysis_id,
+                            exposure_id,
+                            outcome_id = 343, # default to GBS id
+                            prior_id = 3, # default SD=4 prior
+                            resultsPath = '~/Documents/Research/betterGBSanalysesResults/GBSsamples/',
+                            savePath = NULL){
+  if((!is.null(savePath)) && (!dir.exists(savePath))){
+    dir.create(savePath)
+  }
+  
+  fnamePattern = sprintf(
+    '%s_%s_%s_period[1-9]*_analysis%s_samples.rds',
+    database_id,
+    method,
+    exposure_id,
+    analysis_id
+  )
+  
+  sample_files = list.files(path = resultsPath, 
+                            pattern = fnamePattern)
+  
+  if(length(sample_files) == 0){
+    cat(sprintf('No samples exist for %s, %s analysis %s, exposure %s. Skipped!\n',
+                database_id,
+                method, analysis_id,
+                exposure_id))
+    return(numeric())
+  }
+  
+  postSamps = NULL
+  adjustedPostSamps = NULL
+  period_ids = NULL
+  
+  for(f in sample_files){
+    samps = readRDS(file.path(resultsPath, f))[[prior_id]]
+    
+    # check if outcome_id is available
+    allOutcomes = rownames(samps$postSamps) %>% as.numeric()
+    if(outcome_id %in% allOutcomes){
+      cat(sprintf('Found outcome %s in file %s\n', outcome_id, f))
+      postSamps = c(postSamps, 
+                    samps$postSamps[as.character(outcome_id),] %>% as.vector())
+      adjustedPostSamps = c(adjustedPostSamps,
+                            samps$adjustedPostSamps[as.character(outcome_id),] %>% as.vector())
+      
+      period_ids = c(period_ids,
+                     unlist(str_split(f, 'period|_'))[5] %>% as.numeric())
+    }else{
+      cat(sprintf('Did not find outcome %s in file %s!!\n', outcome_id, f))
+    }
+    
+    if(which(sample_files == f) == 1){
+      numsamps = ncol(samps$postSamps)
+    }
+  }
+  
+  if(length(postSamps) > 0){
+    # construct a longggg-format dataframe of posterior samples
+    res = data.frame(posteriorSample = c(postSamps, adjustedPostSamps),
+                     method = rep(c('unadjusted', 'adjusted'), each = length(postSamps)),
+                     period_id = rep(rep(period_ids, each = numsamps), 2))
+  }else{
+    cat('No samples available!!\n')
+    res = NULL
+  }
+  
+  if(!is.null(savePath)){
+    fname = sprintf('AllSamples-%s-%s-%s-analysis%s-prior%s.rds',
+                    database_id, method, exposure_id, analysis_id, prior_id)
+    saveRDS(res, file.path(savePath, fname))
+  }
+  
+  return(res)
+  
+}
+
+# ## try it
+# saveSamplePath = '~/Documents/Research/betterGBSanalysesResults/SamplesDataFrame/'
+# allSamps = pullPostSamples(database_id = 'CCAE',
+#                            method = 'HistoricalComparator',
+#                            analysis_id = 2,
+#                            exposure_id = 211981,
+#                            savePath = saveSamplePath)
+
+# function to plot the posterior distribution by period_id----
+plotGBSPosteriors <- function(allSamps, 
+                              adjust = FALSE, 
+                              fillColor = 'gray80',
+                              markMedian = TRUE,
+                              showPlot = TRUE,
+                              valueRange = c(-5,10)){
+  
+  if(adjust){
+    methodText = 'adjusted'
+  }else{
+    methodText = 'unadjusted'
+  }
+  
+  dat = allSamps %>% filter(method == methodText)
+  
+  if(markMedian){
+    medians = dat %>% group_by(period_id) %>%
+      summarize(med = median(posteriorSample)) %>%
+      ungroup() %>%
+      mutate(period_id = as.factor(period_id))
+    
+    p = ggplot(dat, 
+               aes(y=as.factor(period_id), x = posteriorSample)) +
+      geom_density_ridges(scale = 0.9, fill = fillColor) +
+      geom_vline(xintercept = 0, size = 0.8, color = 'gray60')+ 
+      geom_point(data = medians, 
+                 mapping = aes(y = period_id, x = med),
+                 shape = 4, 
+                 size = 1.5,
+                 position = position_nudge(y = 0.3)) +
+      scale_x_continuous(limits = valueRange) +
+      scale_y_discrete(expand = expansion(add = c(0.5, 1)))+
+      labs(y = 'Analysis time (month)', 
+           x = 'Effect size (log relative rate ratio)')+
+      coord_flip() +
+      theme_bw()
+    
+  }else{
+    p = ggplot(dat %>% filter(method == 'unadjusted'), 
+               aes(y=as.factor(period_id), x = posteriorSample)) +
+      geom_density_ridges(scale = 0.9, fill = fillColor) +
+      geom_vline(xintercept = 0, size = 0.8, color = 'gray60')+
+      scale_x_continuous(limits = c(-5,10)) +
+      scale_y_discrete(expand = expansion(add = c(0.5, 1)))+
+      labs(y = 'Analysis time (month)', 
+           x = 'Effect size (log relative rate ratio)')+
+      coord_flip() +
+      theme_bw()
+  }
+  
+  if(showPlot){
+    print(p)
+  }else{
+    attr(p,'data') = dat
+    return(p)
+  }
+  
+}
+
+# another plot to show P(H1 | data) and P(H0 | data) by period_id
+plotPosteriorProbs <- function(allSamps, 
+                               adjust = FALSE, 
+                               colors = NULL,
+                               showPlot = TRUE){
+  
+  if(adjust){
+    methodText = 'adjusted'
+  }else{
+    methodText = 'unadjusted'
+  }
+  
+  dat = allSamps %>% filter(method == methodText) %>%
+    group_by(period_id) %>%
+    summarize(P1 = mean(posteriorSample > 0),
+              P0 = mean(posteriorSample < 0)) %>%
+    ungroup()
+  
+  dat = bind_rows(dat %>% select(period_id, prob = P1) %>% mutate(label = 'P(H1)'),
+                  dat %>% select(period_id, prob = P0) %>% mutate(label = 'P(H0)'))
+  
+  p = ggplot(dat, 
+             aes(x=period_id, y = prob, color = label)) +
+    geom_line(size = 1)+
+    scale_x_continuous(breaks = seq(from = min(dat$period_id), 
+                                    to = max(dat$period_id),
+                                    by = 1)) +
+    scale_y_continuous(limits = c(0,1))+
+    labs(y = 'Posterior probability', 
+         x = 'Analysis time (month)', 
+         color = '')+
+    theme_bw()+
+    theme(legend.position = 'bottom')
+  
+  if(!is.null(colors)){
+    p = p+scale_color_manual(values = colors)
+  }
+  
+  attr(p, 'data') = dat
+  
+  if(showPlot){
+    print(p)
+  }else{
+    return(p)
+  }
+  
+}
+
+
 
 ##### Outdated slow functions of making decisions below--------------------
 ### saved for records....
