@@ -11,6 +11,9 @@
 # 08/11/2022
 # check a different database-exposure-analysis pair
 
+# 09/05/2022
+# try a different scale for plotting 
+
 
 # 1. plot Type 1 and 2 error rates by time ------
 
@@ -23,13 +26,13 @@ summarypath = '~/Documents/Research/betterResults/summary'
 cachepath = './localCache/'
 
 # analyses results to check
-#db = 'CCAE'
-db = 'OptumEhr'
-#eid = 211981 # Zoster 1st dose
-eid = 21184 #H1N1
-#me = 'HistoricalComparator'
-me = 'SCCS'
-aid = 2
+db = 'CCAE'
+#db = 'OptumEhr'
+eid = 211981 # Zoster 1st dose
+#eid = 21184 #H1N1
+me = 'HistoricalComparator'
+#me = 'SCCS'
+aid = 4
 #pid = 3 # 1: sd=10; 2: sd=1.5; 3: sd=4 
 #tolerance = 0.004
 
@@ -210,4 +213,90 @@ print(p)
 
 ## usually don't run; check that estimates are correct ---
 
+
+## 09/05/2022-----
+## add plots with Type 1 and Type 2 separate-----
+## do it without Bonferroni yet...
+
+errors_combined = rbind(res_Bayes, 
+                        res_Bayes_raw,
+                        maxsprt_errors,
+                        maxsprt_errors_cali)
+
+errors_combined$approach[errors_combined$approach == "1: MaxSPRT"] = "1a: MaxSPRT"
+errors_combined$approach[errors_combined$approach == "1: MaxSPRT w/ calibration" ] = 
+  "1b: MaxSPRT w/ calibration"
+
+## split up periods into early and late
+earlySplit = 4
+alphaLevel = 0.3
+
+errors_combined = errors_combined %>%
+  mutate(stage = if_else(period_id <= earlySplit, alphaLevel, 1))
+
+Type1errors = errors_combined %>% filter(stats=='type 1')
+Type2errors = errors_combined %>% filter(stats!='type 1')
+
+yinters = 0.05
+period_breaks = seq(from = min(errors_combined$period_id),
+                    to = max(errors_combined$period_id),
+                    by = 2)
+period_labels = as.integer(period_breaks)
+capt = '' # no caption for now...
+
+## (1) type 1 error plots, with transformation to highlight near 0.05 regions---
+
+type1colors = wes_palette("GrandBudapest1")[c(1,2,4,3)]
+
+ybreaks = c(0,0.05, 0.1, 0.25, 0.5, 0.75,1.0)
+
+p = ggplot(Type1errors, 
+           aes(x=period_id, y=y, color=approach, alpha = stage))+
+  geom_line(size = 1.5) +
+  geom_point(size=2)+
+  geom_hline(yintercept = yinters, 
+             color = 'gray60', 
+             size = 1, linetype=2)+
+  scale_y_continuous(limits = c(0,1),
+                     breaks = ybreaks,
+                     trans = 'sqrt'
+  )+
+  scale_x_continuous(breaks = period_breaks, labels = period_labels)+
+  labs(x='analysis period (months)', y='error rates', 
+       caption = capt, color='Type 1 error of:')+
+  scale_color_manual(values = type1colors) +
+  scale_alpha_continuous(range = c(0.2, 1), guide = 'none')+
+  guides(color=guide_legend(nrow=2,byrow=TRUE))+
+  #facet_grid(.~approach)+
+  theme_bw(base_size = 13)+
+  theme(legend.position = 'bottom')# change to bottom legend...
+  
+
+print(p)
+
+
+## (2) Type 2 error, with original scale so they don't look weird
+
+type2cols = c(wes_palette("Zissou1")[3:4],wes_palette("Royal1")[4])
+
+p = ggplot(Type2errors, 
+           aes(x=period_id, y=y, color=stats, alpha = stage))+
+  geom_line(size = 1.5) +
+  geom_point(size=2)+
+  # geom_hline(yintercept = yinters, 
+  #            color = 'gray60', 
+  #            size = 1, linetype=2)+
+  scale_y_continuous(limits = c(0,1)#,
+                     #trans = 'sqrt'
+  )+
+  scale_x_continuous(breaks = period_breaks, labels = period_labels)+
+  labs(x='analysis period (months)', y='error rates', 
+       caption = capt, color='Error type')+
+  scale_color_manual(values = type2cols) +
+  scale_alpha_continuous(range = c(0.2, 1), guide = 'none')+
+  facet_grid(.~approach)+
+  theme_bw(base_size = 13)+
+  theme(legend.position = 'bottom') # change to bottom legend...
+
+print(p)
 
