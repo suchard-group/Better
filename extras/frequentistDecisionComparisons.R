@@ -23,6 +23,16 @@ library(wesanderson)
 # connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
 
 
+# (i) helper func to do robust division
+# a/b = 0 if b=0 else a/b
+robustDivide <- function(a, b){
+  if(b==0){
+    0
+  }else{
+    a/b
+  }
+}
+
 # 1 function to extract results from EUMAEUS data server and make decisions using MaxSPRT-------
 # do this for one analysis and all outcomes
 frequentistDecisions <- function(connection,
@@ -162,12 +172,27 @@ frequentistDecisions <- function(connection,
   
   
   # summarize Type I and Type II errors
+  ## 09/05/2022 change/debug:
+  ## use the TOTAL number of controls as denominator
+  ## NOT just the available outcomes up to time t
+  ## otherwise, results don't make sense!!
+  
+  outcomeTotal = estimates %>% 
+    filter(negativeControl == TRUE) %>% 
+    pull(outcome_id) %>% 
+    unique() %>% length()
+  ## assuming that for each original negative control, its availability is SAME as the
+  ## derived imputed positive control for each effect size
+  
   errorRate = decisions %>%
     group_by(database_id, method, analysis_id, 
              exposure_id, negativeControl,
              effect_size, period_id) %>%
-    summarize(rejectRate = mean(reject, na.rm =TRUE)) %>%
-    mutate(errorRate = if_else(negativeControl, rejectRate, 1-rejectRate),
+    #summarize(rejectRate = mean(reject, na.rm =TRUE)) %>%
+    summarize(rejectCounts = sum(reject, na.rm =TRUE)) %>%
+    mutate(errorRate = if_else(negativeControl, 
+                               robustDivide(rejectCounts, outcomeTotal), 
+                               1-robustDivide(rejectCounts, outcomeTotal)),
            stats = if_else(negativeControl, 'type 1',
                            sprintf('type 2 (effect=%.1f)', effect_size))) %>%
     ungroup()
@@ -177,8 +202,10 @@ frequentistDecisions <- function(connection,
       group_by(database_id, method, analysis_id, 
                exposure_id, negativeControl,
                effect_size, period_id) %>%
-      summarize(rejectRate = mean(reject, na.rm =TRUE)) %>%
-      mutate(errorRate = if_else(negativeControl, rejectRate, 1-rejectRate),
+      summarize(rejectCounts = sum(reject, na.rm =TRUE)) %>%
+      mutate(errorRate = if_else(negativeControl, 
+                                 robustDivide(rejectCounts, outcomeTotal), 
+                                 1-robustDivide(rejectCounts, outcomeTotal)),
              stats = if_else(negativeControl, 'type 1',
                              sprintf('type 2 (effect=%.1f)', effect_size))) %>%
       ungroup()
