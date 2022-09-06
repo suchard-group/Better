@@ -216,6 +216,25 @@ tempCalibrateByDelta1 <- function(database_id,
            prior_id == !! prior_id,
            negativeControl == TRUE)
   
+  ## 09/05/2022
+  ## get total number of negative controls available
+  if(!is.null(outcomesInEstimates)){
+    totalOutcomeSet = outcomesInEstimates %>%
+      filter(period_id == max(period_id)) %>% 
+      select(outcome_id) %>% 
+      distinct() %>% 
+      pull()
+    negOutcomes = dat %>% 
+      select(outcome_id) %>% distinct() %>%
+      filter(outcome_id %in% totalOutcomeSet) %>%
+      pull()
+  }else{
+    negOutcomes = dat %>% 
+      select(outcome_id) %>% distinct() %>%
+      pull()
+  }
+  negTotal = length(negOutcomes)
+  
   # check if total num. of NCs meet `minOutcomes`
   if(nrow(dat) == 0 || length(unique(dat$outcome_id)) < minOutcomes){
     mes = sprintf('Num. of negative controls for analysis %s, exposure %s and prior %s is smaller than minimum %s!\n',
@@ -274,14 +293,17 @@ tempCalibrateByDelta1 <- function(database_id,
     p1s = p1s %>% ungroup() %>% select(maxP1) %>% pull()
     ## deal with cases with NA entries
     ## if for an outcome, P1 is all NA, then max() = -Inf
+    ## 09/05/2022: updated using total num. of negative controls as denominator
     p1s = p1s[p1s != -Inf]
     if(length(p1s) > 0){
       # i there are at least some P1s non-NA
       calibratedThres = quantile(p1s, 1-alpha) %>% as.numeric()
       
       # evaluate the actual type1 error rate using calibrated threshold
-      type1 = mean(p1s > calibratedThres)
-      untype1 = mean(p1s > (1-alpha)) # an "uncalibrated" version
+      # type1 = mean(p1s > calibratedThres)
+      # untype1 = mean(p1s > (1-alpha)) # an "uncalibrated" version
+      type1 = sum(p1s > calibratedThres)/negTotal
+      untype1 = sum(p1s > (1-alpha))/negTotal
     }else{
       # if all P1s are NA
       calibratedThres = 1-alpha # don't do any calibration...
@@ -292,6 +314,7 @@ tempCalibrateByDelta1 <- function(database_id,
     
     # evaluate type 2 error as well if...
     ## small helper funcion to check rejection rate
+    ## 09/05/2022: updated using total num. of negative controls as denominator
     checkRejectRate <- function(P1s, threshold){
       if(is.na(threshold)){
         return(NA)
@@ -300,7 +323,7 @@ tempCalibrateByDelta1 <- function(database_id,
       if(length(P1s) == 0){
         return(NA)
       }
-      return(mean(P1s > threshold))
+      return(sum(P1s > threshold)/negTotal)
     }
     
     if(evalType2){
