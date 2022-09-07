@@ -478,13 +478,25 @@ plotGBSPosteriors <- function(allSamps,
                               logScale = TRUE){
   # valueRange: the lower and upper limits of estimates (on log scale)
   # logScale: whether or not to keep the log scale on y-axis;
-  #           if FALSE, then transform to relative rate ratio scale by exponentiation
+  #           if FALSE, then use original rate ratio scale on y-axis
   
   if(adjust){
     methodText = 'adjusted'
   }else{
     methodText = 'unadjusted'
   }
+  
+  
+  if(logScale){
+    xbreaks = seq(from = valueRange[1], to = valueRange[2], length.out = 5)
+    xlabels = as.character(round(xbreaks, 1))
+    xname = 'Effect size (log relative rate ratio)'
+  }else{
+    xbreaks = c(valueRange[1], 0, log(1.5), log(2), log(4), valueRange[2])
+    xlabels = as.character(round(exp(xbreaks),1))
+    xname = 'Effect size (relative rate ratio)'
+  }
+  
   
   dat = allSamps %>% filter(method == methodText)
   
@@ -503,10 +515,12 @@ plotGBSPosteriors <- function(allSamps,
                  shape = 4, 
                  size = 1.5,
                  position = position_nudge(y = 0.3)) +
-      scale_x_continuous(limits = valueRange) +
+      scale_x_continuous(limits = valueRange,
+                         breaks = xbreaks,
+                         labels = xlabels) +
       scale_y_discrete(expand = expansion(add = c(0.5, 1)))+
       labs(y = 'Analysis time (month)', 
-           x = 'Effect size (log relative rate ratio)')+
+           x = xname)+
       coord_flip() +
       theme_bw()
     
