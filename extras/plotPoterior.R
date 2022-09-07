@@ -33,8 +33,9 @@ adjustFlag = TRUE
 # use the GBS plotting function for now
 p1 = plotGBSPosteriors(allSamps,
                   adjust = adjustFlag,
-                  valueRange = c(-5,5),
-                  showPlot = FALSE)
+                  valueRange = c(-4,4),
+                  showPlot = FALSE,
+                  logScale = FALSE)
 
 p2 = plotPosteriorProbs(allSamps,
                    adjust= adjustFlag,
