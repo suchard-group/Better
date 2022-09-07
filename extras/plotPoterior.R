@@ -28,7 +28,7 @@ allSamps = pullPostSamples(database_id = db,
                            outcome_id = outcome,
                            resultsPath = resultspath)
 
-adjustFlag = FALSE
+adjustFlag = TRUE
 
 # use the GBS plotting function for now
 p1 = plotGBSPosteriors(allSamps,
@@ -39,8 +39,10 @@ p1 = plotGBSPosteriors(allSamps,
 p2 = plotPosteriorProbs(allSamps,
                    adjust= adjustFlag,
                    colors = wes_palette("Darjeeling2"),
-                   showPlot = FALSE)
+                   #showPlot = FALSE,
+                   xpaddings = c(0.5,1))
 
-ggarrange(p1, p2, 
+ggarrange(p1 + rremove('xlab'), 
+          p2, 
           nrow = 2,
           heights = c(3,1.5))
