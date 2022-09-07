@@ -378,7 +378,7 @@ pullPostSamples <- function(database_id,
   }
   
   fnamePattern = sprintf(
-    '%s_%s_%s_period[1-9]*_analysis%s_samples.rds',
+    '%s_%s_%s_period[0-9]*_analysis%s_samples.rds',
     database_id,
     method,
     exposure_id,
@@ -398,7 +398,8 @@ pullPostSamples <- function(database_id,
   
   postSamps = NULL
   adjustedPostSamps = NULL
-  period_ids = NULL
+  raw_period_ids = NULL
+  adj_period_ids = NULL
   
   for(f in sample_files){
     samps = readRDS(file.path(resultsPath, f))[[prior_id]]
@@ -407,13 +408,26 @@ pullPostSamples <- function(database_id,
     allOutcomes = rownames(samps$postSamps) %>% as.numeric()
     if(outcome_id %in% allOutcomes){
       cat(sprintf('Found outcome %s in file %s\n', outcome_id, f))
-      postSamps = c(postSamps, 
-                    samps$postSamps[as.character(outcome_id),] %>% as.vector())
-      adjustedPostSamps = c(adjustedPostSamps,
-                            samps$adjustedPostSamps[as.character(outcome_id),] %>% as.vector())
       
-      period_ids = c(period_ids,
-                     unlist(str_split(f, 'period|_'))[5] %>% as.numeric())
+      this.postSamps = samps$postSamps[as.character(outcome_id),] %>% as.vector()
+      if(length(this.postSamps) > 0){
+        postSamps = c(postSamps, 
+                      this.postSamps)
+        raw_period_ids = c(raw_period_ids,
+                           unlist(str_split(f, 'period|_'))[5] %>% as.numeric())
+        
+      }else{
+        cat(sprintf('No raw samples for %s somehow...\n', outcome_id))
+      }
+      
+      this.adjustedPostSamps = samps$adjustedPostSamps[as.character(outcome_id),] %>% as.vector()
+      if(length(this.adjustedPostSamps) > 0){
+        adjustedPostSamps = c(adjustedPostSamps, this.adjustedPostSamps)
+        adj_period_ids = c(adj_period_ids, unlist(str_split(f, 'period|_'))[5] %>% as.numeric())
+      }else{
+        cat(sprintf('No adjusted samples for %s somehow...\n', outcome_id))
+      }
+      
     }else{
       cat(sprintf('Did not find outcome %s in file %s!!\n', outcome_id, f))
     }
@@ -426,8 +440,11 @@ pullPostSamples <- function(database_id,
   if(length(postSamps) > 0){
     # construct a longggg-format dataframe of posterior samples
     res = data.frame(posteriorSample = c(postSamps, adjustedPostSamps),
-                     method = rep(c('unadjusted', 'adjusted'), each = length(postSamps)),
-                     period_id = rep(rep(period_ids, each = numsamps), 2))
+                     method = c(rep('unadjusted', length(postSamps)),
+                                rep('adjusted', length(adjustedPostSamps))),
+                     period_id = c(rep(raw_period_ids, each = numsamps), 
+                                   rep(adj_period_ids, each = numsamps))
+    )
   }else{
     cat('No samples available!!\n')
     res = NULL
@@ -457,7 +474,11 @@ plotGBSPosteriors <- function(allSamps,
                               fillColor = 'gray80',
                               markMedian = TRUE,
                               showPlot = TRUE,
-                              valueRange = c(-5,10)){
+                              valueRange = c(-5,10),
+                              logScale = TRUE){
+  # valueRange: the lower and upper limits of estimates (on log scale)
+  # logScale: whether or not to keep the log scale on y-axis;
+  #           if FALSE, then transform to relative rate ratio scale by exponentiation
   
   if(adjust){
     methodText = 'adjusted'
@@ -515,7 +536,8 @@ plotGBSPosteriors <- function(allSamps,
 plotPosteriorProbs <- function(allSamps, 
                                adjust = FALSE, 
                                colors = NULL,
-                               showPlot = TRUE){
+                               showPlot = TRUE,
+                               xpaddings = c(0,0)){
   
   if(adjust){
     methodText = 'adjusted'
@@ -537,7 +559,8 @@ plotPosteriorProbs <- function(allSamps,
     geom_line(size = 1)+
     scale_x_continuous(breaks = seq(from = min(dat$period_id), 
                                     to = max(dat$period_id),
-                                    by = 1)) +
+                                    by = 1),
+                       expand = expansion(add = xpaddings)) +
     scale_y_continuous(limits = c(0,1))+
     labs(y = 'Posterior probability', 
          x = 'Analysis time (month)', 
