@@ -186,7 +186,7 @@ calibrateGBS <- function(subset,
 CompNegControls = readRDS('./localCache/CompNegControls.rds')
 GBSresultsPath = '~/Documents/Research/better_gbs/'
 
-database = 'CCAE'
+database = 'OptumDod'
 maxCores = 1
 
 calibratedGBS = calibrateGBSresults(connection, 
