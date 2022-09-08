@@ -58,7 +58,7 @@ p3 = ggplot(KLs, aes(x = period, y = KL)) +
                        seq(from = min(KLs$period), 
                            to = max(KLs$period),
                            by = 1),
-                     expand = expansion(add = c(0.5, 1))) +
+                     expand = expansion(add = c(0.6, 1))) +
   scale_y_continuous(expand = expansion(add = c(0.15,0.15)))+
   labs(x='', y = 'KL div.') +
   theme_bw()
