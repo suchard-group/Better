@@ -596,6 +596,39 @@ plotPosteriorProbs <- function(allSamps,
   
 }
 
+# 09/07/2022
+# try to look at the KL divergence between consecutive posteriors
+consecutiveKL <- function(allSamps, 
+                          adjust,
+                          K = 3){
+  if(adjust){
+    samps = allSamps %>% filter(method == 'adjusted')
+  }else{
+    samps = allSamps %>% filter(method == 'unadjusted')
+  }
+  
+  periods = sort(unique(samps$period_id))
+  if(length(periods) < 2){
+    warning('Less than 2 periods of samples available. Cannot proceed!!')
+    return()
+  }
+  
+  all_KLs = NULL
+  prev.samps = samps %>% filter(period_id == periods[1]) %>%
+    select(posteriorSample) %>% pull()
+  for(i in 2:length(periods)){
+    this.samps = samps %>% filter(period_id == periods[i]) %>%
+      select(posteriorSample) %>% pull()
+    
+    this.KL = KL_div(prev.samps,this.samps,K)
+    all_KLs = c(all_KLs, this.KL)
+    
+    prev.samps = this.samps
+  }
+  
+  data.frame(period = periods[-1], KL = all_KLs)
+}
+
 
 
 ##### Outdated slow functions of making decisions below--------------------
