@@ -5,6 +5,7 @@ library(wesanderson)
 library(ggpubr)
 
 source('./extras/postProcessUtils.R')
+source('./extras/tryKLdivergence.R')
 
 ## setups
 db = 'CCAE'
@@ -43,7 +44,31 @@ p2 = plotPosteriorProbs(allSamps,
                    #showPlot = FALSE,
                    xpaddings = c(0.5,1))
 
+## 09/07/2022
+# add KL divergence plot too (with annotations?)
+KLs = consecutiveKL(allSamps, adjust = TRUE, K = 3)
+KLs = rbind(KLs, 
+            data.frame(period = 1, KL = NA)) %>%
+  mutate(KL_label = as.character(round(KL, 3)))
+
+p3 = ggplot(KLs, aes(x = period, y = KL)) +
+  geom_line(size = 1, color = 'gray60') +
+  geom_label(aes(label = KL_label), size = 3) + 
+  scale_x_continuous(breaks = 
+                       seq(from = min(KLs$period), 
+                           to = max(KLs$period),
+                           by = 1),
+                     expand = expansion(add = c(0.5, 1))) +
+  scale_y_continuous(expand = expansion(add = c(0.15,0.15)))+
+  labs(x='', y = 'KL div.') +
+  theme_bw()
+
 ggarrange(p1 + rremove('xlab'), 
+          p3,
           p2, 
-          nrow = 2,
-          heights = c(3,1.5))
+          nrow = 3,
+          heights = c(3.5,1.5,2))
+
+
+
+
