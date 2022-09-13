@@ -107,7 +107,8 @@ res_raw = plotTempDelta1ByPriors(database_id = db,
                                  showPlots = TRUE,
                                  stratifyByEffectSize = TRUE,
                                  calibrate = FALSE, 
-                                 outcomesInEstimates = resLst$estimates)
+                                 outcomesInEstimates = NULL)
+                                   #resLst$estimates)
 
 # pick a prior as example
 #pid = 2 # use SD = 1.5 results for this Bayesian example

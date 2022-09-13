@@ -141,6 +141,8 @@ selectExposureEarliestTimeToSignal <- function(database_id,
 ## 06/22/2022: add some plain English commentary on the settings for easier interpretation
 ## 06/23/2022: add functionality to plot some thresholds only (for d1 only for now)
 ## 08/05/2022: add option for median and IQR of stopping times "timeBars"
+## 09/13/2022: add option to include information on error rates 
+#              (for more information on false positive rates v.s. timeliness)
 plotEarliestTimeToSignalOneExposure <- function(database_id,
                                                 method,
                                                 exposure_id,
@@ -162,7 +164,8 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
                                                 pHeight = 8,
                                                 pWidth = 12,
                                                 usePalette = wes_palette("Darjeeling2")[2:3],
-                                                addCommentary = FALSE) {
+                                                addCommentary = FALSE,
+                                                errorRatePath = NULL) {
   
   # first check if savePath is provided when saveResults=TRUE
   if(saveResults & is.null(savePath)){
@@ -248,6 +251,37 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
     select(-d1, -d0) %>%
     inner_join(priors, by = 'prior_id')
   
+  # 09/13/2022: read in error rates table if provided
+  # and join with exposures, thresholds and priors tables
+  # USE TYPE 1 ERROR ONLY FOR NOW
+  if(!is.null(errorRatePath)){
+    errorRates = readRDS(errorRatePath) %>%
+      ungroup() %>%
+      select(-neitherRate, -adjustedNeitherRate,-sampleSize, -negativeControl) %>%
+      filter(effect_size == 1) %>%
+      select(-effect_size)
+    
+    # errorRates = errorRates %>% 
+    #   inner_join(exposures, by='exposure_id') %>%
+    #   inner_join(thresholds, by = 'threshold_id') %>%
+    #   select(-d1, -d0) %>%
+    #   inner_join(priors, by = 'prior_id')
+    
+    errorRates = bind_rows(
+      errorRates %>% 
+        select(database_id:threshold_id, type1Error = errorRate) %>%
+        mutate(Type = 'Unadjusted'),
+      errorRates %>% 
+        select(database_id:threshold_id, type1Error = adjustedErrorRate) %>%
+        mutate(Type = 'Bias Adjusted')
+    ) %>%
+      group_by(exposure_id, threshold_id, prior_id, Type) %>%
+      summarize(avgType1Error = mean(type1Error, na.rm = TRUE)) %>%
+      ungroup()
+    
+  }
+  
+  
   
   # open up pdf file if saving plots
   if(saveResults){
@@ -280,17 +314,17 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
             legend.position = 'bottom')
     
     if(!is.null(usePalette)){
-      print(
-        pg + 
+      pg = pg + 
           scale_fill_manual(values = usePalette)
-      )
     }
+    
+    attr(pg, 'data') = tts
     
   }else if(plotType == 'timeBars'){
     # 08/05/2022: compromise --- if decision time > 12, substitute with 12 for now!!!
     tts_distribution = tts %>% 
       mutate(timeToSignal = if_else(timeToSignal==Inf, 12, timeToSignal)) %>%
-      group_by(exposure_name, effect_size, priorLabel, d1Label, Type) %>%
+      group_by(exposure_id, exposure_name, effect_size, priorLabel, d1Label, Type) %>%
       summarise(medianTime = median(timeToSignal),
                 lb = quantile(timeToSignal, 0.25),
                 ub = quantile(timeToSignal, 0.75)) %>%
@@ -314,19 +348,40 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
                                 levels = unique(thresholds$d1comment)))
     }
     
+    # 09/13/2022: add error rates info
+    if(!is.null(errorRatePath)){
+      #print(names(tts_distribution))
+      tts_distribution = tts_distribution %>% 
+        left_join(errorRates, by = c('exposure_id', 'Type', 'prior_id', 'threshold_id')) %>%
+        # mutate(shade = case_when(avgType1Error <= 0.1 ~ 0,
+        #                          avgType1Error <= 0.25 ~ 0.3,
+        #                          avgType1Error <= 0.35 ~ 0.7,
+        #                          TRUE ~ 0.95))
+        mutate(shade = 1-avgType1Error)
+      shadeRange = c(0.05, 0.55)
+      capt = 'Color shade by specificity'
+    }else{
+      tts_distribution$shade = 0
+      shadeRange = c(0.1, 1)
+      capt = ''
+    }
+    
     pg = ggplot(tts_distribution, 
                 aes(y=as.factor(effect_size), 
                     x=medianTime, 
-                    fill=Type)) +
+                    fill=Type,
+                    alpha = shade)) +
       geom_bar(stat='identity', position = 'dodge')+
       geom_errorbar(aes(xmax = ub, xmin = lb, color = Type),
                     position = position_dodge(width=1), 
                     width = 0.6, size = 0.8)+
       geom_hline(yintercept = c(1.5,2.5), color='gray40')+
       scale_x_continuous(breaks = seq(from=0, to=12, by=3)) +
+      scale_alpha_continuous(range = shadeRange, guide = 'none')+
       labs(y='Effect Size', 
            x=sprintf('Earliest time to reach %.0f%% sensitivity', sensitivity * 100),
-           fill = '', color = '') +
+           fill = '', color = '',
+           caption = capt) +
       facet_grid(d1Label~priorLabel,
                  labeller = label_wrap_gen(width=15)) +
       theme_bw(base_size = 14)+
@@ -338,12 +393,14 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
       scale_color_manual(values = c('gray20','gray20'), guide='none')
     
     if(!is.null(usePalette)){
-      print(
-        pg + 
+      
+      pg = pg + 
           scale_fill_manual(values = usePalette,
                             breaks = c('Unadjusted', 'Bias adjusted'))
-      )
     }
+    
+    attr(pg, 'data') = tts_distribution
+    attr(pg, 'errorRates') = errorRates
     
   }else{
     # bar plot for rate of finite earliest times
@@ -397,20 +454,26 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
             #panel.border = element_blank(),
             legend.position = 'bottom')
     if(!is.null(usePalette)){
-      print(
+      pg = 
         pg + 
           scale_fill_manual(values = usePalette,
                             breaks = c('Unadjusted', 'Bias adjusted'))
-      )
     }else{
-      print(pg) +
+      pg = pg +
         scale_fill_discrete(breaks = c('Unadjusted', 'Bias adjusted'))
     }
+    
+    attr(pg, 'data') = tts_counts
   }
   
-  if(saveResults){dev.off()}
+  if(saveResults){
+    print(pg)
+    dev.off()
+  }else{
+    print(pg)
+  }
   
-  #return(tts_counts)
+  return(pg)
 
 }
 
@@ -459,24 +522,29 @@ if(mt == 'SCCS'){
 
 ## (2) rate of finite times
 #tts_counts = 
-plotEarliestTimeToSignalOneExposure(database_id = db, 
-                         method = mt,
-                         exposure_id = eid,
-                         analysesToExclude = analysesExclude,
-                         plotType = 'finiteRates',
-                         resPath = resultspath,
-                         cachePath = cachepath,
-                         savePath = savepath,
-                         saveResults = FALSE,
-                         sensitivity = sensitivity_level,
-                         posControlOnly = TRUE,
-                         baseExposures = TRUE,
-                         d1ToExclude = NULL, #0.95
-                         pHeight = 5.5, pWidth = 8,
-                         usePalette = wes_palette("Darjeeling2")[c(2,4)],
-                         addCommentary = TRUE)
+# plotEarliestTimeToSignalOneExposure(database_id = db, 
+#                          method = mt,
+#                          exposure_id = eid,
+#                          analysesToExclude = analysesExclude,
+#                          plotType = 'finiteRates',
+#                          resPath = resultspath,
+#                          cachePath = cachepath,
+#                          savePath = savepath,
+#                          saveResults = FALSE,
+#                          sensitivity = sensitivity_level,
+#                          posControlOnly = TRUE,
+#                          baseExposures = TRUE,
+#                          d1ToExclude = NULL, #0.95
+#                          pHeight = 5.5, pWidth = 8,
+#                          usePalette = wes_palette("Darjeeling2")[c(2,4)],
+#                          addCommentary = TRUE)
 
 ## (3) median and IQR of time-to-signal
+
+errorPath = sprintf('~/Documents/Research/betterResults/summary-%s/ErrorRates-%s-%s.rds',
+                    dir_suffix, db, mt)
+
+ttsPlot = 
 plotEarliestTimeToSignalOneExposure(database_id = db, 
                                     method = mt,
                                     exposure_id = eid,
@@ -492,4 +560,5 @@ plotEarliestTimeToSignalOneExposure(database_id = db,
                                     d1ToExclude = NULL, #0.95
                                     pHeight = 5.5, pWidth = 8,
                                     usePalette = wes_palette("Darjeeling2")[c(2,4)],
-                                    addCommentary = TRUE)
+                                    addCommentary = TRUE,
+                                    errorRatePath = errorPath)
