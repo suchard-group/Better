@@ -169,3 +169,25 @@ for(method in c('SCCS','HistoricalComparator')){
 }
 
 
+#### Sept 2022, judge the decisions to get error rates ------
+## for later use
+
+dir_suffix = 'shrinkMu4' # use the latest normal-model meta analysis
+
+## directories
+savepath = sprintf('~/Documents/Research/betterResults/summary-%s', dir_suffix)
+resultspath = sprintf('~/Documents/Research/betterResults/betterResults-%s/',
+                      dir_suffix)
+
+database_id = 'CCAE'
+#me = 'HistoricalComparator'
+me = 'SCCS'
+
+fname = sprintf('AllDecisions-%s-%s.rds', database_id, me)
+decs = readRDS(file.path(savepath, fname))
+
+judged = judgeDecisions(decs, judgeStyle = 'H0neither')
+
+savename = sprintf('ErrorRates-%s-%s.rds', database_id, me)
+saveRDS(judged, file.path(savepath, savename))
+
