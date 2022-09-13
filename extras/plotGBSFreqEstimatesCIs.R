@@ -51,10 +51,12 @@ pullGBSfreqEstimates <- function(database_id,
 
 
 # 2. function to plot estimates and CIs ----
+# 09/12/2022 update: transform x-axis labels to rate ratio scale
 plotGBSfreqEstimatesCIs <- function(method,
                                     colors = NULL,
+                                    logScale = TRUE,
                                     showPlot = TRUE,
-                                    cachePath = './localCache', 
+                                    cachePath = './localCache',
                                     ...){
   
   estimates = pullGBSfreqEstimates(method = method,...) %>%
@@ -118,6 +120,21 @@ plotGBSfreqEstimatesCIs <- function(method,
   y_breaks = as.character(unique(dat$analysis_id))
   y_labels = unique(dat$analysis_text)
   
+  xmin = min(dat$estimate, dat$lb) %>% floor()
+  xmax = max(dat$estimate, dat$ub) %>% ceiling()
+  x_breaks = seq(from = xmin, to = xmax, by = 1)
+  if(logScale){
+    xtext = 'Log relative rate ratio (95% CI)'
+    x_labels = as.character(x_breaks)
+  }else{
+    # xmin = min(dat$estimate, dat$lb) %>% exp() %>% floor()
+    # xmax = max(dat$estimate, dat$ub) %>% exp() %>% ceiling()
+    xtext = 'Relative rate ratio (95% CI)'
+    x_labels = as.character(round(exp(x_breaks),1))
+  }
+  
+  
+  
   p = ggplot(dat, aes(x=estimate, 
                       y = as.factor(analysis_id),
                       color = adjust)) +
@@ -128,7 +145,8 @@ plotGBSfreqEstimatesCIs <- function(method,
                    position = position_dodge(width = 0.5)) +
     geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
     scale_y_discrete(breaks = y_breaks, labels = y_labels)+
-    labs(x='Log relative rate ratio (95% CI)',
+    scale_x_continuous(breaks = x_breaks, labels = x_labels) +
+    labs(x=xtext,
          y = '',
          color = '') +
     theme_bw() + 
@@ -153,14 +171,16 @@ plotGBSfreqEstimatesCIs <- function(method,
 resultspath = '~/Documents/Research/better_gbs/'
 #db = 'CCAE'
 db = 'MDCR'
-me = 'HistoricalComparator'
-eid = 211981
+#me = 'HistoricalComparator'
+me = 'SCCS'
+eid = 211983
 
 freqPlot = plotGBSfreqEstimatesCIs(database_id = db,
                         method = me,
                         exposure_id = eid,
                         analysis_ids = 1:12,
-                        colors = wes_palette("Darjeeling2")[2:3])
+                        colors = wes_palette("Darjeeling2")[2:3],
+                        logScale = FALSE)
 
 # not doing OptumEhr yet...----
 # haven't run calibration for it somehow

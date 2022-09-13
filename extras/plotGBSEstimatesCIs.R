@@ -129,6 +129,7 @@ plotEffectEstimates <- function(summ,
 
 # 2. function to compare adjusted and unadjusted results
 compareEffectEstimates <- function(colors = NULL,
+                                   logScale = TRUE,
                                    ...){
   adjusted = plotEffectEstimates(...,adjust = TRUE,  
                                  showPlot = FALSE)
@@ -146,6 +147,19 @@ compareEffectEstimates <- function(colors = NULL,
   y_breaks = as.character(unique(dat$analysis_id))
   y_labels = unique(dat$analysis_text)
   
+  xmin = min(dat$estimate, dat$lb) %>% floor()
+  xmax = max(dat$estimate, dat$ub) %>% ceiling()
+  x_breaks = seq(from = xmin, to = xmax, by = 1)
+  if(logScale){
+    xtext = 'Log relative rate ratio (95% CI)'
+    x_labels = as.character(x_breaks)
+  }else{
+    # xmin = min(dat$estimate, dat$lb) %>% exp() %>% floor()
+    # xmax = max(dat$estimate, dat$ub) %>% exp() %>% ceiling()
+    xtext = 'Relative rate ratio (95% CI)'
+    x_labels = as.character(round(exp(x_breaks),1))
+  }
+  
   p = ggplot(dat, aes(x=estimate, 
                       y = as.factor(analysis_id),
                       color = adjust)) +
@@ -156,7 +170,8 @@ compareEffectEstimates <- function(colors = NULL,
                    position = position_dodge(width = 0.5)) +
     geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
     scale_y_discrete(breaks = y_breaks, labels = y_labels)+
-    labs(x='Log relative rate ratio (95% CI)',
+    scale_x_continuous(breaks = x_breaks, labels = x_labels) +
+    labs(x=xtext,
          y = '',
          color = '') +
     theme_bw() + 
@@ -171,11 +186,22 @@ compareEffectEstimates <- function(colors = NULL,
 
 
 ## make comparison plots ----
+
+me = 'SCCS'
+aids = c(5,6,8,14)
+
+me = 'HistoricalComparator'
+aids = c(5:8)
+
+eid = 211983
+
+
 compareEffectEstimates(summ = summ, 
                        database_id = db, 
-                       method = 'HistoricalComparator', 
-                       exposure_id = 211981, 
-                       analysis_ids = 1:12, 
+                       method = me, 
+                       exposure_id = eid, 
+                       analysis_ids = aids, 
                        period_id = 12,
                        prior_id = 2,
-                       colors = wes_palette("Darjeeling2")[2:3])
+                       colors = wes_palette("Darjeeling2")[2:3],
+                       logScale = FALSE)
