@@ -291,6 +291,7 @@ pullGBSResultsMeta <- function(database_id,
 ## Aug 2022: pull posterior samples for posterior distribution plot-----
 # a function to pull all posterior samples for
 # one (database, exposure, method, anlaysis, prior) combo for GBS
+## Sept 2022: save some relevant sample info in the returned result
 pullPostSamples <- function(database_id, 
                             method,
                             analysis_id,
@@ -352,6 +353,13 @@ pullPostSamples <- function(database_id,
                     database_id, method, exposure_id, analysis_id, prior_id)
     saveRDS(res, file.path(savePath, fname))
   }
+  
+  attr(res, 'info') = 
+    list(database_id = database_id, 
+         method = method,
+         exposure_id = exposure_id,
+         analysis_id = analysis_id,
+         prior_id = prior_id)
   
   return(res)
   
