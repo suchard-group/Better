@@ -35,12 +35,14 @@ adjustFlag = TRUE
 p1 = plotGBSPosteriors(allSamps,
                         adjust = adjustFlag,
                         valueRange = c(-4,4),
+                       textSize = 18,
                         showPlot = TRUE,
                         logScale = FALSE)
 ## 09/13/2022 update: overlay with prior dist.
 p1b = plotGBSPosteriors(allSamps,
                   adjust = adjustFlag,
                   valueRange = c(-4,4),
+                  textSize = 18,
                   showPlot = TRUE,
                   logScale = FALSE,
                   showPrior = TRUE)
@@ -50,6 +52,7 @@ p2 = plotPosteriorProbs(allSamps,
                    colors = wes_palette("Darjeeling2"),
                    #showPlot = FALSE,
                    xpaddings = c(0.5,1),
+                   textSize = 15,
                    legendPosition = c(0.8,0.5))
 
 

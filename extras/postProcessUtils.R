@@ -484,6 +484,7 @@ plotGBSPosteriors <- function(allSamps,
                               markMedian = TRUE,
                               showPlot = TRUE,
                               valueRange = c(-5,10),
+                              textSize = 14,
                               logScale = TRUE,
                               showPrior = FALSE,
                               cachePath = './localCache/'){
@@ -555,7 +556,7 @@ plotGBSPosteriors <- function(allSamps,
       labs(y = 'Analysis time (month)', 
            x = xname)+
       coord_flip() +
-      theme_bw() +
+      theme_bw(base_size = textSize) +
       theme(legend.position = 'none')
     
   }else{
@@ -569,7 +570,7 @@ plotGBSPosteriors <- function(allSamps,
       labs(y = 'Analysis time (month)', 
            x = 'Effect size (log relative rate ratio)')+
       coord_flip() +
-      theme_bw()
+      theme_bw(base_size = textSize)
   }
   
   if(showPlot){
@@ -587,6 +588,7 @@ plotPosteriorProbs <- function(allSamps,
                                colors = NULL,
                                showPlot = TRUE,
                                xpaddings = c(0,0),
+                               textSize = 14,
                                legendPosition = 'bottom'){
   
   if(adjust){
@@ -615,7 +617,7 @@ plotPosteriorProbs <- function(allSamps,
     labs(y = 'Posterior probability', 
          x = 'Analysis time (month)', 
          color = '')+
-    theme_bw()+
+    theme_bw(base_size = textSize)+
     theme(legend.position = legendPosition)
   
   if(!is.null(colors)){
