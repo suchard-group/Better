@@ -365,6 +365,7 @@ getRank <- function(v){
 
 ## 09/06/2022 updates:
 ## functions for pulling posterior samples for an outcome----
+## 09/13/2022: add relevant info to the pulled samples
 pullPostSamples <- function(database_id, 
                             method,
                             analysis_id,
@@ -456,6 +457,13 @@ pullPostSamples <- function(database_id,
     saveRDS(res, file.path(savePath, fname))
   }
   
+  attr(res, 'info') = 
+    list(database_id = database_id, 
+         method = method,
+         exposure_id = exposure_id,
+         analysis_id = analysis_id,
+         prior_id = prior_id)
+  
   return(res)
   
 }
@@ -469,16 +477,21 @@ pullPostSamples <- function(database_id,
 #                            savePath = saveSamplePath)
 
 # function to plot the posterior distribution by period_id----
+# 09/13/2022: try to overlay with prior densities.....
 plotGBSPosteriors <- function(allSamps, 
                               adjust = FALSE, 
                               fillColor = 'gray80',
                               markMedian = TRUE,
                               showPlot = TRUE,
                               valueRange = c(-5,10),
-                              logScale = TRUE){
+                              logScale = TRUE,
+                              showPrior = FALSE,
+                              cachePath = './localCache/'){
   # valueRange: the lower and upper limits of estimates (on log scale)
   # logScale: whether or not to keep the log scale on y-axis;
   #           if FALSE, then use original rate ratio scale on y-axis
+  # showPrior: whether or not to overlay prior densities on top of the ridge lines...
+  #           default FALSE
   
   if(adjust){
     methodText = 'adjusted'
@@ -498,7 +511,23 @@ plotGBSPosteriors <- function(allSamps,
   }
   
   
-  dat = allSamps %>% filter(method == methodText)
+  dat = allSamps %>% filter(method == methodText) %>% select(-method)
+  
+  # prior lines
+  if(showPrior){
+    priors = readRDS(file.path(cachePath, 'priorTable.rds'))
+    pr_id = attr(allSamps, 'info')$prior_id
+    priorSd = priors %>% filter(prior_id == pr_id) %>% select(Sd) %>% pull()
+    periods = unique(dat$period_id)
+    priorSamps = rnorm(50000, mean = 0, sd = priorSd)
+    priorDat = data.frame(posteriorSample = rep(priorSamps, length(periods)),
+                          period_id = rep(periods, each = 10000),
+                          showGroup = 'prior')
+    dat = bind_rows(dat %>% mutate(showGroup = 'posterior'),
+                    priorDat)
+  }else{
+    dat = dat %>% mutate(showGroup = 'posterior')
+  }
   
   if(markMedian){
     medians = dat %>% group_by(period_id) %>%
@@ -506,9 +535,12 @@ plotGBSPosteriors <- function(allSamps,
       ungroup() %>%
       mutate(period_id = as.factor(period_id))
     
-    p = ggplot(dat, 
-               aes(y=as.factor(period_id), x = posteriorSample)) +
-      geom_density_ridges(scale = 0.9, fill = fillColor) +
+    p = ggplot(dat) +
+      geom_density_ridges(scale = 0.9, 
+                          mapping = aes(y=as.factor(period_id), 
+                                        x = posteriorSample,
+                                        linetype = showGroup,
+                                        fill = showGroup)) +
       geom_vline(xintercept = 0, size = 0.8, color = 'gray60')+ 
       geom_point(data = medians, 
                  mapping = aes(y = period_id, x = med),
@@ -519,14 +551,17 @@ plotGBSPosteriors <- function(allSamps,
                          breaks = xbreaks,
                          labels = xlabels) +
       scale_y_discrete(expand = expansion(add = c(0.5, 1)))+
+      scale_fill_manual(values = c(fillColor, 'transparent'))+
       labs(y = 'Analysis time (month)', 
            x = xname)+
       coord_flip() +
-      theme_bw()
+      theme_bw() +
+      theme(legend.position = 'none')
     
   }else{
-    p = ggplot(dat %>% filter(method == 'unadjusted'), 
-               aes(y=as.factor(period_id), x = posteriorSample)) +
+    p = ggplot(dat, 
+               aes(y=as.factor(period_id), x = posteriorSample,
+                   group = showGroup)) +
       geom_density_ridges(scale = 0.9, fill = fillColor) +
       geom_vline(xintercept = 0, size = 0.8, color = 'gray60')+
       scale_x_continuous(limits = c(-5,10)) +
@@ -551,7 +586,8 @@ plotPosteriorProbs <- function(allSamps,
                                adjust = FALSE, 
                                colors = NULL,
                                showPlot = TRUE,
-                               xpaddings = c(0,0)){
+                               xpaddings = c(0,0),
+                               legendPosition = 'bottom'){
   
   if(adjust){
     methodText = 'adjusted'
@@ -580,7 +616,7 @@ plotPosteriorProbs <- function(allSamps,
          x = 'Analysis time (month)', 
          color = '')+
     theme_bw()+
-    theme(legend.position = 'bottom')
+    theme(legend.position = legendPosition)
   
   if(!is.null(colors)){
     p = p+scale_color_manual(values = colors)

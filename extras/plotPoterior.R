@@ -33,41 +33,61 @@ adjustFlag = TRUE
 
 # use the GBS plotting function for now
 p1 = plotGBSPosteriors(allSamps,
+                        adjust = adjustFlag,
+                        valueRange = c(-4,4),
+                        showPlot = TRUE,
+                        logScale = FALSE)
+## 09/13/2022 update: overlay with prior dist.
+p1b = plotGBSPosteriors(allSamps,
                   adjust = adjustFlag,
                   valueRange = c(-4,4),
-                  showPlot = FALSE,
-                  logScale = FALSE)
+                  showPlot = TRUE,
+                  logScale = FALSE,
+                  showPrior = TRUE)
 
 p2 = plotPosteriorProbs(allSamps,
                    adjust= adjustFlag,
                    colors = wes_palette("Darjeeling2"),
                    #showPlot = FALSE,
-                   xpaddings = c(0.5,1))
+                   xpaddings = c(0.5,1),
+                   legendPosition = c(0.8,0.5))
 
-## 09/07/2022
-# add KL divergence plot too (with annotations?)
-KLs = consecutiveKL(allSamps, adjust = TRUE, K = 3)
-KLs = rbind(KLs, 
-            data.frame(period = 1, KL = NA)) %>%
-  mutate(KL_label = as.character(round(KL, 3)))
 
-p3 = ggplot(KLs, aes(x = period, y = KL)) +
-  geom_line(size = 1, color = 'gray60') +
-  geom_label(aes(label = KL_label), size = 3) + 
-  scale_x_continuous(breaks = 
-                       seq(from = min(KLs$period), 
-                           to = max(KLs$period),
-                           by = 1),
-                     expand = expansion(add = c(0.6, 1))) +
-  scale_y_continuous(expand = expansion(add = c(0.15,0.15)))+
-  labs(x='', y = 'KL div.') +
-  theme_bw()
+ggarrange(p1 + rremove('xlab'),
+          p2,
+          nrow = 2,
+          heights = c(4,1.5))
 
-ggarrange(p1 + rremove('xlab'), 
-          p3,
-          p2, 
-          nrow = 3,
-          heights = c(3.5,1.5,2))
+ggarrange(p1b + rremove('xlab'),
+          p2,
+          nrow = 2,
+          heights = c(4,1.5))
+
+
+# ## 09/07/2022
+# # add KL divergence plot too (with annotations?)
+# KLs = consecutiveKL(allSamps, adjust = TRUE, K = 3)
+# KLs = rbind(KLs, 
+#             data.frame(period = 1, KL = NA)) %>%
+#   mutate(KL_label = as.character(round(KL, 3)))
+# 
+# p3 = ggplot(KLs, aes(x = period, y = KL)) +
+#   geom_line(size = 1, color = 'gray60') +
+#   geom_label(aes(label = KL_label), size = 3) + 
+#   scale_x_continuous(breaks = 
+#                        seq(from = min(KLs$period), 
+#                            to = max(KLs$period),
+#                            by = 1),
+#                      expand = expansion(add = c(0.6, 1))) +
+#   scale_y_continuous(expand = expansion(add = c(0.15,0.15)))+
+#   labs(x='', y = 'KL div.') +
+#   theme_bw()
+# 
+# ggarrange(p1 + rremove('xlab'), 
+#           p3,
+#           p2, 
+#           nrow = 3,
+#           heights = c(3.5,1.5,2))
 
 
 
