@@ -5,6 +5,7 @@ library(tidyverse)
 library(foreach)
 library(doParallel)
 #registerDoParallel(cores = 4)
+library(ggridges)
 
 #####
 ## function to put together all summaries for each (or a set of) exposure
@@ -22,6 +23,11 @@ pullResults <- function(database_id,
   
   # get IPC table
   IPCtable = readRDS(file.path(IPCpath, 'allIPCs.rds'))
+  
+  # create savePath if not exist
+  if(!dir.exists(savePath)){
+    dir.create(savePath)
+  }
   
   res = 
     foreach(expo = exposure_id, .combine = 'bind_rows', 
@@ -140,6 +146,23 @@ getPeriodID <- function(fname){
   as.numeric(chunks[2])
 }
 
+#### examples tried ------------
+# ## try it
+# IPCs = readRDS('./localCache/allIPCs.rds')
+# resPath = '~/Documents/Research/betterResults/betterResults-CCAE/' # -MDCD
+# comb_res = pullResultsOneExpo(database_id = 'CCAE', # 'IBM_MDCD'
+#                               method = 'SCCS',
+#                               exposure_id = 211981,
+#                               resultsPath = resPath,
+#                               IPCtable = IPCs, verbose=TRUE)
+# 
+# all_expos = sort(unique(IPCs$EXPOSURE_ID))
+# big_comb_res = pullResults(database_id = 'CCAE', # 'IBM_MDCD'
+#                            method = 'SCCS',
+#                            exposure_id = all_expos,
+#                            resultsPath = resPath,
+#                            IPCpath = './localCache/')
+
 # 04/06/2022: GBS specific functions
 pullGBSResultsOneExpo <- function(database_id, 
                                   method, 
@@ -177,22 +200,243 @@ pullGBSResults <- function(database_id,
   df
 }
 
-#### examples tried ------------
+## Aug 2022: 
+## updated pull results functions for meta analysis of negative controls
+pullGBSResultsOneExpoMeta <- function(database_id, 
+                                  method, 
+                                  exposure_id, 
+                                  resultsPath){
+  
+  fnamePattern = sprintf(
+    'Summary_%s_%s_%s_period.*_analysis.*\\.rds',
+    database_id,
+    method,
+    exposure_id
+  )
+  
+  allFiles = list.files(path = resultsPath, 
+                              pattern = fnamePattern)
+  
+  if(length(allFiles) == 0) return()
+  
+  res = 
+    foreach(fname = allFiles, .combine = 'bind_rows',
+            .multicombine = TRUE) %dopar% {
+                readRDS(file.path(resultsPath, fname))
+            } %>% 
+    distinct() %>% 
+    mutate(database_id = database_id,
+           method = method,
+           exposure_id = exposure_id)
+  
+  res
+}
+
+pullGBSResultsMeta <- function(database_id, 
+                           methods, 
+                           exposure_ids, 
+                           resultsPath,
+                           savePath = NULL){
+  
+  # check if the AllSummary file is already there...
+  if(!is.null(savePath)){
+    if(!dir.exists(savePath)){
+      dir.create(savePath)
+    }
+    if(length(methods) > 1){
+      fname = sprintf('AllSummary-%s-%s.rds', 
+                      database_id,
+                      paste(exposure_ids, collapse = '+'))
+    }else{
+      fname = sprintf('AllSummary-%s-%s-%s.rds', 
+                      database_id,
+                      methods,
+                      paste(exposure_ids, collapse = '+'))
+    }
+    
+    fpath = file.path(savePath, fname)
+    if(file.exists(fpath)){
+      cat(sprintf('Results summary for %s, method(s) %s, exposure(s) %s are already available! Pulling local summary file...\n',
+                   database_id,
+                   paste(methods, collapse = ' & '),
+                   paste(exposure_ids, collapse = ' & ')))
+      return(readRDS(fpath))
+    }
+  }
+  
+  # if not, then pull from the original results path
+  df = NULL
+  for(me in methods){
+    for(expo in exposure_ids){
+      df = rbind(df, 
+                 pullGBSResultsOneExpoMeta(database_id = database_id,
+                                           method = me,
+                                           exposure_id = expo,
+                                           resultsPath = resultsPath))
+    }
+  }
+  
+  if(!is.null(savePath)){
+    saveRDS(df, file.path(savePath, fname))
+    cat(sprintf('Results summary for %s, method %s, exposures %s are pulled and saved at %s\n',
+                database_id,
+                paste(methods, collapse = ' & '),
+                paste(exposure_ids, collapse = ' & '),
+                file.path(savePath, fname)))
+  }
+  
+  df
+}
+
+## Aug 2022: pull posterior samples for posterior distribution plot-----
+# a function to pull all posterior samples for
+# one (database, exposure, method, anlaysis, prior) combo for GBS
+## Sept 2022: save some relevant sample info in the returned result
+pullPostSamples <- function(database_id, 
+                            method,
+                            analysis_id,
+                            exposure_id,
+                            outcome_id = 343, # default to GBS id
+                            prior_id = 3, # default SD=4 prior
+                            resultsPath = '~/Documents/Research/betterGBSanalysesResults/GBSsamples/',
+                            savePath = NULL){
+  if(!dir.exists(savePath)){
+    dir.create(savePath)
+  }
+  
+  fnamePattern = sprintf(
+    '%s_%s_%s_period[1-9]*_analysis%s_samples.rds',
+    database_id,
+    method,
+    exposure_id,
+    analysis_id
+  )
+  
+  sample_files = list.files(path = resultsPath, 
+                            pattern = fnamePattern)
+  
+  if(length(sample_files) == 0){
+    cat(sprintf('No samples exist for %s, %s analysis %s, exposure %s. Skipped!\n',
+                database_id,
+                method, analysis_id,
+                exposure_id))
+    return(numeric())
+  }
+  
+  postSamps = NULL
+  adjustedPostSamps = NULL
+  period_ids = NULL
+  
+  for(f in sample_files){
+    samps = readRDS(file.path(resultsPath, f))[[prior_id]]
+    postSamps = c(postSamps, 
+                  samps$postSamps[as.character(outcome_id),] %>% as.vector())
+    adjustedPostSamps = c(adjustedPostSamps,
+                          samps$adjustedPostSamps[as.character(outcome_id),] %>% as.vector())
+    
+    period_ids = c(period_ids,
+                   unlist(str_split(f, 'period|_'))[5] %>% as.numeric())
+    
+    if(which(sample_files == f) == 1){
+      numsamps = ncol(samps$postSamps)
+    }
+  }
+  
+  # construct a longggg-format dataframe of posterior samples
+  res = data.frame(posteriorSample = c(postSamps, adjustedPostSamps),
+                   method = rep(c('unadjusted', 'adjusted'), each = length(postSamps)),
+                   period_id = rep(rep(period_ids, each = numsamps), 2)
+  )
+  
+  if(!is.null(savePath)){
+    fname = sprintf('AllSamples-%s-%s-%s-analysis%s-prior%s.rds',
+                    database_id, method, exposure_id, analysis_id, prior_id)
+    saveRDS(res, file.path(savePath, fname))
+  }
+  
+  attr(res, 'info') = 
+    list(database_id = database_id, 
+         method = method,
+         exposure_id = exposure_id,
+         analysis_id = analysis_id,
+         prior_id = prior_id)
+  
+  return(res)
+  
+}
+
 # ## try it
-# IPCs = readRDS('./localCache/allIPCs.rds')
-# resPath = '~/Documents/Research/betterResults/betterResults-CCAE/' # -MDCD
-# comb_res = pullResultsOneExpo(database_id = 'CCAE', # 'IBM_MDCD'
-#                               method = 'SCCS',
-#                               exposure_id = 211981,
-#                               resultsPath = resPath,
-#                               IPCtable = IPCs, verbose=TRUE)
-# 
-# all_expos = sort(unique(IPCs$EXPOSURE_ID))
-# big_comb_res = pullResults(database_id = 'CCAE', # 'IBM_MDCD'
-#                            method = 'SCCS',
-#                            exposure_id = all_expos,
-#                            resultsPath = resPath,
-#                            IPCpath = './localCache/')
+# saveSamplePath = '~/Documents/Research/betterGBSanalysesResults/SamplesDataFrame/'
+# allSamps = pullPostSamples(database_id = 'CCAE',
+#                            method = 'HistoricalComparator',
+#                            analysis_id = 2,
+#                            exposure_id = 211981,
+#                            savePath = saveSamplePath)
+
+# function to plot the posterior distribution by period_id
+plotGBSPosteriors <- function(allSamps, 
+                              adjust = FALSE, 
+                              fillColor = 'gray80',
+                              markMedian = TRUE){
+  
+  if(adjust){
+    methodText = 'adjusted'
+  }else{
+    methodText = 'unadjusted'
+  }
+  
+  dat = allSamps %>% filter(method == methodText)
+  
+  if(markMedian){
+    medians = dat %>% group_by(period_id) %>%
+      summarize(med = median(posteriorSample)) %>%
+      ungroup() %>%
+      mutate(period_id = as.factor(period_id))
+    
+    p = ggplot(dat, 
+               aes(y=as.factor(period_id), x = posteriorSample)) +
+      geom_density_ridges(scale = 0.9, fill = fillColor) +
+      geom_vline(xintercept = 0, size = 0.8, color = 'gray60')+ 
+      geom_point(data = medians, 
+                 mapping = aes(y = period_id, x = med),
+                 shape = 4, 
+                 size = 1.5,
+                 position = position_nudge(y = 0.3)) +
+      scale_x_continuous(limits = c(-5,10)) +
+      scale_y_discrete(expand = expansion(add = c(0.5, 1)))+
+      labs(y = 'Analysis time (month)', 
+           x = 'Effect size (log relative rate ratio)')+
+      coord_flip() +
+      theme_bw()
+    
+  }else{
+    p = ggplot(dat %>% filter(method == 'unadjusted'), 
+               aes(y=as.factor(period_id), x = posteriorSample)) +
+      geom_density_ridges(scale = 0.9, fill = fillColor) +
+      geom_vline(xintercept = 0, size = 0.8, color = 'gray60')+
+      scale_x_continuous(limits = c(-5,10)) +
+      scale_y_discrete(expand = expansion(add = c(0.5, 1)))+
+      labs(y = 'Analysis time (month)', 
+           x = 'Effect size (log relative rate ratio)')+
+      coord_flip() +
+      theme_bw()
+  }
+  
+  print(p)
+  
+}
+
+# ## try it
+# plotGBSPosteriors(allSamps)
+
+
+# another function to plot posterior median/mean and P(H1 true) over time
+# TBD...
+plotP1ByPeriod <- function(allSamps,
+                           fillColor = 'gray30'){
+  return()
+}
+
 
 
 #### Feb 17 updated faster functions to make decisions and judge them---------------

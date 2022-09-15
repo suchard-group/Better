@@ -172,6 +172,40 @@ getMultiLikelihoodProfiles <- function(connection,
 #                                  analysis_id = 1)
 # Sys.time() - t1
 
+# July 2022 update: post-process multiple likelihood profiles 
+# and make them into a list of dataframes (by outcome_ids)
+postProcessLPs <- function(LPs, 
+                           period_ids = NULL,
+                           analysis_ids = NULL,
+                           name_by_outcome = TRUE){
+  
+  names(LPs) = tolower(names(LPs))
+  if(!is.null(analysis_ids)){
+    LPs = LPs %>% filter(analysis_id %in% analysis_ids)
+  }
+  if(!is.null(period_ids)){
+    LPs = LPs %>% filter(period_id %in% period_ids)
+  }
+  
+  LPs = LPs %>% arrange(outcome_id)
+  LPs$index = c(1:nrow(LPs))
+  
+  LPlist = split(LPs, LPs$index)
+  for(i in 1:length(LPlist)){
+    points = str_split(LPlist[[i]]$point,';') %>% 
+      unlist() %>% as.numeric()
+    values = str_split(LPlist[[i]]$value,';') %>% 
+      unlist() %>% as.numeric()
+    LPlist[[i]] = data.frame(point = points, value = values)
+  }
+  
+  if(name_by_outcome){
+    names(LPlist) = as.character(LPs$outcome_id)
+  }
+  
+  LPlist
+}
+
 
 ## function to get a particular likelihood profile from the pulled raw datatable
 selectLikelihoodProfileEntry <- function(df,

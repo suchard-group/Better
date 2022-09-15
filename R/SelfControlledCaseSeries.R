@@ -521,6 +521,7 @@ createSccsAnalysesList <- function(startDate, endDate) {
   
   
   # Added later
+  # 09/2022 Fan: this is where the post-vaccination controls were set up
   controlIntervalSettings3 <- SelfControlledCaseSeries::createControlIntervalSettings(
     includeEraIds = c("exposureId", "exposureId2"),
     start = 1,
