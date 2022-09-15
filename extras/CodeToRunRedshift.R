@@ -53,8 +53,10 @@ outputFolder <- "E:/betterGBS_OptumDod2" # DONE # changed the save directory
 # tablePrefix <- "legend_monotherapy_ehr"
 # outputFolder <- "E:/betterGBS_OptumEhr2" # DONE
 
+## April 11: try to replicate some EUMAEUS results and see if fixed results are different...
 ## 2. IBM MDCD ------------------
-# cdmDatabaseSchema <- "cdm_truven_mdcd_v1714"
+# #cdmDatabaseSchema <- "cdm_truven_mdcd_v1476" # <- EUMAEUS data version
+# cdmDatabaseSchema <- "cdm_truven_mdcd_v1714" 
 # serverSuffix <- "truven_mdcd"
 # cohortDatabaseSchema <- "scratch_fbu2"
 # databaseId<- "MDCD"
@@ -62,6 +64,7 @@ outputFolder <- "E:/betterGBS_OptumDod2" # DONE # changed the save directory
 # databaseDescription <- "IBM MarketScan® Multi-State Medicaid Database (MDCD) adjudicated US health insurance claims for Medicaid enrollees from multiple states and includes hospital discharge diagnoses, outpatient diagnoses and procedures, and outpatient pharmacy claims as well as ethnicity and Medicare eligibility. Members maintain their same identifier even if they leave the system for a brief period however the dataset lacks lab data."
 # tablePrefix <- "legend_monotherapy_mdcd"
 # outputFolder <- "E:/betterGBS_mdcd2" # DONE
+# #outputFolder <- "E:/betterTest_mdcd" # DONE
 
 ## 3. IBM CCAE ------------
 # cdmDatabaseSchema <- "cdm_truven_ccae_v1709" #"cdm_idm_ccae_seta"
@@ -74,14 +77,14 @@ outputFolder <- "E:/betterGBS_OptumDod2" # DONE # changed the save directory
 # outputFolder <- "E:/betterGBS_ccae2" # DONE
 
 ## 4. IBM MDCR --------------
-cdmDatabaseSchema <- "cdm_truven_mdcr_v1838"
-serverSuffix <- "truven_mdcr"
-cohortDatabaseSchema <- "scratch_fbu2"
-databaseId<- "MDCR"
-databaseName <- "IBM Health MarketScan Medicare Supplemental and Coordination of Benefits Database"
-databaseDescription <- "IBM Health MarketScan® Medicare Supplemental and Coordination of Benefits Database (MDCR) represents health services of retirees in the United States with primary or Medicare supplemental coverage through privately insured fee-for-service, point-of-service, or capitated health plans. These data include adjudicated health insurance claims (e.g. inpatient, outpatient, and outpatient pharmacy). Additionally, it captures laboratory tests for a subset of the covered lives."
-tablePrefix <- "better_gbs_mdcr"
-outputFolder <- "E:/betterGBS_mdcr2" # DONE
+# cdmDatabaseSchema <- "cdm_truven_mdcr_v1838"
+# serverSuffix <- "truven_mdcr"
+# cohortDatabaseSchema <- "scratch_fbu2"
+# databaseId<- "MDCR"
+# databaseName <- "IBM Health MarketScan Medicare Supplemental and Coordination of Benefits Database"
+# databaseDescription <- "IBM Health MarketScan® Medicare Supplemental and Coordination of Benefits Database (MDCR) represents health services of retirees in the United States with primary or Medicare supplemental coverage through privately insured fee-for-service, point-of-service, or capitated health plans. These data include adjudicated health insurance claims (e.g. inpatient, outpatient, and outpatient pharmacy). Additionally, it captures laboratory tests for a subset of the covered lives."
+# tablePrefix <- "better_gbs_mdcr"
+# outputFolder <- "E:/betterGBS_mdcr2" # DONE
 
 ## fill out connection details ------------
 conn <- DatabaseConnector::createConnectionDetails(
@@ -97,6 +100,7 @@ conn <- DatabaseConnector::createConnectionDetails(
 #oracleTempSchema <- NULL
 cohortTable = 'cohort_fbu2'
 
+# Aug 2022: re-run to compute critical values for GBS
 
 execute(connectionDetails = conn,
         cdmDatabaseSchema = cdmDatabaseSchema,
@@ -109,16 +113,16 @@ execute(connectionDetails = conn,
         maxCores = maxCores,
         exposureIds = getExposuresOfInterest()$exposureId,
         verifyDependencies = FALSE,
-        createCohorts = TRUE,
-        createAllControls = TRUE,
+        createCohorts = FALSE,
+        createAllControls = FALSE,
         # synthesizePositiveControls = F,
         # runCohortMethod = F,
-        runSccs = TRUE,
+        runSccs = FALSE,
         # runCaseControl = F,
-        runHistoricalComparator = TRUE,
-        generateDiagnostics = TRUE,
+        runHistoricalComparator = FALSE,
+        generateDiagnostics = FALSE,
         computeCriticalValues = TRUE,
-        createDbCharacterization =  TRUE,
+        createDbCharacterization =  FALSE,
         exportResults = TRUE)
 
 
