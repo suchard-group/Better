@@ -14,6 +14,10 @@
 # 09/05/2022
 # try a different scale for plotting 
 
+# 09/14/2022
+# small demo: relax alpha = 0.271 (Type 1 of raw MaxSPRT in one case)
+# see what happens...
+
 
 # 1. plot Type 1 and 2 error rates by time ------
 
@@ -93,6 +97,8 @@ DatabaseConnector::disconnect(connection)
 
 
 # get Bayesian temporal results----
+
+
 # (a) the raw, unadjusted Bayesian method
 # 07/28/2022: restrict to MaxSPRT-estimable outcomes
 res_raw = plotTempDelta1ByPriors(database_id = db,
@@ -100,13 +106,13 @@ res_raw = plotTempDelta1ByPriors(database_id = db,
                                  analysis_id = aid,
                                  exposure_id = eid,
                                  prior_ids = c(1:3), # include all priors for easier query later
-                                 alpha = 0.05,
+                                 alpha = 0.271, #0.05
                                  summaryPath = summarypath,
                                  cachePath = cachepath,
                                  useAdjusted = FALSE,
                                  showPlots = TRUE,
                                  stratifyByEffectSize = TRUE,
-                                 calibrate = FALSE, 
+                                 calibrate = TRUE, #FALSE, 
                                  outcomesInEstimates = NULL)
                                    #resLst$estimates)
 
@@ -128,11 +134,11 @@ res_adj = plotTempDelta1ByPriors(database_id = db,
                                  prior_ids = c(1:3),
                                  summaryPath = summarypath,
                                  cachePath = cachepath,
-                                 alpha = 0.04, 
+                                 alpha = 0.271, #0.04, 
                                  useAdjusted = TRUE,
                                  showPlots = TRUE,
                                  stratifyByEffectSize = TRUE,
-                                 calibrate = FALSE, 
+                                 calibrate =  TRUE, #FALSE, 
                                  outcomesInEstimates = resLst$estimates)
 
 pid = 3 # use SD = 4 results for this Bayesian example
@@ -247,7 +253,11 @@ capt = '' # no caption for now...
 
 ## (1) type 1 error plots, with transformation to highlight near 0.05 regions---
 
-type1colors = wes_palette("GrandBudapest1")[c(1,2,4,3)]
+## 09/14/2022: try a version without empirical calibration error rates...
+Type1errors = Type1errors %>% filter(approach != "1b: MaxSPRT w/ calibration")
+type1colors = wes_palette("GrandBudapest1")[c(1,4,3)]
+
+#type1colors = wes_palette("GrandBudapest1")[c(1,2,4,3)]
 
 ybreaks = c(0,0.05, 0.1, 0.25, 0.5, 0.75,1.0)
 
@@ -278,6 +288,8 @@ print(p)
 
 ## (2) Type 2 error, with original scale so they don't look weird
 
+Type2errors = Type2errors %>% filter(stats != 'delta1')
+
 type2cols = c(wes_palette("Zissou1")[3:4],wes_palette("Royal1")[4])
 
 p = ggplot(Type2errors, 
@@ -301,3 +313,33 @@ p = ggplot(Type2errors,
 
 print(p)
 
+
+## (3) Plot power when calibrating toward a certain alpha level
+# the alpha level for raw MaxSPRT set at 0.271
+# focus on MaxSPRT (no calibrated) only
+powers = Type2errors %>% 
+  filter(approach != "1b: MaxSPRT w/ calibration") %>%
+  mutate(power = 1-y) %>%
+  mutate(approach = case_when(approach == '1a: MaxSPRT' ~ '1: MaxSPRT',
+                              approach == '2: Bayesian, unadjusted'~ '2: Bayesian w/o correction',
+                              approach == '3: Bayesian, bias adjusted' ~ '3: Bayesian correction')) %>%
+  mutate(trueRR = as.factor(effect_size))
+
+p = ggplot(powers, 
+           aes(x=period_id, y=power, 
+               color=trueRR, 
+               alpha = stage))+
+  geom_line(size = 1.5) +
+  geom_point(size=2)+
+  scale_y_continuous(limits = c(0,1))+
+  scale_x_continuous(breaks = period_breaks, labels = period_labels)+
+  labs(x='analysis time (months)', y='power', 
+       caption = capt, color='RR size')+
+  scale_color_manual(values = type2cols) +
+  scale_alpha_continuous(range = c(0.2, 1), guide = 'none')+
+  facet_grid(.~approach)+
+  theme_bw(base_size = 13)+
+  theme(legend.position = 'bottom') # change to bottom legend...
+
+print(p)
+  
