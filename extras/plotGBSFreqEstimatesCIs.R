@@ -173,7 +173,7 @@ resultspath = '~/Documents/Research/better_gbs/'
 db = 'MDCR'
 #me = 'HistoricalComparator'
 me = 'SCCS'
-eid = 211983
+eid = 211981
 
 freqPlot = plotGBSfreqEstimatesCIs(database_id = db,
                         method = me,
