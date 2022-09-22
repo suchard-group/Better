@@ -68,6 +68,11 @@ maxsprt_errors = resLst$errorRate %>%
   select(period_id, y = errorRate, effect_size, stats) %>%
   mutate(approach = '1: MaxSPRT')
 
+## 09/21/2022 get FDRs as well
+maxsprt_FDRs = resLst$FDRs %>%
+  select(period_id, y = errorRate, effect_size, stats) %>%
+  mutate(approach = '1: MaxSPRT')
+
 ## add bonferroni correction result (without MaxSPRT)
 bonferroni_errors = resLst$errorRate_bonferroni %>%
   select(period_id, y = errorRate, effect_size, stats) %>%
@@ -85,6 +90,11 @@ resLst_cali = frequentistDecisions(connection,
                                    #bonferroni_adjust_factor = 2,
                                    cachePath = cachepath)
 maxsprt_errors_cali = resLst_cali$errorRate %>%
+  select(period_id, y = errorRate, effect_size, stats) %>%
+  mutate(approach = '1: MaxSPRT w/ calibration')
+
+## 09/21/2022 get FDRs as well
+maxsprt_FDRs_cali = resLst_cali$FDRs %>%
   select(period_id, y = errorRate, effect_size, stats) %>%
   mutate(approach = '1: MaxSPRT w/ calibration')
 
@@ -106,13 +116,13 @@ res_raw = plotTempDelta1ByPriors(database_id = db,
                                  analysis_id = aid,
                                  exposure_id = eid,
                                  prior_ids = c(1:3), # include all priors for easier query later
-                                 alpha = 0.271, #0.05
+                                 alpha = 0.05,
                                  summaryPath = summarypath,
                                  cachePath = cachepath,
                                  useAdjusted = FALSE,
                                  showPlots = TRUE,
                                  stratifyByEffectSize = TRUE,
-                                 calibrate = TRUE, #FALSE, 
+                                 calibrate = FALSE, 
                                  outcomesInEstimates = NULL)
                                    #resLst$estimates)
 
@@ -134,11 +144,11 @@ res_adj = plotTempDelta1ByPriors(database_id = db,
                                  prior_ids = c(1:3),
                                  summaryPath = summarypath,
                                  cachePath = cachepath,
-                                 alpha = 0.271, #0.04, 
+                                 alpha = 0.04, 
                                  useAdjusted = TRUE,
                                  showPlots = TRUE,
                                  stratifyByEffectSize = TRUE,
-                                 calibrate =  TRUE, #FALSE, 
+                                 calibrate = FALSE, 
                                  outcomesInEstimates = resLst$estimates)
 
 pid = 3 # use SD = 4 results for this Bayesian example
@@ -225,10 +235,16 @@ print(p)
 ## add plots with Type 1 and Type 2 separate-----
 ## do it without Bonferroni yet...
 
+## 09/21/2022
+## plot FDRs as well...
+
+
 errors_combined = rbind(res_Bayes, 
                         res_Bayes_raw,
                         maxsprt_errors,
-                        maxsprt_errors_cali)
+                        maxsprt_errors_cali,
+                        maxsprt_FDRs,
+                        maxsprt_FDRs_cali)
 
 errors_combined$approach[errors_combined$approach == "1: MaxSPRT"] = "1a: MaxSPRT"
 errors_combined$approach[errors_combined$approach == "1: MaxSPRT w/ calibration" ] = 
@@ -242,7 +258,12 @@ errors_combined = errors_combined %>%
   mutate(stage = if_else(period_id <= earlySplit, alphaLevel, 1))
 
 Type1errors = errors_combined %>% filter(stats=='type 1')
-Type2errors = errors_combined %>% filter(stats!='type 1')
+Type2errors = errors_combined %>% 
+  filter(stringr::str_starts(stats, 'type 2'))
+
+# FDRs....
+FDRs = errors_combined %>% 
+  filter(stringr::str_starts(stats, 'FDR'))
 
 yinters = 0.05
 period_breaks = seq(from = min(errors_combined$period_id),
@@ -286,7 +307,7 @@ p = ggplot(Type1errors,
 print(p)
 
 
-## (2) Type 2 error, with original scale so they don't look weird
+## (2) Type 2 error, with original scale so they don't look weird----
 
 Type2errors = Type2errors %>% filter(stats != 'delta1')
 
@@ -314,7 +335,7 @@ p = ggplot(Type2errors,
 print(p)
 
 
-## (3) Plot power when calibrating toward a certain alpha level
+## (3) Plot power when calibrating toward a certain alpha level-----
 # the alpha level for raw MaxSPRT set at 0.271
 # focus on MaxSPRT (no calibrated) only
 powers = Type2errors %>% 
@@ -342,4 +363,63 @@ p = ggplot(powers,
   theme(legend.position = 'bottom') # change to bottom legend...
 
 print(p)
-  
+
+
+## (4) FDR plots, overall FDR first ------
+## similar in style to Type 1 error plot
+
+
+type1colors = wes_palette("GrandBudapest1")[c(1,2,4,3)]
+
+ybreaks = c(0,0.05, 0.1, 0.25, 0.5, 0.75,1.0)
+
+p = ggplot(FDRs %>% filter(stats == 'FDR (effect=1.0)'), 
+           aes(x=period_id, y=y, color=approach, alpha = stage))+
+  geom_line(size = 1.5) +
+  geom_point(size=2)+
+  geom_hline(yintercept = yinters, 
+             color = 'gray60', 
+             size = 1, linetype=2)+
+  scale_y_continuous(limits = c(0,1),
+                     breaks = ybreaks,
+                     trans = 'sqrt'
+  )+
+  scale_x_continuous(breaks = period_breaks, labels = period_labels)+
+  labs(x='analysis period (months)', y='error rates', 
+       caption = capt, color='False discovery rate:')+
+  scale_color_manual(values = type1colors) +
+  scale_alpha_continuous(range = c(0.2, 1), guide = 'none')+
+  guides(color=guide_legend(nrow=2,byrow=TRUE))+
+  #facet_grid(.~approach)+
+  theme_bw(base_size = 13)+
+  theme(legend.position = 'bottom')# change to bottom legend...
+
+
+print(p)
+
+
+## (4) FDR plots, FDR by effect sizes ------
+## similar in style to Type 2 error plots
+
+type2cols = c(wes_palette("Zissou1")[3:4],wes_palette("Royal1")[4])
+
+p = ggplot(FDRs %>% filter(stats != 'FDR (effect=1.0)'),
+           aes(x=period_id, y=y, color=stats, alpha = stage))+
+  geom_line(size = 1.5) +
+  geom_point(size=2)+
+  # geom_hline(yintercept = yinters, 
+  #            color = 'gray60', 
+  #            size = 1, linetype=2)+
+  scale_y_continuous(limits = c(0,1)#,
+                     #trans = 'sqrt'
+  )+
+  scale_x_continuous(breaks = period_breaks, labels = period_labels)+
+  labs(x='analysis period (months)', y='error rates', 
+       caption = capt, color='Error type')+
+  scale_color_manual(values = type2cols) +
+  scale_alpha_continuous(range = c(0.2, 1), guide = 'none')+
+  facet_grid(.~approach)+
+  theme_bw(base_size = 13)+
+  theme(legend.position = 'bottom') # change to bottom legend...
+
+print(p)
