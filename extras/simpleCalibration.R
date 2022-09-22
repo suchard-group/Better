@@ -185,6 +185,21 @@ calibrateByDelta1 <- function(database_id,
 # 07/28/2022: 
 # (1) handle potential NA entries for calibrated results
 # (2) restrict outcomes to those with available estimates up to an obs. period
+# 09/21/2022:
+# compute FDRs as well
+## added some helper funcs
+NAdivide <- function(a, b){
+  if(is.na(a) || is.na(b) || b==0){
+    NA
+  }else{
+    a/b
+  }
+}
+computeFDR <- function(counts){
+  res = NAdivide(counts[1], (counts[1] + counts[2:4]))
+  res = c(NAdivide(counts[1], sum(counts)),res)
+  res
+}
 tempCalibrateByDelta1 <- function(database_id,
                                   method,
                                   analysis_id,
@@ -197,6 +212,7 @@ tempCalibrateByDelta1 <- function(database_id,
                                   minOutcomes = 5,
                                   useAdjusted = FALSE,
                                   evalType2 = TRUE,
+                                  FDR = TRUE,
                                   stratifyByEffectSize = FALSE,
                                   outcomesInEstimates = NULL){
   # if summ is provided, directly query from given dataframe
@@ -302,13 +318,22 @@ tempCalibrateByDelta1 <- function(database_id,
       # evaluate the actual type1 error rate using calibrated threshold
       # type1 = mean(p1s > calibratedThres)
       # untype1 = mean(p1s > (1-alpha)) # an "uncalibrated" version
-      type1 = sum(p1s > calibratedThres)/negTotal
-      untype1 = sum(p1s > (1-alpha))/negTotal
+      
+      # 09/21/2022 update
+      ncRejects = sum(p1s > calibratedThres)
+      unncRejects = sum(p1s > (1-alpha))
+      
+      type1 = ncRejects/negTotal
+      untype1 = unncRejects/negTotal
+      
     }else{
       # if all P1s are NA
       calibratedThres = 1-alpha # don't do any calibration...
       type1 = NA
       untype1 = NA
+      
+      ncRejects = 0
+      unncRejects = 0
     }
     
     
@@ -324,6 +349,19 @@ tempCalibrateByDelta1 <- function(database_id,
         return(NA)
       }
       return(sum(P1s > threshold)/negTotal)
+    }
+    
+    ## 09/21/2022 update:
+    ## calculate FDRs as well
+    checkRejectCount <- function(P1s, threshold){
+      if(is.na(threshold)){
+        return(NA)
+      }
+      P1s = P1s[(P1s != -Inf) & !is.na(P1s)]
+      if(length(P1s) == 0){
+        return(NA)
+      }
+      return(sum(P1s > threshold))
     }
     
     if(evalType2){
@@ -348,11 +386,15 @@ tempCalibrateByDelta1 <- function(database_id,
             group_by(outcome_id, effect_size) %>%
             summarize(maxP1 = max(P1, na.rm = TRUE))
         }
+        ## 09/21/2022 update:
         type2s = p1s %>% ungroup() %>% 
           group_by(effect_size) %>%
           summarize(type2 = 1 - checkRejectRate(maxP1, calibratedThres),
-                    uncalibratedType2 = 1 - checkRejectRate(maxP1, (1-alpha))) %>%
-          ungroup()
+                    uncalibratedType2 = 1 - checkRejectRate(maxP1, (1-alpha)),
+                    rejectCounts = checkRejectCount(maxP1, calibratedThres),
+                    unrejectCounts = checkRejectCount(maxP1, 1-alpha)) %>%
+          ungroup() %>% 
+          arrange(effect_size)
       }else{
         if(useAdjusted){
           p1s = pc.dat.p %>% group_by(outcome_id) %>%
@@ -366,18 +408,47 @@ tempCalibrateByDelta1 <- function(database_id,
         type2 = 1 - checkRejectRate(p1s, calibratedThres)
         untype2 = 1 - checkRejectRate(p1s, (1-alpha))
         type2s = data.frame(type2 = type2,
-                            uncalibratedType2 = untype2)
+                            uncalibratedType2 = untype2,
+                            rejectCounts = checkRejectCount(p1s, calibratedThres),
+                            unrejectCounts = checkRejectCount(p1s, 1-alpha))
       }
       
     }else{
       type2s = data.frame(type2 = NA,
-                          uncalibratedType2 = NA)
+                          uncalibratedType2 = NA,
+                          rejectCounts = NA,
+                          unrejectCounts =NA)
+    }
+    
+    ## 09/21/2022
+    ## calculate FDRs
+    if(FDR){
+      if(stratifyByEffectSize){
+        allCounts = c(ncRejects, 
+                      type2s %>% arrange(effect_size) %>% select(rejectCounts) %>% pull())
+        FDRs = computeFDR(allCounts)
+        unCounts = c(unncRejects, 
+                     type2s %>% arrange(effect_size) %>% select(unrejectCounts) %>% pull())
+        unFDRs = computeFDR(unCounts)
+        FDR.dat = data.frame(FDR = FDRs[-1], 
+                             uncalibratedFDR = unFDRs[-1],
+                             overallFDR = FDRs[1],
+                             uncalibratedOverallFDR = unFDRs[1])
+      }else{
+        FDRs = NAdivide(ncRejects, ncRejects + rejectCounts)
+        unFDRs = NAdivide(unncRejects, unncRejects + unrejectCounts)
+        FDR.dat = data.frame(FDR = FDRs, uncalibratedFDR = unFDRs)
+      }
+      
+    }else{
+      FDR.dat = NULL
     }
     
     
     # no longer returning F1 scores....
     
     # return result as a one-row data frame to allow batch run...
+    # 09/21/2022: return FDRs w/ and w/o calibration
     res = data.frame(database_id = database_id, method = method, analysis_id = analysis_id,
                      exposure_id = exposure_id, prior_id = prior_id, 
                      calibratedDelta1 = calibratedThres, alpha = alpha,
@@ -385,7 +456,7 @@ tempCalibrateByDelta1 <- function(database_id,
                      uncalibratedType1 = untype1, 
                      adjusted = useAdjusted,
                      period_id = period)
-    res = cbind(res, type2s)
+    res = bind_cols(res, type2s, FDR.dat)
     return(res)
   }
   
@@ -1248,6 +1319,7 @@ plotTempDelta1 <- function(database_id,
 
 # 04/28/2022: compare prior choices -----
 # need to specify if want to calibrate
+# 09/21/2022: add FDR results as well
 plotTempDelta1ByPriors <- function(database_id,
                            method,
                            analysis_id,
@@ -1275,43 +1347,66 @@ plotTempDelta1ByPriors <- function(database_id,
     if(calibrate){
       if(stratifyByEffectSize){
         this.res = 
-          data.frame(period_id = rep(caliDelta$period_id, 3),
-                     prior_id = rep(caliDelta$prior_id, 3),
+          data.frame(period_id = rep(caliDelta$period_id, 4),
+                     prior_id = rep(caliDelta$prior_id, 4),
                    y = c(caliDelta$calibratedDelta1, 
                          caliDelta$type1,
-                         caliDelta$type2),
-                   effect_size = rep(caliDelta$effect_size, 3),
-                   stats = rep(c('delta1', 'type 1', 'type 2'), each = nrow(caliDelta))) %>%
+                         caliDelta$type2,
+                         caliDelta$FDR),
+                   effect_size = rep(caliDelta$effect_size, 4),
+                   stats = rep(c('delta1', 'type 1', 'type 2', 'FDR'), 
+                               each = nrow(caliDelta))) %>%
           distinct() %>%
-          mutate(stats = if_else(stats == 'type 2',
+          mutate(stats = if_else(stats %in% c('type 2', 'FDR'),
                                  sprintf('%s (effect=%.1f)',stats, effect_size),
                                  stats))
+        this.res = bind_rows(this.res,
+                             data.frame(period_id = caliDelta$period_id,
+                                        prior_id = caliDelta$prior_id,
+                                        y = caliDelta$overallFDR, 
+                                        effect_size = 1,
+                                        stats = 'FDR (effect=1.0)'))
       }else{
-        this.res = data.frame(period_id = rep(caliDelta$period_id, 3),
-                              prior_id = rep(caliDelta$prior_id, 3),
+        this.res = data.frame(period_id = rep(caliDelta$period_id, 4),
+                              prior_id = rep(caliDelta$prior_id, 4),
                               y = c(caliDelta$calibratedDelta1, 
                                     caliDelta$type1,
-                                    caliDelta$type2),
-                              stats = rep(c('delta1', 'type 1', 'type 2'), each = nrow(caliDelta)))
+                                    caliDelta$type2,
+                                    caliDelta$FDR),
+                              stats = rep(c('delta1', 'type 1', 'type 2', 'FDR'), 
+                                          each = nrow(caliDelta)))
       }
     }else{
       if(stratifyByEffectSize){
-        this.res = data.frame(period_id = rep(caliDelta$period_id, 2),
-                              prior_id = rep(caliDelta$prior_id, 2),
+        this.res = data.frame(period_id = rep(caliDelta$period_id, 3),
+                              prior_id = rep(caliDelta$prior_id, 3),
                               y = c(caliDelta$uncalibratedType1,
-                                    caliDelta$uncalibratedType2),
-                              effect_size = rep(caliDelta$effect_size, 2),
-                              stats = rep(c('type 1', 'type 2'), each = nrow(caliDelta))) %>%
+                                    caliDelta$uncalibratedType2,
+                                    caliDelta$uncalibratedFDR),
+                              effect_size = rep(caliDelta$effect_size, 3),
+                              stats = rep(c('type 1', 'type 2', 'FDR'), 
+                                          each = nrow(caliDelta))) %>%
           distinct() %>%
-          mutate(stats = if_else(stats == 'type 2',
+          mutate(stats = if_else(stats %in% c('type 2', 'FDR'),
                                  sprintf('%s (effect=%.1f)',stats, effect_size),
                                  stats))
+        
+        this.res = bind_rows(this.res,
+                             data.frame(period_id = caliDelta$period_id,
+                                        prior_id = caliDelta$prior_id,
+                                        y = caliDelta$uncalibratedOverallFDR, 
+                                        effect_size = 1,
+                                        stats = 'FDR (effect=1.0)'))
+        
+          
       }else{
-        this.res = data.frame(period_id = rep(caliDelta$period_id, 2),
-                              prior_id = rep(caliDelta$prior_id, 2),
+        this.res = data.frame(period_id = rep(caliDelta$period_id, 3),
+                              prior_id = rep(caliDelta$prior_id, 3),
                               y = c(caliDelta$uncalibratedType1,
-                                    caliDelta$uncalibratedType2),
-                              stats = rep(c('type 1', 'type 2'), each = nrow(caliDelta)))
+                                    caliDelta$uncalibratedType2,
+                                    caliDelta$uncalibratedFDR),
+                              stats = rep(c('type 1', 'type 2', 'FDR'), 
+                                          each = nrow(caliDelta)))
       }
     }
     
@@ -1383,7 +1478,9 @@ plotTempDelta1ByPriors <- function(database_id,
   allCols = c(othercols, type2cols)
 
   # the plot
-  p = ggplot(res, aes(x=period_id, y=y, color=stats))+
+  ## 09/21/2022: do not plot the FDR stats
+  p = ggplot(res %>% filter(stringr::str_starts(stats, 'FDR', negate = TRUE)), 
+             aes(x=period_id, y=y, color=stats))+
     geom_line(size = 1.5) +
     geom_point(size=2)+
     geom_hline(yintercept = yinters, 
