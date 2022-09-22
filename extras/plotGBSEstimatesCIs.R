@@ -195,6 +195,17 @@ aids = c(5:8)
 
 eid = 211983
 
+## 09/20/2022
+## plot effect estimates with GBS analyses re-run
+## `summ` pulled using code in `GBSpostprocessMeta.R`
+db = 'IBM_MDCR'
+me = 'SCCS'
+aids = c(5,6,8,14)
+eid = 211981
+# eid = 211983
+
+pr_id = 3 # sd = 4 prior
+
 
 compareEffectEstimates(summ = summ, 
                        database_id = db, 
@@ -202,6 +213,31 @@ compareEffectEstimates(summ = summ,
                        exposure_id = eid, 
                        analysis_ids = aids, 
                        period_id = 12,
-                       prior_id = 2,
+                       prior_id = pr_id,
                        colors = wes_palette("Darjeeling2")[2:3],
                        logScale = FALSE)
+
+## single-out results for analysis 5, "Unadjusted SCCS excluding pre-vaccination window"
+summ %>% filter(analysis_id == 5, period_id == 12, prior_id == pr_id) %>%
+  select(postMedian, CI95_lb, CI95_ub, exposure_id) %>% 
+  mutate(RRestimate = exp(postMedian),
+         lb = exp(CI95_lb),
+         ub = exp(CI95_ub)) %>%
+  select(exposure_id, RRestimate, lb, ub)
+
+## try SD = 1.5 conservative prior
+summ %>% filter(analysis_id == 5, period_id == 12, prior_id == 2) %>%
+  select(postMedian, CI95_lb, CI95_ub, exposure_id) %>% 
+  mutate(RRestimate = exp(postMedian),
+         lb = exp(CI95_lb),
+         ub = exp(CI95_ub)) %>%
+  select(exposure_id, RRestimate, lb, ub)
+
+## also try SD = 10 diffuse prior
+summ %>% filter(analysis_id == 5, period_id == 12, prior_id == 1) %>%
+  select(postMedian, CI95_lb, CI95_ub, exposure_id) %>% 
+  mutate(RRestimate = exp(postMedian),
+         lb = exp(CI95_lb),
+         ub = exp(CI95_ub)) %>%
+  select(exposure_id, RRestimate, lb, ub)
+
