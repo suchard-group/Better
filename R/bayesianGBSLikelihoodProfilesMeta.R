@@ -755,5 +755,23 @@ multiGBSAnalysesMeta <- function(connection,
 #                                 LPPath = '~/Documents/Research/better_gbs/',
 #                                 robustMetaAnalysis = FALSE)
 
+# 09/20/2022
+# try MDCR GBS analyses again, for exposures 211981 and 211983
+# IPCs = getIPCs(connection, 'eumaeus', 'localCache/')
+# multiRes = multiGBSAnalysesMeta(connection,
+#                                 'eumaeus',
+#                                 'IBM_MDCR',
+#                                 'SCCS',
+#                                 exposure_id = 211983,
+#                                 analysis_ids = c(1:12),
+#                                 period_ids = 1:12,
+#                                 IPCtable = IPCs,
+#                                 priors = list(Mean = c(0,0,0),
+#                                               Sd = c(10, 1.5, 4)),
+#                                 nullPriorSds = c(.5,.5),
+#                                 preLearnNull = TRUE,
+#                                 LPPath = '~/Documents/Research/better_gbs/',
+#                                 robustMetaAnalysis = FALSE)
+
 
 
