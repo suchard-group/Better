@@ -116,13 +116,13 @@ res_raw = plotTempDelta1ByPriors(database_id = db,
                                  analysis_id = aid,
                                  exposure_id = eid,
                                  prior_ids = c(1:3), # include all priors for easier query later
-                                 alpha = 0.05,
+                                 alpha = 0.25, #0.05,
                                  summaryPath = summarypath,
                                  cachePath = cachepath,
                                  useAdjusted = FALSE,
                                  showPlots = TRUE,
                                  stratifyByEffectSize = TRUE,
-                                 calibrate = FALSE, 
+                                 calibrate = TRUE, #FALSE, 
                                  outcomesInEstimates = NULL)
                                    #resLst$estimates)
 
@@ -144,11 +144,11 @@ res_adj = plotTempDelta1ByPriors(database_id = db,
                                  prior_ids = c(1:3),
                                  summaryPath = summarypath,
                                  cachePath = cachepath,
-                                 alpha = 0.04, 
+                                 alpha = 0.25, #0.04, 
                                  useAdjusted = TRUE,
                                  showPlots = TRUE,
                                  stratifyByEffectSize = TRUE,
-                                 calibrate = FALSE, 
+                                 calibrate = TRUE, #FALSE, 
                                  outcomesInEstimates = resLst$estimates)
 
 pid = 3 # use SD = 4 results for this Bayesian example
@@ -294,7 +294,7 @@ p = ggplot(Type1errors,
                      trans = 'sqrt'
   )+
   scale_x_continuous(breaks = period_breaks, labels = period_labels)+
-  labs(x='analysis period (months)', y='error rates', 
+  labs(x='analysis period (months)', y='Type 1 error rate', 
        caption = capt, color='Type 1 error of:')+
   scale_color_manual(values = type1colors) +
   scale_alpha_continuous(range = c(0.2, 1), guide = 'none')+
