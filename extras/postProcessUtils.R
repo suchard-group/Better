@@ -504,11 +504,11 @@ plotGBSPosteriors <- function(allSamps,
   if(logScale){
     xbreaks = seq(from = valueRange[1], to = valueRange[2], length.out = 5)
     xlabels = as.character(round(xbreaks, 1))
-    xname = 'Effect size (log relative rate ratio)'
+    xname = 'Effect size (log rate ratio)'
   }else{
     xbreaks = c(valueRange[1], 0, log(1.5), log(2), log(4), valueRange[2])
     xlabels = as.character(round(exp(xbreaks),1))
-    xname = 'Effect size (relative rate ratio)'
+    xname = 'Effect size (rate ratio)'
   }
   
   
