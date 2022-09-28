@@ -32,3 +32,18 @@ for(db in c('IBM_MDCD', 'IBM_MDCR', 'OptumDod', 'OptumEhr')){
                             resultsPath = resultspath,
                             savePath = summarypath)
 }
+
+## 09/20/2022:
+## try post processing the re-run GBS results on MDCR
+resultspath = './localCache/testResults/'
+summarypath = './localCache/GBSsummary/'
+
+db = 'IBM_MDCR'
+methods = 'SCCS'
+exposures = c(211981:211983)
+
+summ = pullGBSResultsMeta(database_id = db,
+                          methods = methods,
+                          exposure_ids = exposures,
+                          resultsPath = resultspath,
+                          savePath = summarypath)
