@@ -67,6 +67,7 @@ Sys.setenv(DATABASECONNECTOR_JAR_FOLDER='D:/Drivers')
 # #outputFolder <- "E:/betterTest_mdcd" # DONE
 
 ## 3. IBM CCAE ------------
+# 09/22/2022: re-run with 43-183 days post as control for CCAE too
 # cdmDatabaseSchema <- "cdm_truven_ccae_v1709" #"cdm_idm_ccae_seta"
 # serverSuffix <- "truven_ccae" # "ibm"
 # cohortDatabaseSchema <- "scratch_fbu2"
@@ -74,10 +75,11 @@ Sys.setenv(DATABASECONNECTOR_JAR_FOLDER='D:/Drivers')
 # databaseName <- "IBM Health MarketScan® Commercial Claims and Encounters"
 # databaseDescription <- "IBM MarketScan® Commercial Claims and Encounters (CCAE) adjudicated US health insurance claims for Medicaid enrollees from multiple states and includes hospital discharge diagnoses, outpatient diagnoses and procedures, and outpatient pharmacy claims as well as ethnicity and Medicare eligibility. Members maintain their same identifier even if they leave the system for a brief period however the dataset lacks lab data."
 # tablePrefix <- "legend_monotherapy_ccae"
-# outputFolder <- "E:/betterGBS_ccae2" # DONE
+# outputFolder <- "E:/betterGBS_ccae3" # DONE
 
 ## 4. IBM MDCR --------------
 # 09/14/2022: re-run to check on MDCR results (with 43-183 days post as control)
+# 09/23/2022: try GBS-Flu (43-84 days post as control)
 cdmDatabaseSchema <- "cdm_truven_mdcr_v1838"
 serverSuffix <- "truven_mdcr"
 cohortDatabaseSchema <- "scratch_fbu2"
@@ -85,7 +87,7 @@ databaseId<- "MDCR"
 databaseName <- "IBM Health MarketScan Medicare Supplemental and Coordination of Benefits Database"
 databaseDescription <- "IBM Health MarketScan® Medicare Supplemental and Coordination of Benefits Database (MDCR) represents health services of retirees in the United States with primary or Medicare supplemental coverage through privately insured fee-for-service, point-of-service, or capitated health plans. These data include adjudicated health insurance claims (e.g. inpatient, outpatient, and outpatient pharmacy). Additionally, it captures laboratory tests for a subset of the covered lives."
 tablePrefix <- "better_gbs_mdcr"
-outputFolder <- "E:/betterGBS_mdcr3" # DONE
+outputFolder <- "E:/betterGBS_mdcr4" # DONE
 
 ## fill out connection details ------------
 conn <- DatabaseConnector::createConnectionDetails(
