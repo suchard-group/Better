@@ -59,7 +59,7 @@ p2 = plotPosteriorProbs(allSamps,
 ggarrange(p1 + rremove('xlab'),
           p2,
           nrow = 2,
-          heights = c(4,1.5))
+          heights = c(4,2))
 
 ggarrange(p1b + rremove('xlab'),
           p2,
