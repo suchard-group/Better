@@ -17,6 +17,14 @@ db = 'IBM_MDCR'
 methods = c('SCCS', 'HistoricalComparator')
 exposures = c(211981:211983)
 
+## 10/05/2022: try with GBS-flu...
+resultspath = './localCache/testResults/'
+summary = './localCache/GBSsummary/'
+
+db = 'IBM_MDCR'
+methods = c('SCCS')
+exposures = c(21215)
+
 ## pull summary dataframe
 summ = pullGBSResultsMeta(database_id = db,
                           methods = methods,
@@ -190,10 +198,12 @@ compareEffectEstimates <- function(colors = NULL,
 me = 'SCCS'
 aids = c(5,6,8,14)
 
-me = 'HistoricalComparator'
-aids = c(5:8)
+
+# me = 'HistoricalComparator'
+# aids = c(5:8)
 
 eid = 211983
+#eid = 21215
 
 ## 09/20/2022
 ## plot effect estimates with GBS analyses re-run
@@ -204,6 +214,13 @@ aids = c(5,6,8,14)
 eid = 211981
 # eid = 211983
 
+## 10/05/2022
+# plot estimates for GBS-flu
+db = 'IBM_MDCR'
+me = 'SCCS'
+aids = c(5,6,8,14)
+eid = 21215
+
 pr_id = 3 # sd = 4 prior
 
 
@@ -212,7 +229,7 @@ compareEffectEstimates(summ = summ,
                        method = me, 
                        exposure_id = eid, 
                        analysis_ids = aids, 
-                       period_id = 12,
+                       period_id = max(summ$period_id),
                        prior_id = pr_id,
                        colors = wes_palette("Darjeeling2")[2:3],
                        logScale = FALSE)

@@ -186,7 +186,10 @@ calibrateGBS <- function(subset,
 CompNegControls = readRDS('./localCache/CompNegControls.rds')
 GBSresultsPath = '~/Documents/Research/better_gbs/'
 
-database = 'CCAE'
+## run for 43-84 days post vacc as control window
+GBSresultsPath = '~/Documents/Research/better_gbs_flu84/'
+
+database = 'MDCR'
 maxCores = 1
 
 calibratedGBS = calibrateGBSresults(connection, 

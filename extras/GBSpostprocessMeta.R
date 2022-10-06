@@ -35,12 +35,15 @@ for(db in c('IBM_MDCD', 'IBM_MDCR', 'OptumDod', 'OptumEhr')){
 
 ## 09/20/2022:
 ## try post processing the re-run GBS results on MDCR
+## 10/05/2022:
+## try with GBS-flu (but not fluzone, only any flu vacc)
 resultspath = './localCache/testResults/'
 summarypath = './localCache/GBSsummary/'
 
 db = 'IBM_MDCR'
 methods = 'SCCS'
-exposures = c(211981:211983)
+#exposures = c(211981:211983)
+exposures = c(21215)
 
 summ = pullGBSResultsMeta(database_id = db,
                           methods = methods,

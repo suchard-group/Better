@@ -773,5 +773,24 @@ multiGBSAnalysesMeta <- function(connection,
 #                                 LPPath = '~/Documents/Research/better_gbs/',
 #                                 robustMetaAnalysis = FALSE)
 
+# 10/05/2022
+# try MDCR GBS with flu vaccines
+# not even LPs available for 21214, fluzone!
+# try 21215, all flu vaccines
+# IPCs = getIPCs(connection, 'eumaeus', 'localCache/')
+# multiRes = multiGBSAnalysesMeta(connection,
+#                                 'eumaeus',
+#                                 'IBM_MDCR',
+#                                 'SCCS',
+#                                 exposure_id = 21215,
+#                                 analysis_ids = c(1:12),
+#                                 period_ids = 1:12,
+#                                 IPCtable = IPCs,
+#                                 priors = list(Mean = c(0,0,0),
+#                                               Sd = c(10, 1.5, 4)),
+#                                 nullPriorSds = c(.5,.5),
+#                                 preLearnNull = TRUE,
+#                                 LPPath = '~/Documents/Research/better_gbs_flu84/',
+#                                 robustMetaAnalysis = FALSE)
 
 
