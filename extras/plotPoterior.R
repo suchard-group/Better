@@ -51,15 +51,23 @@ p2 = plotPosteriorProbs(allSamps,
                    adjust= adjustFlag,
                    colors = wes_palette("Darjeeling2"),
                    #showPlot = FALSE,
-                   xpaddings = c(0.5,1),
+                   xpaddings = c(0.7,1),
                    textSize = 15,
                    legendPosition = c(0.8,0.5))
+
+## 10/6/2022: add hline at 0.95 threshold
+p2 = p2 + 
+  geom_hline(yintercept = 0.95, 
+             color = wes_palette("Royal1")[2], 
+             linetype = 2, 
+             size = 1)
 
 
 ggarrange(p1 + rremove('xlab'),
           p2,
           nrow = 2,
-          heights = c(4,2))
+          heights = c(4,2),
+          align = 'h')
 
 ggarrange(p1b + rremove('xlab'),
           p2,

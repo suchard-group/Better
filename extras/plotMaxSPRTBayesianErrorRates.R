@@ -116,13 +116,13 @@ res_raw = plotTempDelta1ByPriors(database_id = db,
                                  analysis_id = aid,
                                  exposure_id = eid,
                                  prior_ids = c(1:3), # include all priors for easier query later
-                                 alpha = 0.25, #0.05,
+                                 alpha =0.05, #0.25, #
                                  summaryPath = summarypath,
                                  cachePath = cachepath,
                                  useAdjusted = FALSE,
                                  showPlots = TRUE,
                                  stratifyByEffectSize = TRUE,
-                                 calibrate = TRUE, #FALSE, 
+                                 calibrate = FALSE, #TRUE, #
                                  outcomesInEstimates = NULL)
                                    #resLst$estimates)
 
@@ -133,7 +133,8 @@ pid = 3 # use SD = 4 result
 res_Bayes_raw = res_raw %>% 
   filter(prior_id == pid) %>% 
   select(period_id, y, effect_size, stats) %>%
-  mutate(approach = '2: Bayesian, unadjusted')
+  #mutate(approach = '2: Bayesian, unadjusted')
+  mutate(approach = '2: Bayesian w/o correction')
 
 
 # (b) bias adjusted Bayesian method
@@ -144,11 +145,11 @@ res_adj = plotTempDelta1ByPriors(database_id = db,
                                  prior_ids = c(1:3),
                                  summaryPath = summarypath,
                                  cachePath = cachepath,
-                                 alpha = 0.25, #0.04, 
+                                 alpha = 0.04, #0.25
                                  useAdjusted = TRUE,
                                  showPlots = TRUE,
                                  stratifyByEffectSize = TRUE,
-                                 calibrate = TRUE, #FALSE, 
+                                 calibrate = FALSE,  #TRUE, #
                                  outcomesInEstimates = resLst$estimates)
 
 pid = 3 # use SD = 4 results for this Bayesian example
@@ -157,7 +158,8 @@ pid = 3 # use SD = 4 results for this Bayesian example
 res_Bayes = res_adj %>% 
   filter(prior_id == pid) %>% 
   select(period_id, y, effect_size, stats) %>%
-  mutate(approach = '3: Bayesian, bias adjusted')
+  #mutate(approach = '3: Bayesian, bias adjusted')
+  mutate(approach = '3: Bayesian w/ correction')
 
 
 
@@ -252,7 +254,7 @@ errors_combined$approach[errors_combined$approach == "1: MaxSPRT w/ calibration"
 
 ## split up periods into early and late
 earlySplit = 4
-alphaLevel = 0.3
+alphaLevel = 0.2
 
 errors_combined = errors_combined %>%
   mutate(stage = if_else(period_id <= earlySplit, alphaLevel, 1))
