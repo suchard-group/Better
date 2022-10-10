@@ -211,8 +211,8 @@ eid = 211983
 db = 'IBM_MDCR'
 me = 'SCCS'
 aids = c(5,6,8,14)
-eid = 211981
-# eid = 211983
+#eid = 211981
+eid = 211983
 
 ## 10/05/2022
 # plot estimates for GBS-flu
