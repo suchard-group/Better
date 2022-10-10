@@ -796,20 +796,20 @@ multiGBSAnalysesMeta <- function(connection,
 # 10/10/2022
 # try CCAE GBS with flu vaccines
 # try 21215, all flu vaccines
-IPCs = getIPCs(connection, 'eumaeus', 'localCache/')
-multiRes = multiGBSAnalysesMeta(connection,
-                                'eumaeus',
-                                'CCAE',
-                                'SCCS',
-                                exposure_id = 21215,
-                                analysis_ids = c(1:12),
-                                period_ids = 1:12,
-                                IPCtable = IPCs,
-                                priors = list(Mean = c(0,0,0),
-                                              Sd = c(10, 1.5, 4)),
-                                nullPriorSds = c(.5,.5),
-                                preLearnNull = TRUE,
-                                LPPath = '~/Documents/Research/better_gbs/',
-                                robustMetaAnalysis = FALSE)
+# IPCs = getIPCs(connection, 'eumaeus', 'localCache/')
+# multiRes = multiGBSAnalysesMeta(connection,
+#                                 'eumaeus',
+#                                 'CCAE',
+#                                 'SCCS',
+#                                 exposure_id = 21215,
+#                                 analysis_ids = c(1:12),
+#                                 period_ids = 1:12,
+#                                 IPCtable = IPCs,
+#                                 priors = list(Mean = c(0,0,0),
+#                                               Sd = c(10, 1.5, 4)),
+#                                 nullPriorSds = c(.5,.5),
+#                                 preLearnNull = TRUE,
+#                                 LPPath = '~/Documents/Research/better_gbs/',
+#                                 robustMetaAnalysis = FALSE)
 
 
