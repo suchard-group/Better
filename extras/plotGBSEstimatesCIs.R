@@ -21,7 +21,8 @@ exposures = c(211981:211983)
 resultspath = './localCache/testResults/'
 summary = './localCache/GBSsummary/'
 
-db = 'IBM_MDCR'
+#db = 'IBM_MDCR'
+db = 'CCAE'
 methods = c('SCCS')
 exposures = c(21215)
 
@@ -216,12 +217,20 @@ eid = 211983
 
 ## 10/05/2022
 # plot estimates for GBS-flu
-db = 'IBM_MDCR'
+## 10/10/2022
+# GBS-flu on CCAE
+#db = 'IBM_MDCR'
+db = 'CCAE'
 me = 'SCCS'
-aids = c(5,6,8,14)
+#aids = c(5,6,8,14)
+aids = c(1,2,4,5,6,8)
 eid = 21215
 
 pr_id = 3 # sd = 4 prior
+pr_id = 2 # sd = 1.5 prior
+pr_id = 1 # sd = 10 prior
+
+mperiod = max(summ$period_id)
 
 
 compareEffectEstimates(summ = summ, 
@@ -235,7 +244,7 @@ compareEffectEstimates(summ = summ,
                        logScale = FALSE)
 
 ## single-out results for analysis 5, "Unadjusted SCCS excluding pre-vaccination window"
-summ %>% filter(analysis_id == 5, period_id == 12, prior_id == pr_id) %>%
+summ %>% filter(analysis_id == 5, period_id == mperiod, prior_id == pr_id) %>%
   select(postMedian, CI95_lb, CI95_ub, exposure_id) %>% 
   mutate(RRestimate = exp(postMedian),
          lb = exp(CI95_lb),
@@ -243,7 +252,7 @@ summ %>% filter(analysis_id == 5, period_id == 12, prior_id == pr_id) %>%
   select(exposure_id, RRestimate, lb, ub)
 
 ## try SD = 1.5 conservative prior
-summ %>% filter(analysis_id == 5, period_id == 12, prior_id == 2) %>%
+summ %>% filter(analysis_id == 5, period_id == mperiod, prior_id == 2) %>%
   select(postMedian, CI95_lb, CI95_ub, exposure_id) %>% 
   mutate(RRestimate = exp(postMedian),
          lb = exp(CI95_lb),
@@ -251,7 +260,7 @@ summ %>% filter(analysis_id == 5, period_id == 12, prior_id == 2) %>%
   select(exposure_id, RRestimate, lb, ub)
 
 ## also try SD = 10 diffuse prior
-summ %>% filter(analysis_id == 5, period_id == 12, prior_id == 1) %>%
+summ %>% filter(analysis_id == 5, period_id == mperiod, prior_id == 1) %>%
   select(postMedian, CI95_lb, CI95_ub, exposure_id) %>% 
   mutate(RRestimate = exp(postMedian),
          lb = exp(CI95_lb),
