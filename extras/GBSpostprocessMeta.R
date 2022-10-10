@@ -37,10 +37,12 @@ for(db in c('IBM_MDCD', 'IBM_MDCR', 'OptumDod', 'OptumEhr')){
 ## try post processing the re-run GBS results on MDCR
 ## 10/05/2022:
 ## try with GBS-flu (but not fluzone, only any flu vacc)
+## 10/10/2022: GBS-flu on CCAE
 resultspath = './localCache/testResults/'
 summarypath = './localCache/GBSsummary/'
 
-db = 'IBM_MDCR'
+#db = 'IBM_MDCR'
+db = 'CCAE'
 methods = 'SCCS'
 #exposures = c(211981:211983)
 exposures = c(21215)
