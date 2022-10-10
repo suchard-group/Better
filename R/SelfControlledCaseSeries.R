@@ -403,7 +403,7 @@ createSccsAnalysesList <- function(startDate, endDate) {
     includeEraIds = c("exposureId", "exposureId2"),
     start = 43,
     startAnchor = "era start",
-    end = 71,
+    end = 84, #183, #71,
     endAnchor = "era start"
   )
   
@@ -526,7 +526,7 @@ createSccsAnalysesList <- function(startDate, endDate) {
     includeEraIds = c("exposureId", "exposureId2"),
     start = 1,
     startAnchor = "era start",
-    end = 999999,
+    end = 84, #183, #999999,
     endAnchor = "era start"
   )
   

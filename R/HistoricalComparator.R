@@ -39,6 +39,9 @@ runHistoricalComparator <- function(connectionDetails,
     outcomesOfInterest <- loadOutcomesOfInterest() %>%
       select(outcomeId) %>% pull()
     
+    # April 11: test-run on select negative control estimates
+    testOutcomes = c(74194, 73302, 197494, 138690, 377877)
+    
     allEstimates <- list()
     # baseExposureId <- baseExposureIds[1]
     for (baseExposureId in baseExposureIds) {
@@ -61,10 +64,10 @@ runHistoricalComparator <- function(connectionDetails,
                              cohortTable = cohortTable,
                              startDate = controls$historyStartDate[1],
                              endDate = controls$historyEndDate[1],
-                             # outcomeIds = c(controls$oldOutcomeId,outcomesOfInterest),
-                             # newOutcomeIds = c(controls$outcomeId,outcomesOfInterest),
-                             outcomeIds = c(outcomesOfInterest),
-                             newOutcomeIds = c(outcomesOfInterest),
+                             #outcomeIds = c(controls$oldOutcomeId,outcomesOfInterest),
+                             #newOutcomeIds = c(controls$outcomeId,outcomesOfInterest),
+                             outcomeIds = c(testOutcomes,outcomesOfInterest),
+                             newOutcomeIds = c(testOutcomes,outcomesOfInterest),
                              ratesFile = historicRatesFile)
       }
       
@@ -85,8 +88,8 @@ runHistoricalComparator <- function(connectionDetails,
                                                               endDate = timePeriods$endDate[i],
                                                               exposureId = exposureId,
                                                               #outcomeIds = c(controls$oldOutcomeId,outcomesOfInterest),
-                                                              outcomeIds = c(outcomesOfInterest),
-                                                              useOutcomes = c(outcomesOfInterest),
+                                                              outcomeIds = c(testOutcomes, outcomesOfInterest),
+                                                              useOutcomes = c(testOutcomes, outcomesOfInterest),
                                                               ratesFile = historicRatesFile)
             periodEstimates[[length(periodEstimates) + 1]] <- estimates
           }

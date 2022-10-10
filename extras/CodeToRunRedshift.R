@@ -34,14 +34,14 @@ maxCores <- 4
 Sys.setenv(DATABASECONNECTOR_JAR_FOLDER='D:/Drivers')
 
 ## 1a. Optum DoD------------
-cdmDatabaseSchema <- "cdm_optum_extended_dod_v1825"
-serverSuffix <-"optum_extended_dod"
-cohortDatabaseSchema <- "scratch_fbu2"
-databaseId <- "OptumDod"
-databaseName <- "Optum Clinformatics Extended Data Mart - Date of Death (DOD)"
-databaseDescription <- "Optum Clinformatics Extended DataMart is an adjudicated US administrative health claims database for members of private health insurance, who are fully insured in commercial plans or in administrative services only (ASOs), Legacy Medicare Choice Lives (prior to January 2006), and Medicare Advantage (Medicare Advantage Prescription Drug coverage starting January 2006).  The population is primarily representative of commercial claims patients (0-65 years old) with some Medicare (65+ years old) however ages are capped at 90 years.  It includes data captured from administrative claims processed from inpatient and outpatient medical services and prescriptions as dispensed, as well as results for outpatient lab tests processed by large national lab vendors who participate in data exchange with Optum.  This dataset also provides date of death (month and year only) for members with both medical and pharmacy coverage from the Social Security Death Master File (however after 2011 reporting frequency changed due to changes in reporting requirements) and location information for patients is at the US state level."
-tablePrefix <- "legend_monotherapy_OptumDoD"
-outputFolder <- "E:/betterGBS_OptumDod2" # DONE # changed the save directory
+# cdmDatabaseSchema <- "cdm_optum_extended_dod_v1825"
+# serverSuffix <-"optum_extended_dod"
+# cohortDatabaseSchema <- "scratch_fbu2"
+# databaseId <- "OptumDod"
+# databaseName <- "Optum Clinformatics Extended Data Mart - Date of Death (DOD)"
+# databaseDescription <- "Optum Clinformatics Extended DataMart is an adjudicated US administrative health claims database for members of private health insurance, who are fully insured in commercial plans or in administrative services only (ASOs), Legacy Medicare Choice Lives (prior to January 2006), and Medicare Advantage (Medicare Advantage Prescription Drug coverage starting January 2006).  The population is primarily representative of commercial claims patients (0-65 years old) with some Medicare (65+ years old) however ages are capped at 90 years.  It includes data captured from administrative claims processed from inpatient and outpatient medical services and prescriptions as dispensed, as well as results for outpatient lab tests processed by large national lab vendors who participate in data exchange with Optum.  This dataset also provides date of death (month and year only) for members with both medical and pharmacy coverage from the Social Security Death Master File (however after 2011 reporting frequency changed due to changes in reporting requirements) and location information for patients is at the US state level."
+# tablePrefix <- "legend_monotherapy_OptumDoD"
+# outputFolder <- "E:/betterGBS_OptumDod2" # DONE # changed the save directory
 
 ## 1b. Optum EHR ---------------
 # cdmDatabaseSchema <- "cdm_optum_ehr_v1821"
@@ -53,8 +53,10 @@ outputFolder <- "E:/betterGBS_OptumDod2" # DONE # changed the save directory
 # tablePrefix <- "legend_monotherapy_ehr"
 # outputFolder <- "E:/betterGBS_OptumEhr2" # DONE
 
+## April 11: try to replicate some EUMAEUS results and see if fixed results are different...
 ## 2. IBM MDCD ------------------
-# cdmDatabaseSchema <- "cdm_truven_mdcd_v1714"
+# #cdmDatabaseSchema <- "cdm_truven_mdcd_v1476" # <- EUMAEUS data version
+# cdmDatabaseSchema <- "cdm_truven_mdcd_v1714" 
 # serverSuffix <- "truven_mdcd"
 # cohortDatabaseSchema <- "scratch_fbu2"
 # databaseId<- "MDCD"
@@ -62,8 +64,10 @@ outputFolder <- "E:/betterGBS_OptumDod2" # DONE # changed the save directory
 # databaseDescription <- "IBM MarketScan® Multi-State Medicaid Database (MDCD) adjudicated US health insurance claims for Medicaid enrollees from multiple states and includes hospital discharge diagnoses, outpatient diagnoses and procedures, and outpatient pharmacy claims as well as ethnicity and Medicare eligibility. Members maintain their same identifier even if they leave the system for a brief period however the dataset lacks lab data."
 # tablePrefix <- "legend_monotherapy_mdcd"
 # outputFolder <- "E:/betterGBS_mdcd2" # DONE
+# #outputFolder <- "E:/betterTest_mdcd" # DONE
 
 ## 3. IBM CCAE ------------
+# 09/22/2022: re-run with 43-183 days post as control for CCAE too
 # cdmDatabaseSchema <- "cdm_truven_ccae_v1709" #"cdm_idm_ccae_seta"
 # serverSuffix <- "truven_ccae" # "ibm"
 # cohortDatabaseSchema <- "scratch_fbu2"
@@ -71,9 +75,11 @@ outputFolder <- "E:/betterGBS_OptumDod2" # DONE # changed the save directory
 # databaseName <- "IBM Health MarketScan® Commercial Claims and Encounters"
 # databaseDescription <- "IBM MarketScan® Commercial Claims and Encounters (CCAE) adjudicated US health insurance claims for Medicaid enrollees from multiple states and includes hospital discharge diagnoses, outpatient diagnoses and procedures, and outpatient pharmacy claims as well as ethnicity and Medicare eligibility. Members maintain their same identifier even if they leave the system for a brief period however the dataset lacks lab data."
 # tablePrefix <- "legend_monotherapy_ccae"
-# outputFolder <- "E:/betterGBS_ccae2" # DONE
+# outputFolder <- "E:/betterGBS_ccae3" # DONE
 
 ## 4. IBM MDCR --------------
+# 09/14/2022: re-run to check on MDCR results (with 43-183 days post as control)
+# 09/23/2022: try GBS-Flu (43-84 days post as control)
 cdmDatabaseSchema <- "cdm_truven_mdcr_v1838"
 serverSuffix <- "truven_mdcr"
 cohortDatabaseSchema <- "scratch_fbu2"
@@ -81,7 +87,7 @@ databaseId<- "MDCR"
 databaseName <- "IBM Health MarketScan Medicare Supplemental and Coordination of Benefits Database"
 databaseDescription <- "IBM Health MarketScan® Medicare Supplemental and Coordination of Benefits Database (MDCR) represents health services of retirees in the United States with primary or Medicare supplemental coverage through privately insured fee-for-service, point-of-service, or capitated health plans. These data include adjudicated health insurance claims (e.g. inpatient, outpatient, and outpatient pharmacy). Additionally, it captures laboratory tests for a subset of the covered lives."
 tablePrefix <- "better_gbs_mdcr"
-outputFolder <- "E:/betterGBS_mdcr2" # DONE
+outputFolder <- "E:/betterGBS_mdcr4" # DONE
 
 ## fill out connection details ------------
 conn <- DatabaseConnector::createConnectionDetails(
@@ -97,6 +103,7 @@ conn <- DatabaseConnector::createConnectionDetails(
 #oracleTempSchema <- NULL
 cohortTable = 'cohort_fbu2'
 
+# Aug 2022: re-run to compute critical values for GBS
 
 execute(connectionDetails = conn,
         cdmDatabaseSchema = cdmDatabaseSchema,
@@ -115,8 +122,8 @@ execute(connectionDetails = conn,
         # runCohortMethod = F,
         runSccs = TRUE,
         # runCaseControl = F,
-        runHistoricalComparator = TRUE,
-        generateDiagnostics = TRUE,
+        runHistoricalComparator =TRUE,
+        generateDiagnostics = FALSE,
         computeCriticalValues = TRUE,
         createDbCharacterization =  TRUE,
         exportResults = TRUE)
