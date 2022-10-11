@@ -169,16 +169,18 @@ plotGBSfreqEstimatesCIs <- function(method,
 # try it ----
 
 resultspath = '~/Documents/Research/better_gbs/'
-#db = 'CCAE'
-db = 'MDCR'
+db = 'CCAE'
+#db = 'MDCR'
 #me = 'HistoricalComparator'
 me = 'SCCS'
-eid = 211981
+#eid = 211981
+eid = 21215
+aids = c(1,2,4,5,6,8)
 
 freqPlot = plotGBSfreqEstimatesCIs(database_id = db,
                         method = me,
                         exposure_id = eid,
-                        analysis_ids = 1:12,
+                        analysis_ids = aids,
                         colors = wes_palette("Darjeeling2")[2:3],
                         logScale = FALSE)
 
