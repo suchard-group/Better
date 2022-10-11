@@ -88,7 +88,7 @@ computeEarliestTimeToSignal <- function(database_id,
     summarise(timeToSignal = periodToSensitivity(timeToDecision, 
                                                  decision, 
                                                  sens = sensitivity)) %>%
-    mutate(Type = 'Uncalibrated')
+    mutate(Type = 'Unadjusted')
   
   adjusted = res %>% 
     group_by(database_id, method, analysis_id, 
@@ -97,7 +97,7 @@ computeEarliestTimeToSignal <- function(database_id,
     summarise(timeToSignal = periodToSensitivity(adjustedTimeToDecision, 
                                                  adjustedDecision, 
                                                  sens = sensitivity)) %>%
-    mutate(Type = 'Calibrated')
+    mutate(Type = 'Bias adjusted')
   
   # combine and return/save if necessary
   res = bind_rows(unadjusted, adjusted)
@@ -235,6 +235,88 @@ plotEarliestTimeToSignal <- function(database_id,
       }
       
     }
+  }else if(plotType == 'timeBars'){
+    # 08/05/2022: compromise --- if decision time > 12, substitute with 12 for now!!!
+    tts_distribution = tts %>% 
+      mutate(timeToSignal = if_else(timeToSignal==Inf, 12, timeToSignal)) %>%
+      group_by(exposure_name, effect_size, priorLabel, d1Label, Type) %>%
+      summarise(medianTime = median(timeToSignal),
+                lb = quantile(timeToSignal, 0.25),
+                ub = quantile(timeToSignal, 0.75)) %>%
+      ungroup()
+    
+    tts_distribution$priorLabel = factor(tts_distribution$priorLabel, 
+                                         levels = priors$priorLabel)
+    
+    ## switch order of approach for better presentation
+    tts_distribution$Type = factor(tts_distribution$Type, 
+                                   levels = c('Bias adjusted','Unadjusted'))
+    
+    # if(addCommentary){
+    #   tts_distribution = tts_distribution %>% 
+    #     left_join(priors, by = 'priorLabel') %>%
+    #     select(-Sd, prior_id) %>%
+    #     mutate(priorLabel = factor(commentary, 
+    #                                levels = priors$commentary)) %>%
+    #     left_join(thresholds, by = 'd1Label') %>%
+    #     mutate(d1Label = factor(d1comment,
+    #                             levels = unique(thresholds$d1comment)))
+    # }
+    
+    # # 09/13/2022: add error rates info
+    # if(!is.null(errorRatePath)){
+    #   #print(names(tts_distribution))
+    #   tts_distribution = tts_distribution %>% 
+    #     left_join(errorRates, by = c('exposure_id', 'Type', 'prior_id', 'threshold_id')) %>%
+    #     # mutate(shade = case_when(avgType1Error <= 0.1 ~ 0,
+    #     #                          avgType1Error <= 0.25 ~ 0.3,
+    #     #                          avgType1Error <= 0.35 ~ 0.7,
+    #     #                          TRUE ~ 0.95))
+    #     mutate(shade = 1-avgType1Error)
+    #   shadeRange = c(0.05, 0.55)
+    #   capt = 'Color shade by specificity'
+    # }else{
+    #   tts_distribution$shade = 0
+    #   shadeRange = c(0.1, 1)
+    #   capt = ''
+    # }
+    
+    pg = ggplot(tts_distribution, 
+                aes(y=as.factor(effect_size), 
+                    x=medianTime, 
+                    fill=Type)) +
+      geom_bar(stat='identity', position = 'dodge')+
+      geom_errorbar(aes(xmax = ub, xmin = lb, color = Type),
+                    position = position_dodge(width=1), 
+                    width = 0.6, size = 0.8)+
+      geom_hline(yintercept = c(1.5,2.5), color='gray40')+
+      scale_x_continuous(breaks = seq(from=6, to=12, by=6)) +
+      #scale_alpha_continuous(range = shadeRange, guide = 'none')+
+      labs(y='Effect Size', 
+           x=sprintf('Earliest time to reach %.0f%% sensitivity', sensitivity * 100),
+           fill = '', color = '') +
+      facet_nested(priorLabel + d1Label ~ exposure_name,
+                   labeller = label_wrap_gen(width=15),
+                   nest_line = element_line(linetype = 1))+
+      theme_bw(base_size = 14)+
+      theme(panel.grid.major.x = element_blank(),
+            axis.ticks.x = element_blank(),
+            strip.background = element_blank(),
+            #strip.text.y = element_text(angle = 0),
+            legend.position = 'bottom') +
+      scale_color_manual(values = c('gray20','gray20'), guide='none')
+    
+    if(!is.null(usePalette)){
+      
+      pg = pg + 
+        scale_fill_manual(values = usePalette,
+                          breaks = c('Unadjusted', 'Bias adjusted'))
+      
+      print(pg)
+    }
+    
+    #attr(pg, 'data') = tts_distribution
+    #attr(pg, 'errorRates') = errorRates
   }else{
     # bar plot for rate of finite earliest times
     tts_counts = tts %>% 
@@ -386,4 +468,26 @@ for(db in databases){
 #                                    saveResults = TRUE,
 #                                    sensitivity = 0.5,
 #                                    posControlOnly = TRUE)
+
+savepath = '~/Downloads/'
+
+sensitivity_level = 0.5
+
+db = 'CCAE'
+mt = 'SCCS'
+analysesToExclude = c(9:12, 15)
+
+plotEarliestTimeToSignal(database_id = db,
+                         method = mt, 
+                         analysesToExclude = analysesToExclude,
+                         plotType = 'timeBars',
+                         resPath = resultspath,
+                         cachePath = cachepath,
+                         savePath = savepath,
+                         saveResults = TRUE,
+                         sensitivity = sensitivity_level,
+                         posControlOnly = TRUE,
+                         baseExposures = TRUE,
+                         pHeight = 12, pWidth = 8,
+                         usePalette = wes_palette("Darjeeling2")[c(2,4)])
 
