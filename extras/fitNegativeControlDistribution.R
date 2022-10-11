@@ -11,6 +11,7 @@
 source('./extras/getLikelihoodProfile.R')
 
 # Feb 2022 update: make use of pre-pulled estimates if available 
+# 10/10/2022: add an option to return NC estimates only...
 fitNegativeControlDistribution <- function(connection,
                                            schema,
                                            database_id,
@@ -22,7 +23,8 @@ fitNegativeControlDistribution <- function(connection,
                                            outcomeToExclude=NULL,
                                            numsamps = 10000,
                                            thin = 10,
-                                           plot = FALSE){
+                                           plot = FALSE,
+                                           returnEstimatesOnly = FALSE){
   # outcomeToExclude: one or more (negative) outcomes to NOT include
   # numsamps: total num of posterior samples to acquire (default = 10)
   # thin: thinning iters (default = 10)
@@ -58,6 +60,11 @@ fitNegativeControlDistribution <- function(connection,
     estimates = savedEstimates %>%
       filter(ANALYSIS_ID == analysis_id, 
              PERIOD_ID == period_id)
+  }
+  
+  if(returnEstimatesOnly){
+    names(estimates) = tolower(names(estimates))
+    return(estimates)
   }
   
   
