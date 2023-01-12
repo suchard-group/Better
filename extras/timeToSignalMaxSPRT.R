@@ -4,6 +4,7 @@
 
 library(dplyr)
 library(wesanderson)
+library(ggplot2)
 
 # 1. function to make decisions and obtain earliest time to decision
 makeDecisionsFreq <- function(estimates, 
@@ -69,6 +70,7 @@ plotTimeToSignalMaxSPRTOneExposure <- function(localFile,
                                                analysis_labels = FALSE,
                                                maxTime = 12,
                                                cachePath = './localCache',
+                                               plotType = 'separate',
                                                ...){
   estimates = readRDS(localFile)
   decisions = makeDecisionsFreq(estimates, method = method, ...)
@@ -119,25 +121,62 @@ plotTimeToSignalMaxSPRTOneExposure <- function(localFile,
   
   
   # plotting
-  pg = ggplot(tts_long, 
-              aes(y=as.factor(effect_size), 
-                  x=time_to_sens, 
-                  fill=Type)) +
-    geom_bar(stat='identity', position = 'dodge')+
-    geom_hline(yintercept = c(1.5,2.5), color='gray40')+
-    scale_x_continuous(breaks = seq(from=0, to=12, by=3)) +
-    labs(y='Effect Size', 
-         x=sprintf('Time to %.0f%% sensitivity', sensitivity_level * 100),
-         fill = '') +
-    facet_grid(analysis_id~.,
-               labeller = labeller(analysis_id = analysis_labs)) +
-    theme_bw(base_size = 14)+
-    theme(panel.grid.major.x = element_blank(),
-          axis.ticks.x = element_blank(),
-          strip.background = element_blank(),
-          strip.text.y = element_text(angle = 0),
-          legend.position = 'bottom')+
-    guides(fill=guide_legend(nrow=2,byrow=TRUE))
+  if(plotType == 'separate'){
+    # time bars separate for each analysis id
+    pg = ggplot(tts_long, 
+                aes(y=as.factor(effect_size), 
+                    x=time_to_sens, 
+                    fill=Type)) +
+      geom_bar(stat='identity', position = 'dodge')+
+      geom_hline(yintercept = c(1.5,2.5), color='gray40')+
+      scale_x_continuous(breaks = seq(from=0, to=12, by=3)) +
+      labs(y='Effect Size', 
+           x=sprintf('Time to %.0f%% sensitivity', sensitivity_level * 100),
+           fill = '') +
+      facet_grid(analysis_id~.,
+                 labeller = labeller(analysis_id = analysis_labs)) +
+      theme_bw(base_size = 14)+
+      theme(panel.grid.major.x = element_blank(),
+            axis.ticks.x = element_blank(),
+            strip.background = element_blank(),
+            strip.text.y = element_text(angle = 0),
+            legend.position = 'bottom')+
+      guides(fill=guide_legend(nrow=2,byrow=TRUE))
+    
+  }else{
+    # time distributions over all analysis
+    tts_distribution = tts_long %>%
+      group_by(effect_size, Type) %>%
+      summarise(medianTime = median(time_to_sens),
+                lb = quantile(time_to_sens, 0.25),
+                ub = quantile(time_to_sens, 0.75)) %>%
+      ungroup()
+    
+    pg = ggplot(tts_distribution, 
+                aes(y=as.factor(effect_size), 
+                    x=medianTime, 
+                    fill=Type)) +
+      geom_bar(stat='identity', position = 'dodge')+
+      geom_errorbar(aes(xmax = ub, xmin = lb),
+                    color = 'black',
+                    position = position_dodge(width=1), 
+                    width = 0.6, size = 0.8)+
+      geom_hline(yintercept = c(1.5,2.5), color='gray40')+
+      scale_x_continuous(breaks = seq(from=0, to=12, by=3)) +
+      labs(y='Effect Size', 
+           x=sprintf('Time to %.0f%% sensitivity', sensitivity_level * 100),
+           fill = '') +
+      # facet_grid(analysis_id~.,
+      #            labeller = labeller(analysis_id = analysis_labs)) +
+      theme_bw(base_size = 14)+
+      theme(panel.grid.major.x = element_blank(),
+            axis.ticks.x = element_blank(),
+            # strip.background = element_blank(),
+            # strip.text.y = element_text(angle = 0),
+            legend.position = 'bottom')+
+      guides(fill=guide_legend(nrow=2,byrow=TRUE))
+    
+  }
   
   if(!is.null(colors)){
     pg = pg + 
@@ -161,13 +200,16 @@ plotTimeToSignalMaxSPRTOneExposure <- function(localFile,
 
 p1 = plotTimeToSignalMaxSPRTOneExposure(localFile = './localCache/EstimateswithImputedPcs_CCAE.rds',
                                         method = 'HistoricalComparator',
-                                        analysis_ids = 1:4,
-                                        sensitivity_level = 0.5,
-                                        colors = wes_palette("Darjeeling2")[c(2,4)])
-
-
-p1 = plotTimeToSignalMaxSPRTOneExposure(localFile = './localCache/EstimateswithImputedPcs_CCAE.rds',
-                                        method = 'HistoricalComparator',
-                                        analysis_ids = 1:4,
+                                        exposure_id = 211983,
+                                        analysis_ids = 1:8,
                                         sensitivity_level = 0.25,
-                                        colors = wes_palette("Darjeeling2")[c(2,4)])
+                                        colors = wes_palette("Darjeeling2")[c(2,4)],
+                                        #plotType = 'separate')
+                                        plotType = 'together')
+
+
+# p1 = plotTimeToSignalMaxSPRTOneExposure(localFile = './localCache/EstimateswithImputedPcs_CCAE.rds',
+#                                         method = 'HistoricalComparator',
+#                                         analysis_ids = 1:4,
+#                                         sensitivity_level = 0.25,
+#                                         colors = wes_palette("Darjeeling2")[c(2,4)])
