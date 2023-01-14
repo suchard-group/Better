@@ -71,6 +71,7 @@ plotTimeToSignalMaxSPRTOneExposure <- function(localFile,
                                                maxTime = 12,
                                                cachePath = './localCache',
                                                plotType = 'separate',
+                                               showPlot = TRUE,
                                                ...){
   estimates = readRDS(localFile)
   decisions = makeDecisionsFreq(estimates, method = method, ...)
@@ -186,9 +187,12 @@ plotTimeToSignalMaxSPRTOneExposure <- function(localFile,
                                      'calibrated MaxSPRT'))
   }
   
-  attr(pg, 'data') = tts_long
+  attr(pg, 'data') = tts_long %>% 
+    mutate(method = method)
   
-  print(pg)
+  if(showPlot){
+    print(pg)
+  }
   
   return(pg)
   
@@ -198,14 +202,14 @@ plotTimeToSignalMaxSPRTOneExposure <- function(localFile,
 
 ## plots----
 
-p1 = plotTimeToSignalMaxSPRTOneExposure(localFile = './localCache/EstimateswithImputedPcs_CCAE.rds',
-                                        method = 'HistoricalComparator',
-                                        exposure_id = 211983,
-                                        analysis_ids = 1:8,
-                                        sensitivity_level = 0.25,
-                                        colors = wes_palette("Darjeeling2")[c(2,4)],
-                                        #plotType = 'separate')
-                                        plotType = 'together')
+# p1 = plotTimeToSignalMaxSPRTOneExposure(localFile = './localCache/EstimateswithImputedPcs_CCAE.rds',
+#                                         method = 'HistoricalComparator',
+#                                         exposure_id = 211983,
+#                                         analysis_ids = 1:8,
+#                                         sensitivity_level = 0.25,
+#                                         colors = wes_palette("Darjeeling2")[c(2,4)],
+#                                         #plotType = 'separate')
+#                                         plotType = 'together')
 
 
 # p1 = plotTimeToSignalMaxSPRTOneExposure(localFile = './localCache/EstimateswithImputedPcs_CCAE.rds',
@@ -213,3 +217,77 @@ p1 = plotTimeToSignalMaxSPRTOneExposure(localFile = './localCache/EstimateswithI
 #                                         analysis_ids = 1:4,
 #                                         sensitivity_level = 0.25,
 #                                         colors = wes_palette("Darjeeling2")[c(2,4)])
+
+
+# 01/13/2023
+# 3. function to cross-ref with MaxSPRT error rates
+pullErrorRatesForTTS <- function(connection,
+                                 tts_plot,
+                                 database_id,
+                                 method,
+                                 exposure_id,
+                                 localEstimatesPath = NULL,
+                                 calibration = FALSE,
+                                 cachePath = './localCache/'){
+  
+  # tts dataframe
+  tts = attr(tts_plot, 'data') %>%
+    mutate(exposure_id = exposure_id, database_id = database_id)
+  
+  # get error rates dataframe
+  aids = unique(tts$analysis_id)
+  
+  if(!is.null(localEstimatesPath)){
+    localEstimates = readRDS(localEstimatesPath)
+  }else{
+    localEstimates = NULL
+  }
+  
+  end_type1s = 
+    foreach(aid = aids, .combine = rbind) %do% 
+    {
+      resLst = frequentistDecisions(connection,
+                                    'eumaeus',
+                                    database_id = database_id,
+                                    method = method,
+                                    exposure_id = exposure_id,
+                                    analysis_id = aid,
+                                    calibration = calibration,
+                                    estimates = localEstimates,
+                                    correct_shift = FALSE,
+                                    bonferroni_baseline = FALSE,
+                                    FDR = FALSE,
+                                    cachePath = cachePath)
+      resLst$errorRate %>%
+        filter(stats == 'type 1', period_id == max(period_id)) %>%
+        select(database_id:exposure_id, period_id, errorRate)
+    }
+  
+  # join two tables
+  tts_withError = tts %>% left_join(end_type1s) %>%
+    mutate(approach = if_else(calibration, 'calibrated MaxSPRT', 'MaxSPRT'))
+    
+  return(tts_withError)
+}
+
+# test it
+ConnectionDetails <- DatabaseConnector::createConnectionDetails(
+  dbms = "postgresql",
+  server = paste(keyring::key_get("eumaeusServer"),
+                 keyring::key_get("eumaeusDatabase"),
+                 sep = "/"),
+  user = keyring::key_get("eumaeusUser"),
+  password = keyring::key_get("eumaeusPassword"))
+
+# set up the DB connection
+connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
+
+tts_error = pullErrorRatesForTTS(connection,
+                                 p1,
+                                 database_id = 'CCAE',
+                                 method = 'HistoricalComparator',
+                                 exposure_id = 211983,
+                                 localEstimatesPath = './localCache/EstimateswithImputedPcs_CCAE.rds',
+                                 cachePath = './localCache/')
+
+DatabaseConnector::disconnect(connection)
