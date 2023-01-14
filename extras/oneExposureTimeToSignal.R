@@ -273,7 +273,7 @@ plotEarliestTimeToSignalOneExposure <- function(database_id,
         mutate(Type = 'Unadjusted'),
       errorRates %>% 
         select(database_id:threshold_id, type1Error = adjustedErrorRate) %>%
-        mutate(Type = 'Bias Adjusted')
+        mutate(Type = 'Bias adjusted')
     ) %>%
       group_by(exposure_id, threshold_id, prior_id, Type) %>%
       summarize(avgType1Error = mean(type1Error, na.rm = TRUE)) %>%
@@ -562,3 +562,5 @@ plotEarliestTimeToSignalOneExposure(database_id = db,
                                     usePalette = wes_palette("Darjeeling2")[c(2,4)],
                                     addCommentary = TRUE,
                                     errorRatePath = errorPath)
+
+bayes_tts = attr(ttsPlot, 'data')
