@@ -231,7 +231,9 @@ pullErrorRatesForTTS <- function(connection,
                                  cachePath = './localCache/'){
   
   # tts dataframe
+  calibrationFlag = ifelse(calibration, 'calibrated', 'uncalibrated')
   tts = attr(tts_plot, 'data') %>%
+    filter(Type == calibrationFlag) %>%
     mutate(exposure_id = exposure_id, database_id = database_id)
   
   # get error rates dataframe
