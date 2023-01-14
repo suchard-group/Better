@@ -73,20 +73,6 @@ frequentistDecisions <- function(connection,
                                  cachePath = './localCache/'){
   # pull estimates
   if(is.null(estimates)){
-    # sql <- "SELECT estimate.*
-    # FROM @schema.ESTIMATE estimate
-    # WHERE database_id = '@database_id'
-    #       AND method = '@method'
-    #       AND analysis_id = @analysis_id
-    #       AND exposure_id = @exposure_id"
-    # sql <- SqlRender::render(sql, 
-    #                          schema = schema,
-    #                          database_id = database_id,
-    #                          method = method,
-    #                          analysis_id = analysis_id,
-    #                          exposure_id = exposure_id)
-    # sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
-    # estimatesNC <- DatabaseConnector::querySql(connection, sql)
     
     sql <- "SELECT estimate.*
     FROM @schema.ESTIMATE_IMPUTED_PCS estimate
@@ -102,30 +88,35 @@ frequentistDecisions <- function(connection,
                              exposure_id = exposure_id)
     sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
     estimatesPC <- DatabaseConnector::querySql(connection, sql)
+    
+    names(estimatesPC) = tolower(names(estimatesPC))
+    estimatesPC = estimatesPC %>%
+      filter(!is.na(log_rr) & !is.na(se_log_rr) & !is.na(llr) & !is.na(critical_value)) %>%
+      select(database_id, method, analysis_id, 
+             exposure_id, outcome_id, period_id, 
+             p, one_sided_p, log_rr, se_log_rr, llr, critical_value,
+             calibrated_p, calibrated_one_sided_p, 
+             calibrated_log_rr, calibrated_se_log_rr,
+             calibrated_llr)
+    
+    estimates = estimatesPC
+  }else{
+    # use local data "estimates"
+    names(estimates) = SqlRender::camelCaseToSnakeCase(names(estimates))
+    
+    estimates = estimates %>% 
+      filter(database_id == !!database_id,
+             method == !!method,
+             analysis_id == !!analysis_id,
+             exposure_id == !!exposure_id) %>%
+      filter(!is.na(log_rr) & !is.na(se_log_rr) & !is.na(llr) & !is.na(critical_value)) %>%
+      select(database_id, method, analysis_id, 
+             exposure_id, outcome_id, period_id, 
+             p, one_sided_p, log_rr, se_log_rr, llr, critical_value,
+             calibrated_p, calibrated_one_sided_p, 
+             calibrated_log_rr, calibrated_se_log_rr,
+             calibrated_llr)
   }
-  
-  # names(estimatesNC) = tolower(names(estimatesNC))
-  # estimatesNC = estimatesNC %>%
-  #   filter(!is.na(log_rr) & !is.na(se_log_rr) & !is.na(llr) & !is.na(critical_value)) %>%
-  #   select(database_id, method, analysis_id, 
-  #          exposure_id, outcome_id, period_id, 
-  #          p, log_rr, se_log_rr, llr, critical_value,
-  #          calibrated_p, calibrated_log_rr, calibrated_se_log_rr,
-  #          calibrated_llr)
-  
-  names(estimatesPC) = tolower(names(estimatesPC))
-  estimatesPC = estimatesPC %>%
-    filter(!is.na(log_rr) & !is.na(se_log_rr) & !is.na(llr) & !is.na(critical_value)) %>%
-    select(database_id, method, analysis_id, 
-           exposure_id, outcome_id, period_id, 
-           p, one_sided_p, log_rr, se_log_rr, llr, critical_value,
-           calibrated_p, calibrated_one_sided_p, 
-           calibrated_log_rr, calibrated_se_log_rr,
-           calibrated_llr)
-  
-  ## combine NCs and PCs 
-  #estimates = rbind(estimatesNC, estimatesPC)
-  estimates = estimatesPC
   
   # get effect sizes
   IPCs = readRDS(file.path(cachePath, 'allIPCs.rds'))
@@ -146,7 +137,6 @@ frequentistDecisions <- function(connection,
   if(correct_shift){
     estimates = correctShift(estimates, log_CI = FALSE, cachePath = cachePath)$shifted
   }
-  
   
   # make decisions
   if(bonferroni_baseline){
