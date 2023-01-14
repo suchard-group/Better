@@ -109,7 +109,7 @@ bayes_tts_adjusted = foreach(aid = aids, .combine = rbind) %do% {
 
 # try an example plot
 ## ADJUSTED BAYES
-prior_SD = 4
+prior_SD = 10
 
 tts_long = rbind(
   maxSPRT_tts %>% 
