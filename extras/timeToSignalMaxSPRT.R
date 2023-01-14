@@ -265,29 +265,30 @@ pullErrorRatesForTTS <- function(connection,
   
   # join two tables
   tts_withError = tts %>% left_join(end_type1s) %>%
+    select(analysis_id:database_id, type1error = errorRate) %>%
     mutate(approach = if_else(calibration, 'calibrated MaxSPRT', 'MaxSPRT'))
     
   return(tts_withError)
 }
 
-# test it
-ConnectionDetails <- DatabaseConnector::createConnectionDetails(
-  dbms = "postgresql",
-  server = paste(keyring::key_get("eumaeusServer"),
-                 keyring::key_get("eumaeusDatabase"),
-                 sep = "/"),
-  user = keyring::key_get("eumaeusUser"),
-  password = keyring::key_get("eumaeusPassword"))
-
-# set up the DB connection
-connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
-
-tts_error = pullErrorRatesForTTS(connection,
-                                 p1,
-                                 database_id = 'CCAE',
-                                 method = 'HistoricalComparator',
-                                 exposure_id = 211983,
-                                 localEstimatesPath = './localCache/EstimateswithImputedPcs_CCAE.rds',
-                                 cachePath = './localCache/')
-
-DatabaseConnector::disconnect(connection)
+# # test it
+# ConnectionDetails <- DatabaseConnector::createConnectionDetails(
+#   dbms = "postgresql",
+#   server = paste(keyring::key_get("eumaeusServer"),
+#                  keyring::key_get("eumaeusDatabase"),
+#                  sep = "/"),
+#   user = keyring::key_get("eumaeusUser"),
+#   password = keyring::key_get("eumaeusPassword"))
+# 
+# # set up the DB connection
+# connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
+# 
+# tts_error = pullErrorRatesForTTS(connection,
+#                                  p1,
+#                                  database_id = 'CCAE',
+#                                  method = 'HistoricalComparator',
+#                                  exposure_id = 211983,
+#                                  localEstimatesPath = './localCache/EstimateswithImputedPcs_CCAE.rds',
+#                                  cachePath = './localCache/')
+# 
+# DatabaseConnector::disconnect(connection)
