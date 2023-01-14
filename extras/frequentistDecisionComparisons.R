@@ -222,22 +222,29 @@ frequentistDecisions <- function(connection,
              stats = if_else(negativeControl, 'type 1',
                              sprintf('type 2 (effect=%.1f)', effect_size))) %>%
       ungroup()
+  }else{
+    errorRate_bonferroni = NULL
   }
   
   # 09/21/2022: add FDR computation
-  FDRs = decisions %>%
-    group_by(database_id, method, analysis_id, 
-             exposure_id, negativeControl,
-             effect_size, period_id) %>%
-    summarize(rejectCounts = sum(reject, na.rm =TRUE)) %>% 
-    ungroup() %>%
-    group_by(database_id, method, analysis_id, 
-             exposure_id, period_id) %>%
-    arrange(effect_size) %>%
-    mutate(errorRate = computeFDR1(rejectCounts, effect_size),
-           stats = if_else(negativeControl, 'FDR (effect=1.0)',
-                           sprintf('FDR (effect=%.1f)', effect_size))) %>%
-    ungroup()
+  if(FDR){
+    FDRs = decisions %>%
+      group_by(database_id, method, analysis_id, 
+               exposure_id, negativeControl,
+               effect_size, period_id) %>%
+      summarize(rejectCounts = sum(reject, na.rm =TRUE)) %>% 
+      ungroup() %>%
+      group_by(database_id, method, analysis_id, 
+               exposure_id, period_id) %>%
+      arrange(effect_size) %>%
+      mutate(errorRate = computeFDR1(rejectCounts, effect_size),
+             stats = if_else(negativeControl, 'FDR (effect=1.0)',
+                             sprintf('FDR (effect=%.1f)', effect_size))) %>%
+      ungroup()
+  }else{
+    FDRs = NULL
+  }
+  
 
   # return
   return(list(estimates = estimates, calibrate = calibration,
