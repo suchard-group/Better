@@ -150,6 +150,7 @@ res_adj = plotTempDelta1ByPriors(database_id = db,
                                  showPlots = TRUE,
                                  stratifyByEffectSize = TRUE,
                                  calibrate = FALSE,  #TRUE, #
+                                 #outcomesInEstimates = resLst$estimates)
                                  outcomesInEstimates = resLst$estimates)
 
 pid = 3 # use SD = 4 results for this Bayesian example
