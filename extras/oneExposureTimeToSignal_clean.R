@@ -21,7 +21,7 @@ getTTSfromCalibratedErrorRates <- function(res,
   res = rbind(res,
               tibble(period_id = max_period_plus, 
                      prior_sd = rep(unique(res$prior_sd), 
-                                    length(unique(res$effect_size))),
+                                    each = length(unique(res$effect_size))),
                      effect_size= rep(unique(res$effect_size),
                                       length(unique(res$prior_sd))),
                      error_rate = 0)
@@ -38,7 +38,7 @@ getTTSfromCalibratedErrorRates <- function(res,
   if(adjust_max_time){
     tts = tts %>%
       mutate(time_to_sens = if_else(time_to_sens == max_period_plus,
-                                    max(res$period_id),
+                                    max_period_plus - 1,
                                     time_to_sens))
   }
   
