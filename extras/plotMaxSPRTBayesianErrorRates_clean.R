@@ -2,7 +2,7 @@
 # cleaner version of
 # `extras/plotMaxSPRTBayesianErrorRates.R`
 
-# for Type 1 errors for now!!!
+# Type 1 errors ONLY for now!!!
 library(wesanderson)
 
 source('./extras/simpleCalibration.R')
@@ -148,7 +148,7 @@ plotMaxSPRTBayesianType1 <- function(database_id,
   ybreaks = c(0,0.05, 0.1, 0.25, 0.5, 0.75,1.0)
   period_breaks = seq(from = min(errors_combined$period_id),
                       to = max(errors_combined$period_id),
-                      by = 2)
+                      by = 3)
   period_labels = as.integer(period_breaks)
   type1colors = colors
   
@@ -184,7 +184,7 @@ plotMaxSPRTBayesianType1 <- function(database_id,
                        trans = 'sqrt'
     )+
     facet_grid(.~analysis,
-               labeller = label_wrap_gen(width=25)) +
+               labeller = label_wrap_gen(width=28)) +
     scale_x_continuous(breaks = period_breaks, labels = period_labels)+
     labs(x='analysis period (months)', y='Type 1 error rate', 
          caption = capt, color='Type 1 error of:')+
@@ -192,8 +192,9 @@ plotMaxSPRTBayesianType1 <- function(database_id,
     scale_alpha_continuous(range = c(0.2, 1), guide = 'none')+
     guides(color=guide_legend(nrow=1,byrow=TRUE))+
     #facet_grid(.~approach)+
-    theme_bw(base_size = 13)+
-    theme(legend.position = 'bottom')# change to bottom legend...
+    theme_bw(base_size = 16)+
+    theme(legend.position = 'bottom',
+          plot.caption = element_text(hjust=0))# change to bottom legend...
   
   if(showPlot){
     print(p)
@@ -213,4 +214,55 @@ pType1 = plotMaxSPRTBayesianType1(database_id = db,
                                   raw_Bayesian_alpha = 0.05,
                                   adj_Bayesian_alpha = 0.05,
                                   calibrateToAlpha = FALSE)
+
+pType1 = plotMaxSPRTBayesianType1(database_id = db,
+                                  method = 'SCCS',
+                                  exposure_id = eid,
+                                  analysis_ids = c(1:4,13),
+                                  raw_Bayesian_alpha = 0.03,
+                                  adj_Bayesian_alpha = 0.03,
+                                  calibrateToAlpha = FALSE)
+
+# (a) produce plots for Historical Comparator----
+exposures_HC= c(211983, 211833, 21184, 21185, 21215)
+
+plotPath = '~/Documents/Research/betterResults/plots'
+
+pdf(file.path(plotPath, 'Type1Error-comparison-HC-variants.pdf'),
+    width = 10.5, height = 4.8)
+
+for(eid in exposures_HC){
+  pType1 = plotMaxSPRTBayesianType1(database_id = db,
+                                    method = 'HistoricalComparator',
+                                    exposure_id = eid,
+                                    analysis_ids = 1:4,
+                                    raw_Bayesian_alpha = 0.05,
+                                    adj_Bayesian_alpha = 0.05,
+                                    calibrateToAlpha = FALSE)
+}
+
+
+dev.off()
+
+
+# (a) produce plots for Historical Comparator----
+exposures_SCCS = c(211983, 211833, 21184, 21185, 21215)
+
+plotPath = '~/Documents/Research/betterResults/plots'
+
+pdf(file.path(plotPath, 'Type1Error-comparison-SCCS-variants.pdf'),
+    width = 13.6, height = 4.8)
+
+for(eid in exposures_SCCS){
+  pType1 = plotMaxSPRTBayesianType1(database_id = db,
+                                    method = 'SCCS',
+                                    exposure_id = eid,
+                                    analysis_ids = c(1:4,13),
+                                    raw_Bayesian_alpha = 0.03,
+                                    adj_Bayesian_alpha = 0.03,
+                                    calibrateToAlpha = FALSE)
+}
+
+
+dev.off()
                                   
