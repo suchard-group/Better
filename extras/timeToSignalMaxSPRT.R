@@ -6,7 +6,61 @@ library(dplyr)
 library(wesanderson)
 library(ggplot2)
 
-# 1. function to make decisions and obtain earliest time to decision
+# 0. ----
+# 01/14/2023 update:
+# alternative funcion to get TTS, directly from error rates results
+# i.e., output from "frequentistDecisions" function
+#       in './extras/frequentistDecisionComparisons.R'
+#source('./extras/frequentistDecisionComparisons.R')
+
+getTTSfromMaxSPRTErrorRates <- function(maxSPRT_resLst,
+                                        sensitivity_level,
+                                        adjust_max_time = TRUE){
+  res = maxSPRT_resLst$errorRate %>% 
+    select(period_id, effect_size, error_rate = errorRate,stats) %>%
+    filter(str_starts(stats,'type 2')) %>%
+    select(-stats)
+  
+  # get the type 1 error rate for this analysis ...
+  type1error = maxSPRT_resLst$errorRate %>% 
+    filter(str_starts(stats,'type 1'), period_id == max(period_id)) %>%
+    select(errorRate) %>% pull()
+  
+  # create fake "last entries" of type2error = 0
+  # for better manipulation
+  max_period_plus = max(res$period_id) + 1
+  res = rbind(res,
+              tibble(period_id = max_period_plus, 
+                     effect_size= unique(res$effect_size),
+                     error_rate = 0)
+  )
+  
+  type2_ub = 1 - sensitivity_level
+  
+  tts = res %>%
+    group_by(effect_size) %>%
+    filter(error_rate <= type2_ub) %>%
+    summarize(time_to_sens = min(period_id)) %>%
+    ungroup()
+  
+  if(adjust_max_time){
+    tts = tts %>%
+      mutate(time_to_sens = if_else(time_to_sens == max_period_plus,
+                                    max_period_plus - 1,
+                                    time_to_sens))
+  }
+  
+  # add type 1 error, and all other info
+  tts = tts %>% mutate(type1error = type1error, approach = 'MaxSPRT') %>%
+    cbind(maxSPRT_resLst$errorRate %>% slice(1) %>% 
+            select(database_id, exposure_id, method, analysis_id))
+  
+  return(tts)
+}
+
+
+
+# 1. function to make decisions and obtain earliest time to decision-----
 makeDecisionsFreq <- function(estimates, 
                               method = 'HistoricalComparator',
                               analysis_ids = 1:4,
@@ -221,6 +275,7 @@ plotTimeToSignalMaxSPRTOneExposure <- function(localFile,
 
 # 01/13/2023
 # 3. function to cross-ref with MaxSPRT error rates
+# 01/14/2023: round up the time-to-signal (say, 2.75 -> 3)
 pullErrorRatesForTTS <- function(connection,
                                  tts_plot,
                                  database_id,
@@ -228,6 +283,7 @@ pullErrorRatesForTTS <- function(connection,
                                  exposure_id,
                                  localEstimatesPath = NULL,
                                  calibration = FALSE,
+                                 roundUp = TRUE,
                                  cachePath = './localCache/'){
   
   # tts dataframe
@@ -235,6 +291,10 @@ pullErrorRatesForTTS <- function(connection,
   tts = attr(tts_plot, 'data') %>%
     filter(Type == calibrationFlag) %>%
     mutate(exposure_id = exposure_id, database_id = database_id)
+  
+  if(roundUp){
+    tts = tts %>% mutate(time_to_sens = ceiling(time_to_sens))
+  }
   
   # get error rates dataframe
   aids = unique(tts$analysis_id)
