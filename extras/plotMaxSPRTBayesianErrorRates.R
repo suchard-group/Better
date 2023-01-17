@@ -18,6 +18,10 @@
 # small demo: relax alpha = 0.271 (Type 1 of raw MaxSPRT in one case)
 # see what happens...
 
+# 01/16/2023
+# try producing plots in batch...
+# MOVED TO ANOTHER SCRIPT ***_clean.R
+
 
 # 1. plot Type 1 and 2 error rates by time ------
 
@@ -32,7 +36,7 @@ cachepath = './localCache/'
 # analyses results to check
 db = 'CCAE'
 #db = 'OptumEhr'
-eid = 211981 # Zoster 1st dose
+eid = 211983 # Zoster two doses
 #eid = 21184 #H1N1
 me = 'HistoricalComparator'
 #me = 'SCCS'
@@ -40,20 +44,35 @@ aid = 4
 #pid = 3 # 1: sd=10; 2: sd=1.5; 3: sd=4 
 #tolerance = 0.004
 
+maxSPRT_filepath = './localCache/EstimateswithImputedPcs_CCAE.rds'
+maxSPRT_estimates = readRDS(maxSPRT_filepath)
 
-# get MaxSPRT results----
-ConnectionDetails <- DatabaseConnector::createConnectionDetails(
-  dbms = "postgresql",
-  server = paste(keyring::key_get("eumaeusServer"),
-                 keyring::key_get("eumaeusDatabase"),
-                 sep = "/"),
-  user = keyring::key_get("eumaeusUser"),
-  password = keyring::key_get("eumaeusPassword"))
 
-# set up the DB connection
-connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
+# # get MaxSPRT results----
+# ConnectionDetails <- DatabaseConnector::createConnectionDetails(
+#   dbms = "postgresql",
+#   server = paste(keyring::key_get("eumaeusServer"),
+#                  keyring::key_get("eumaeusDatabase"),
+#                  sep = "/"),
+#   user = keyring::key_get("eumaeusUser"),
+#   password = keyring::key_get("eumaeusPassword"))
+# 
+# # set up the DB connection
+# connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
 
-# here: use the raw, uncalibrated results
+## here: use the raw, uncalibrated results
+# resLst = frequentistDecisions(connection,
+#                               'eumaeus',
+#                               database_id = db,
+#                               method = me,
+#                               exposure_id = eid,
+#                               analysis_id = aid,
+#                               calibration = FALSE,
+#                               correct_shift = TRUE,
+#                               #bonferroni_adjust_factor = 2,
+#                               cachePath = cachepath)
+
+## try using local estimates for faster run
 resLst = frequentistDecisions(connection,
                               'eumaeus',
                               database_id = db,
@@ -63,7 +82,9 @@ resLst = frequentistDecisions(connection,
                               calibration = FALSE,
                               correct_shift = TRUE,
                               #bonferroni_adjust_factor = 2,
-                              cachePath = cachepath)
+                              cachePath = cachepath,
+                              estimates = maxSPRT_estimates)
+
 maxsprt_errors = resLst$errorRate %>%
   select(period_id, y = errorRate, effect_size, stats) %>%
   mutate(approach = '1: MaxSPRT')
@@ -89,6 +110,18 @@ resLst_cali = frequentistDecisions(connection,
                                    correct_shift = TRUE,
                                    #bonferroni_adjust_factor = 2,
                                    cachePath = cachepath)
+## using local estimates for faster run
+resLst_cali = frequentistDecisions(connection,
+                                   'eumaeus',
+                                   database_id = db,
+                                   method = me,
+                                   exposure_id = eid,
+                                   analysis_id = aid,
+                                   calibration = TRUE,
+                                   correct_shift = TRUE,
+                                   #bonferroni_adjust_factor = 2,
+                                   cachePath = cachepath,
+                                   estimates = maxSPRT_estimates)
 maxsprt_errors_cali = resLst_cali$errorRate %>%
   select(period_id, y = errorRate, effect_size, stats) %>%
   mutate(approach = '1: MaxSPRT w/ calibration')
@@ -103,7 +136,7 @@ bonferroni_errors_cali = resLst_cali$errorRate_bonferroni %>%
   select(period_id, y = errorRate, effect_size, stats) %>%
   mutate(approach = '0: Bonferroni w/ calibration')
 
-DatabaseConnector::disconnect(connection)
+# DatabaseConnector::disconnect(connection)
 
 
 # get Bayesian temporal results----
