@@ -391,7 +391,8 @@ for(eid in exposures_SCCS){
                                                 method = 'SCCS',
                                                 exposure_id = eid,
                                                 analysis_ids = c(1:8, 13:14),
-                                                sensitivity_level = 0.5)
+                                                sensitivity_level = 0.5,
+                                                showPlot = TRUE)
 }
 
 dev.off()
