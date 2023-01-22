@@ -79,10 +79,10 @@ p
 
 ## nulls across exposures ----
 
-db = 'CCAE'
-#me = 'SCCS'
-me = 'HistoricalComparator'
-aid = 6
+db = 'IBM_MDCD'
+me = 'SCCS'
+#me = 'HistoricalComparator'
+aid = 2
 pid = 9
 eid = 211983
 
