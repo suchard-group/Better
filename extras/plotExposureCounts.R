@@ -61,7 +61,7 @@ ggplot(this.est, aes(x = period_id,
   # geom_label(data = count_labels, color = 'black', 
   #            size = 4,
   #            aes(x=period, y = counts, label = exposure)) +
-  scale_x_continuous(breaks = xbreaks) +
+  scale_x_continuous(breaks = xbreaks, limits = c(1, max(this.est$period_id))) +
   guides(color=guide_legend(nrow=2,byrow=FALSE))+
   labs(x='Analysis period', y = 'Exposure subject count',
        color = 'Vaccine exposure') +
@@ -76,7 +76,7 @@ ggplot(this.est, aes(x = period_id,
   # geom_label(data = count_labels, color = 'black', 
   #            size = 4,
   #            aes(x=period, y = counts, label = exposure)) +
-  scale_x_continuous(breaks = xbreaks) +
+  scale_x_continuous(breaks = xbreaks, limits = c(1, max(this.est$period_id))) +
   guides(color=guide_legend(nrow=2,byrow=FALSE))+
   labs(x='Analysis period', y = 'Aggregated exposure days',
        color = 'Vaccine exposure') +
