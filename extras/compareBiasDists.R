@@ -2,6 +2,10 @@
 # demo plot to show systematic error (negative control distribution)
 # across databases/exposure/etc.
 
+# 01/23/2023
+# minor update on bias distribution plot
+# with same x-axis scale 
+
 # the null fitting function
 source('./extras/fitNegativeControlDistribution.R')
 
@@ -79,14 +83,16 @@ p
 
 ## nulls across exposures ----
 
-db = 'IBM_MDCD'
-me = 'SCCS'
-#me = 'HistoricalComparator'
+#db = 'IBM_MDCD'
+db = 'CCAE'
+#me = 'SCCS'
+me = 'HistoricalComparator'
 aid = 2
 pid = 9
 eid = 211983
 
 allExpos = readRDS('./localCache/exposures.rds')
+exposures_select = c(211983, 211833, 21184, 21185, 21215)
 
 nullDat = NULL
 NCDat = NULL 
@@ -94,7 +100,7 @@ NCDat = NULL
 # databases = c('CCAE', 'IBM_MDCD', 'IBM_MDCR', 'OptumEhr', 'OptumDod')
 # alterNames = c('CCAE', 'MDCD', 'MDCR', 'OptumEHR', 'OptumDoD')
 
-for(ex in allExpos$exposure_id){
+for(ex in exposures_select){
   eid = ex
   # fit null dist.
   fittedNull = fitNegativeControlDistributionLikelihood(connection,
@@ -128,11 +134,23 @@ for(ex in allExpos$exposure_id){
                            exposure = this.ex))
 }
 
+
+## some graphing setups
+xlims = c(-3, 3)
+RRbreaks = c(0.1, 0.5, 1, 2, 5, 20)
+xbreaks = log(RRbreaks)
+xlabels = RRbreaks %>% as.character()
+
 (
 p = ggplot(nullDat, aes(x=x)) +
   geom_density(fill = 'gray80') +
-  geom_point(data = NCDat, mapping = aes(x=x,y=y), shape = 4) +
-  labs(x='',y='') +
+  geom_point(data = NCDat, 
+             mapping = aes(x=x,y=y), shape = 4) +
+  scale_x_continuous(limits = xlims, 
+                     breaks = xbreaks, 
+                     labels = xlabels) +
+  labs(x='Rate ratio estimates for negative control outcomes',
+       y='') +
   scale_y_continuous(breaks = NULL) +
   theme_bw(base_size = 14) +
   facet_grid(exposure~., switch = "y") + 
