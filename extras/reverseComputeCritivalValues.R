@@ -10,14 +10,13 @@ computeCvs_reverse<- function(estimates, cvFunction, ex_factor = 1, maxCores = 4
   ParallelLogger::clusterRequire(cluster, "dplyr")
   on.exit(ParallelLogger::stopCluster(cluster))
   
-  estimates <- loadEstimates(estimatesFileName)
   subsets <- split(estimates, 
                    paste(estimates$analysisId, estimates$exposureId, estimates$outcomeId))
   cvs <- ParallelLogger::clusterApply(cluster, subsets, cvFunction, ex_factor = ex_factor)
   cvs <- bind_rows(cvs)
   rm(subsets)
   
-  estimatesWithCvs <- estimates %>%
+  estimatesWithCvs <- estimates %>% select(-criticalValue) %>%
     inner_join(cvs, by = c("analysisId", "exposureId", "outcomeId"))
   
   return(estimatesWithCvs)
@@ -26,6 +25,37 @@ computeCvs_reverse<- function(estimates, cvFunction, ex_factor = 1, maxCores = 4
 
 ## 1. SCCS ------
 computeSccsCv_reverse <- function(subset, ex_factor=1) {
+  
+  computeTruncatedBinomialCv <- function(n, z, groupSizes) {
+    if (n > 250) {
+      groupSizes <- round(groupSizes * 250 / n)
+      groupSizes <- groupSizes[groupSizes > 0]
+      n <- sum(groupSizes)
+    }
+    # This check is done inside Sequential::CV.Binomial as well, but will throw an error there:
+    pst <- 1/(1 + z)
+    if (1 - pbinom(n - 1, n, pst) > 0.05) {
+      return(NA)
+    }
+    cv <- try({
+      # Setting time-out to escape infinite loops in Sequential:
+      if (is.null(getOption("CvTimeout"))) {
+        setTimeLimit(60, Inf)
+      } else {
+        setTimeLimit(getOption("CvTimeout"), Inf)
+      }
+      Sequential::CV.Binomial(N = n,
+                              M = 1,
+                              alpha = 0.05,
+                              z = z,
+                              GroupSizes = groupSizes)$cv
+    }, silent = TRUE) 
+    if (inherits(cv, "try-error")) {
+      cv <- NA
+    }
+    return(cv)
+  }
+  
   # subset <- subsets[[1]]
   # reverse engineer back needed columns! 
   subset = subset %>% 
@@ -88,39 +118,36 @@ computeSccsCv_reverse <- function(subset, ex_factor=1) {
                 criticalValue = cv))
 }
 
-computeTruncatedBinomialCv <- function(n, z, groupSizes) {
-  if (n > 250) {
-    groupSizes <- round(groupSizes * 250 / n)
-    groupSizes <- groupSizes[groupSizes > 0]
-    n <- sum(groupSizes)
-  }
-  # This check is done inside Sequential::CV.Binomial as well, but will throw an error there:
-  pst <- 1/(1 + z)
-  if (1 - pbinom(n - 1, n, pst) > 0.05) {
-    return(NA)
-  }
-  cv <- try({
-    # Setting time-out to escape infinite loops in Sequential:
-    if (is.null(getOption("CvTimeout"))) {
-      setTimeLimit(60, Inf)
-    } else {
-      setTimeLimit(getOption("CvTimeout"), Inf)
-    }
-    Sequential::CV.Binomial(N = n,
-                            M = 1,
-                            alpha = 0.05,
-                            z = z,
-                            GroupSizes = groupSizes)$cv
-  }, silent = TRUE) 
-  if (inherits(cv, "try-error")) {
-    cv <- NA
-  }
-  return(cv)
-}
 
 
 ## 2. Historical Comparator ----
 computeHistoricalComparatorCv_reverse <- function(subset, ex_factor = 1) {
+  
+  
+  computeTruncatedPoissonCv <- function(n, groupSizes) {
+    if (n > 250) {
+      groupSizes <- round(groupSizes * 250 / n)
+      groupSizes <- groupSizes[groupSizes > 0]
+      n <- sum(groupSizes)
+    }
+    cv <- try({
+      # Setting time-out to escape infinite loops in Sequential:
+      if (is.null(getOption("CvTimeout"))) {
+        setTimeLimit(60, Inf)
+      } else {
+        setTimeLimit(getOption("CvTimeout"), Inf)
+      }
+      cv <- Sequential::CV.Poisson(SampleSize = n,
+                                   alpha = 0.05,
+                                   M = 1,
+                                   GroupSizes = groupSizes)
+    }, silent = TRUE) 
+    if (inherits(cv, "try-error")) {
+      cv <- NA
+    }
+    return(cv)
+  }
+  
   # subset <- subsets[[2611]]
   
   subset = subset %>% 
@@ -187,29 +214,6 @@ computeHistoricalComparatorCv_reverse <- function(subset, ex_factor = 1) {
                 criticalValue = cv))
 }
 
-computeTruncatedPoissonCv <- function(n, groupSizes) {
-  if (n > 250) {
-    groupSizes <- round(groupSizes * 250 / n)
-    groupSizes <- groupSizes[groupSizes > 0]
-    n <- sum(groupSizes)
-  }
-  cv <- try({
-    # Setting time-out to escape infinite loops in Sequential:
-    if (is.null(getOption("CvTimeout"))) {
-      setTimeLimit(60, Inf)
-    } else {
-      setTimeLimit(getOption("CvTimeout"), Inf)
-    }
-    cv <- Sequential::CV.Poisson(SampleSize = n,
-                                 alpha = 0.05,
-                                 M = 1,
-                                 GroupSizes = groupSizes)
-  }, silent = TRUE) 
-  if (inherits(cv, "try-error")) {
-    cv <- NA
-  }
-  return(cv)
-}
 
 # # try SCCS
 # (
@@ -233,10 +237,10 @@ computeTruncatedPoissonCv <- function(n, groupSizes) {
 # computeHistoricalComparatorCv_reverse(subset_small, ex_factor = 1)
 # # well, more or less okay!!
 
-# try overhead function
-sections = estimates_CCAE %>%
-  filter(method == 'HistoricalComparator', analysisId == 2, exposureId == 211983)
-
-test_res = computeCvs_reverse(sections, 
-                              computeHistoricalComparatorCv_reverse,
-                              ex_factor = 2, maxCores = 4)
+# # try overhead function
+# sections = estimates_CCAE %>%
+#   filter(method == 'HistoricalComparator', analysisId == 2, exposureId == 211983)
+# 
+# test_res = computeCvs_reverse(sections, 
+#                               computeHistoricalComparatorCv_reverse,
+#                               ex_factor = 2, maxCores = 4)
