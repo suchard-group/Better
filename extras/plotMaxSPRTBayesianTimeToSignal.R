@@ -2,6 +2,7 @@
 # for presentation purposes
 
 # plot time-to-signal for both MaxSPRT and Bayesian methods
+library(foreach)
 
 # 01/13/2023: start with CCAE database here!
 db = 'CCAE'
@@ -228,6 +229,7 @@ plotMaxSPRTBayesianTimeToSignal <- function(database_id,
 # 2. (c) ------
 # alternative function with different calculation of TTS for MaxSPRT 
 # (suspecting previous MaxSPRT calc. is bugged somehow...)
+# 01/31/2023: add in hypothetical experiment of longer/shorter analysis plan
 plotMaxSPRTBayesianTimeToSignal2 <- function(database_id,
                                             exposure_id,
                                             method,
@@ -238,12 +240,14 @@ plotMaxSPRTBayesianTimeToSignal2 <- function(database_id,
                                             calibrateToAlpha = TRUE, # if calibrate to MaxSPRT alpha level?
                                             bayesAdjusted = TRUE, # use bias adjusted Bayesian results?
                                             calibration = FALSE, # use calibrated MaxSPRT?
+                                            plan_extension_factor = 1, # shorter/longer analysis plan for MaxSPRT?
                                             summaryPath = summarypath, # summary results for Bayesian 
                                             localEstimatesPath = maxSPRT_filepath, # local estimate for MaxSPRT
                                             cachePath = './localCache/', # cache for caption info etc.
                                             colors = theColors, # fill colors for time bars
                                             showPlot = TRUE,
-                                            addCaption = TRUE){
+                                            addCaption = TRUE,
+                                            maxCores = 8){
   # (1) compile all needed maxSPRT TTS results
   maxSPRT_tts = NULL
   localEstimates = readRDS(localEstimatesPath)
@@ -262,7 +266,9 @@ plotMaxSPRTBayesianTimeToSignal2 <- function(database_id,
                                        correct_shift = TRUE,
                                        bonferroni_baseline = FALSE,
                                        FDR = FALSE,
-                                       cachePath = cachePath)
+                                       plan_extension_factor = plan_extension_factor,
+                                       cachePath = cachePath,
+                                       maxCores = maxCores)
     
     # pull TTS (with Type1error) from the result list
     this.maxSPRT_tts = getTTSfromMaxSPRTErrorRates(maxSPRT_res,
@@ -376,6 +382,24 @@ for(eid in exposures_HC){
 
 
 dev.off()
+
+## 01/31/2023
+# plots with shorter/longer analysis plans for MaxSPRT...
+p_tts_full = plotMaxSPRTBayesianTimeToSignal2(database_id = 'CCAE',
+                                              method = 'HistoricalComparator',
+                                              exposure_id = 211833,
+                                              analysis_ids = c(1:4),
+                                              sensitivity_level = .5,
+                                              plan_extension_factor = 0.5,
+                                              maxCores = 8)
+
+p_tts_full = plotMaxSPRTBayesianTimeToSignal2(database_id = 'CCAE',
+                                              method = 'HistoricalComparator',
+                                              exposure_id = 211833,
+                                              analysis_ids = c(1:4),
+                                              sensitivity_level = .5,
+                                              plan_extension_factor = 2,
+                                              maxCores = 8)
 
 
 ## (b) SCCS ------
