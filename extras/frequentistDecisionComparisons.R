@@ -9,6 +9,10 @@ library(ggpubr)
 library(xtable)
 library(wesanderson)
 
+# 01/31/2023
+# also source the "recompute CV" script
+source('extras/reverseComputeCritivalValues.R')
+
 # set up EUMAEUS results query connection-----
 ## connection details
 # ConnectionDetails <- DatabaseConnector::createConnectionDetails(
@@ -57,6 +61,7 @@ computeFDR1 <- function(counts, effects){
 # 1 function to extract results from EUMAEUS data server and make decisions using MaxSPRT-------
 # do this for one analysis and all outcomes
 # 09/21/2022: add false discovery rate computation
+# 01/31/2023: add hypothetical change of plans (shorter/longer surveillance) for critical values
 frequentistDecisions <- function(connection,
                                  schema,
                                  database_id,
@@ -66,11 +71,13 @@ frequentistDecisions <- function(connection,
                                  estimates = NULL,
                                  calibration = FALSE,
                                  correct_shift = FALSE,
+                                 plan_extension_factor = 1,
                                  bonferroni_baseline = TRUE,
                                  bonferroni_adjust_factor = 1,
                                  FDR = TRUE,
                                  alpha = 0.05,
-                                 cachePath = './localCache/'){
+                                 cachePath = './localCache/',
+                                 maxCores = 4){
   # pull estimates
   if(is.null(estimates)){
     
@@ -109,6 +116,35 @@ frequentistDecisions <- function(connection,
              method == !!method,
              analysis_id == !!analysis_id,
              exposure_id == !!exposure_id) %>%
+      filter(!is.na(critical_value))
+    
+    if(plan_extension_factor != 1){
+      # re-compute critical values!
+      cat('Recomputing critical values. This may take a while......\n')
+      names(estimates) = SqlRender::snakeCaseToCamelCase(names(estimates))
+      
+      if(method == 'SCCS'){
+        estimates = computeCvs_reverse(estimates, computeSccsCv_reverse, 
+                                       ex_factor = plan_extension_factor, 
+                                       maxCores = maxCores)
+      }
+      
+      if(method == 'HistoricalComparator'){
+        estimates = computeCvs_reverse(estimates, computeHistoricalComparatorCv_reverse, 
+                                       ex_factor = plan_extension_factor, 
+                                       maxCores = maxCores)
+      }
+      
+      if(!method %in% c('SCCS', 'HistoricalComparator')){
+        stop('Does not support methods except SCCS and Historical Comparator!!!!')
+      }
+      
+    }
+    
+    # then select relevant rows after processing
+    names(estimates) = SqlRender::camelCaseToSnakeCase(names(estimates))
+    
+    estimates = estimates %>% 
       filter(!is.na(log_rr) & !is.na(se_log_rr) & !is.na(llr) & !is.na(critical_value)) %>%
       select(database_id, method, analysis_id, 
              exposure_id, outcome_id, period_id, 
