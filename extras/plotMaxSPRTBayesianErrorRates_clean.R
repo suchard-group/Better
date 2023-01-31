@@ -42,11 +42,13 @@ plotMaxSPRTBayesianType1 <- function(database_id,
                                      raw_Bayesian_alpha = 0.05,
                                      adj_Bayesian_alpha = 0.05,
                                      calibrateToAlpha = FALSE,
+                                     plan_extension_factor = 1,
                                      cachePath = './localCache/',
                                      maxSPRTestimatePath = './localCache/EstimateswithImputedPcs_CCAE.rds',
                                      summaryPath = summarypath,
                                      colors = theColors,
-                                     showPlot = TRUE){
+                                     showPlot = TRUE,
+                                     maxCores = 8){
   
   
   maxSPRT_estimates = readRDS(maxSPRTestimatePath)
@@ -61,8 +63,10 @@ plotMaxSPRTBayesianType1 <- function(database_id,
                                   analysis_id = aid,
                                   calibration = FALSE,
                                   correct_shift = TRUE,
+                                  plan_extension_factor = plan_extension_factor,
                                   cachePath = cachePath,
-                                  estimates = maxSPRT_estimates)
+                                  estimates = maxSPRT_estimates,
+                                  maxCores = maxCores)
     
     this.maxsprt_errors = resLst$errorRate %>%
       select(database_id, method, exposure_id, analysis_id,
@@ -222,6 +226,31 @@ pType1 = plotMaxSPRTBayesianType1(database_id = db,
                                   raw_Bayesian_alpha = 0.03,
                                   adj_Bayesian_alpha = 0.03,
                                   calibrateToAlpha = FALSE)
+
+
+## 01/31/2023
+# try with shorter analysis 
+pType1 = plotMaxSPRTBayesianType1(database_id = db,
+                                  method = me,
+                                  exposure_id = eid,
+                                  analysis_ids = 1:4,
+                                  raw_Bayesian_alpha = 0.05,
+                                  adj_Bayesian_alpha = 0.05,
+                                  calibrateToAlpha = FALSE,
+                                  plan_extension_factor = 0.5)
+
+
+# AND longer analysis
+pType1 = plotMaxSPRTBayesianType1(database_id = db,
+                                  method = me,
+                                  exposure_id = eid,
+                                  analysis_ids = 1:4,
+                                  raw_Bayesian_alpha = 0.05,
+                                  adj_Bayesian_alpha = 0.05,
+                                  calibrateToAlpha = FALSE,
+                                  plan_extension_factor = 2)
+
+
 
 # (a) produce plots for Historical Comparator----
 exposures_HC= c(211983, 211833, 21184, 21185, 21215)
