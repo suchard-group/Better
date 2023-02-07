@@ -312,18 +312,26 @@ bMSE = BayesMSE(summaryPath = summarypath,
 # for select negative control outcomes...
 # to showcase de-biasing power
 
+theColors = c(wes_palette("GrandBudapest1")[c(1,3)])
+
 NCs = readRDS('./localCache/allNegativeControls.rds')
 names(NCs) = tolower(names(NCs))
 
-select_outcomes = NCs$outcome_id
+#select_outcomes = sample(NCs$outcome_id)
+#select_outcomes = sample(NCs$outcome_id, 60, replace = FALSE)
+select_outcomes = c(23731, 73302, 74719, 133424, 137977, 
+                    195500, 4145627, 4284982)
 
 # extract uncalibrated estimate for RR, for NCs only
 maxsprt_estimates = freqMSE2$estimates %>%
   filter(effect_size == 1, 
          outcome_id %in% select_outcomes) %>%
-  mutate(estimate = exp(log_rr)) %>%
+  mutate(estimate = exp(log_rr),
+         ci_95_lb = exp(ci_95_lb),
+         ci_95_ub = exp(ci_95_ub)) %>%
   select(outcome_id, estimate, ci_95_lb, ci_95_ub) %>%
-  mutate(approach = 'MaxSPRT')
+  mutate(approach = 'A') %>%
+  filter(estimate > 1, ci_95_ub <= 5)
   
 bayesian_estimates = bMSE$estimates %>%
   filter(outcome_id %in% unique(maxsprt_estimates$outcome_id)) %>%
@@ -331,11 +339,32 @@ bayesian_estimates = bMSE$estimates %>%
          ci_95_lb = exp(adjustedCI95_lb),
          ci_95_ub = exp(adjustedCI95_ub)) %>%
   select(outcome_id, estimate, ci_95_lb, ci_95_ub) %>%
-  mutate(approach = 'Bayesian')
+  mutate(approach = 'B')
 
-combined_estimates = bind_rows(maxsprt_estimates, bayesian_estimates)
+combined_estimates = bind_rows(maxsprt_estimates, bayesian_estimates) %>%
+  left_join(NCs, by = 'outcome_id')
 
 ## forrest-style plots for estimates comparison
+
+dodgeWidth = 0.6
+
+ggplot(combined_estimates, aes(x=outcome_name, 
+                               y = estimate, 
+                               color=approach)) +
+  geom_hline(yintercept = 1, color = 'gray70',
+             size = 2) +
+  geom_point(size = 2, position = position_dodge(width = dodgeWidth))+
+  geom_errorbar(aes(ymin = ci_95_lb, ymax = ci_95_ub), 
+                size = 1, width = 0.5,
+                position = position_dodge(width = dodgeWidth)) +
+  scale_y_continuous(limits = c(0, 6), breaks = c(0,1,2,4,6))+
+  scale_color_manual(values = theColors,
+                     labels = c('MaxSPRT', 'Bayesian')) +
+  labs(x = '', y = 'RR estimate for negative control outcomes',
+       color = 'Estimates by:') +
+  coord_flip()+
+  theme_bw(base_size = 16)
+
 
 # 06/28/2022: -----
 # try to plot Bayesian estimates (post.median) and 95% CIs
