@@ -155,8 +155,15 @@ maxSprtPoisson <- function(S, numLooks=12,
     cumExpected = actualExpectedCount * c(1:numLooks)
     
     ## evaluate LLR's
-    this.LLRs = dpois(cumCounts, cumCounts, log = TRUE) - 
-      dpois(cumCounts, cumExpected, log = TRUE)
+    if(cumCounts > cumExpected){
+      # if MLE Poisson rate falls in H1 region, use MLE to compute Likelihood
+      this.LLRs = dpois(cumCounts, cumCounts, log = TRUE) - 
+        dpois(cumCounts, cumExpected, log = TRUE)
+    }else{
+      # otherwise, maxL(H1) falls at boundary RR=1
+      this.LLRs = 0
+    }
+    
     
     ## reject?
     this.reject = this.LLRs > theCV
@@ -252,12 +259,13 @@ Rates0 = getMaxSprtRejectRate(simulated0)
 simulated1 = maxSprtPoisson(S = 500, 
                             numLooks=12, 
                             expectedCountByPlan = 10,
-                            actualExpectedCount = 12,
+                            actualExpectedCount = 20,
                             effectSize = 1,
                             alpha = 0.05)
 Rates1 = getMaxSprtRejectRate(simulated1)
 
 ## (iii) actually planned out a 1-year surveillance, but had to do 2-year
+set.seed(42)
 simulated2 = maxSprtPoisson(S = 500, 
                             numLooks=24, 
                             expectedCountByPlan = 10,
@@ -265,6 +273,8 @@ simulated2 = maxSprtPoisson(S = 500,
                             effectSize = 1,
                             alpha = 0.05)
 Rates2 = getMaxSprtRejectRate(simulated2, numLooks = 12)
+Rates2_valid = getMaxSprtRejectRate(simulated2, numLooks = 24)
+Rates3_longer = getMaxSprtRejectRate(simulated2, numLooks = 36)
 
 ## (iv) the Bayesian thing...
 bayesSim = BayesianPoisson(S = 500,
