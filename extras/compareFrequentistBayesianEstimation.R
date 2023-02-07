@@ -6,7 +6,7 @@ library(xtable)
 library(wesanderson)
 
 # set up EUMAEUS results query connection-----
-## connection details
+# ## connection details
 # ConnectionDetails <- DatabaseConnector::createConnectionDetails(
 #   dbms = "postgresql",
 #   server = paste(keyring::key_get("eumaeusServer"),
@@ -27,12 +27,12 @@ frequentistMSE <- function(connection,
                            method,
                            exposure_id,
                            analysis_id,
-                           estimates = NULL,
                            calibration = FALSE,
                            correct_shift = FALSE,
+                           localEstimatesPath = NULL,
                            cachePath = './localCache/'){
   # pull estimates
-  if(is.null(estimates)){
+  if(is.null(localEstimatesPath)){
     # sql <- "SELECT estimate.*
     # FROM @schema.ESTIMATE estimate
     # WHERE database_id = '@database_id'
@@ -62,6 +62,17 @@ frequentistMSE <- function(connection,
                              exposure_id = exposure_id)
     sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
     estimatesPC <- DatabaseConnector::querySql(connection, sql)
+    names(estimatesPC) = tolower(names(estimatesPC))
+  }else{
+    estimatesPC = readRDS(localEstimatesPath)
+    names(estimatesPC) = SqlRender::camelCaseToSnakeCase(names(estimatesPC))
+    
+    estimatesPC = estimatesPC %>%
+      filter(database_id == !!database_id,
+             method == !!method,
+             analysis_id == !!analysis_id,
+             exposure_id == !!exposure_id)
+      
   }
   
   # names(estimatesNC) = tolower(names(estimatesNC))
@@ -76,7 +87,6 @@ frequentistMSE <- function(connection,
   #          calibrated_ci_95_lb, calibrated_ci_95_ub,
   #          ci_95_lb, ci_95_ub)
   
-  names(estimatesPC) = tolower(names(estimatesPC))
   estimatesPC = estimatesPC %>%
     filter(!is.na(log_rr) & !is.na(se_log_rr) & !is.na(llr) & !is.na(critical_value)) %>%
     filter(period_id == max(period_id)) %>%
@@ -92,6 +102,7 @@ frequentistMSE <- function(connection,
   ## try: not include queries from "estimates"...
   #estimates = rbind(estimatesNC, estimatesPC)
   estimates = estimatesPC
+  rm(estimatesPC)
   
   # get effect sizes
   IPCs = readRDS(file.path(cachePath, 'allIPCs.rds'))
@@ -139,29 +150,42 @@ frequentistMSE <- function(connection,
 
 ## try it
 db = 'CCAE'
-#me = 'HistoricalComparator'
-me = 'SCCS'
-eid = 211981
-aid = 4
+me = 'HistoricalComparator'
+#me = 'SCCS'
+eid = 211983
+aid = 2
 #aid = 6
 
 #(
-freqMSEs = frequentistMSE(connection,
+# freqMSEs = frequentistMSE(connection,
+#                           'eumaeus',
+#                           database_id = db,
+#                           method = me,
+#                           exposure_id = eid,
+#                           analysis_id = aid)
+#)
+
+# # 07/12/2022: try a version with shift correction
+# freqMSEs2 = frequentistMSE(connection,
+#                            'eumaeus',
+#                            database_id = db,
+#                            method = me,
+#                            exposure_id = eid,
+#                            analysis_id = aid,
+#                            correct_shift = TRUE)
+
+# 02/07/2023: try using local saved estimates (Postgre server too slow!)
+
+estimatesPath = './localCache/EstimateswithImputedPcs_CCAE.rds'
+
+freqMSE2 = frequentistMSE(NULL,
                           'eumaeus',
                           database_id = db,
                           method = me,
                           exposure_id = eid,
-                          analysis_id = aid)
-#)
-
-# 07/12/2022: try a version with shift correction
-freqMSEs2 = frequentistMSE(connection,
-                           'eumaeus',
-                           database_id = db,
-                           method = me,
-                           exposure_id = eid,
-                           analysis_id = aid,
-                           correct_shift = TRUE)
+                          analysis_id = aid,
+                          correct_shift = TRUE,
+                          localEstimatesPath = estimatesPath)
 
 # 2.b MSEs for Bayesian version as well
 # 06/28/2022: add 95% credible intervals
@@ -283,8 +307,37 @@ bMSE = BayesMSE(summaryPath = summarypath,
 # ggarrange(p1, p2, ncol=2, labels = c('raw', 'adj'),
 #           widths = c(3,3.8))
 
+# 02/07/2023 new plot -----
+# Make forrest-style (?) plots to compare MaxSPRT & Bayesian estimates
+# for select negative control outcomes...
+# to showcase de-biasing power
 
-# 06/28/2022: 
+NCs = readRDS('./localCache/allNegativeControls.rds')
+names(NCs) = tolower(names(NCs))
+
+select_outcomes = NCs$outcome_id
+
+# extract uncalibrated estimate for RR, for NCs only
+maxsprt_estimates = freqMSE2$estimates %>%
+  filter(effect_size == 1, 
+         outcome_id %in% select_outcomes) %>%
+  mutate(estimate = exp(log_rr)) %>%
+  select(outcome_id, estimate, ci_95_lb, ci_95_ub) %>%
+  mutate(approach = 'MaxSPRT')
+  
+bayesian_estimates = bMSE$estimates %>%
+  filter(outcome_id %in% unique(maxsprt_estimates$outcome_id)) %>%
+  mutate(estimate = exp(adjustedPostMedian), 
+         ci_95_lb = exp(adjustedCI95_lb),
+         ci_95_ub = exp(adjustedCI95_ub)) %>%
+  select(outcome_id, estimate, ci_95_lb, ci_95_ub) %>%
+  mutate(approach = 'Bayesian')
+
+combined_estimates = bind_rows(maxsprt_estimates, bayesian_estimates)
+
+## forrest-style plots for estimates comparison
+
+# 06/28/2022: -----
 # try to plot Bayesian estimates (post.median) and 95% CIs
 # and compare with frequentist estimates (MLEs) and 95% CIs
 
