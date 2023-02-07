@@ -361,6 +361,9 @@ plotMaxSPRTBayesianTimeToSignal2 <- function(database_id,
 # 3.make a lot of plots ------
 ## for CCAE right now, and a few vaccines...
 
+## 02/02/2023: try calibrated MaxSPRT and see how we are doing????
+calibrationFlag = TRUE
+
 ## (a) Historical Comparator-----
 exposures_HC= c(211983, 211833, 21184, 21185, 21215)
 # 21214 doesn't have unadjusted results???
@@ -368,7 +371,10 @@ exposures_HC= c(211983, 211833, 21184, 21185, 21215)
 
 plotsPath = '~/Documents/Research/betterResults/timeToSignal-Bayesian-MaxSPRT-calibrated-comparison/'
 
-pdf(file.path(plotsPath,'HistoricalComparator-CCAE.pdf'), 
+# pdf(file.path(plotsPath,'HistoricalComparator-CCAE.pdf'), 
+#     width = 7, height = 7.1)
+
+pdf(file.path(plotsPath,'HistoricalComparator-CCAE-calibrated.pdf'), 
     width = 7, height = 7.1)
 
 
@@ -377,7 +383,8 @@ for(eid in exposures_HC){
                                                 method = method,
                                                 exposure_id = eid,
                                                 analysis_ids = c(1:8),
-                                                sensitivity_level = .5)
+                                                sensitivity_level = .5,
+                                                calibration = calibrationFlag)
 }
 
 
@@ -407,7 +414,10 @@ exposures_SCCS = c(211983, 211833, 21184, 21185, 21215)
 # 211981 has a weird bug somewhere for Bayesian,too
 # performance not-so-different if SCCS
 
-pdf(file.path(plotsPath,'SCCS-CCAE.pdf'), 
+# pdf(file.path(plotsPath,'SCCS-CCAE.pdf'), 
+#     width = 7, height = 7.3)
+
+pdf(file.path(plotsPath,'SCCS-CCAE-calibrated.pdf'), 
     width = 7, height = 7.3)
 
 for(eid in exposures_SCCS){
@@ -416,7 +426,8 @@ for(eid in exposures_SCCS){
                                                 exposure_id = eid,
                                                 analysis_ids = c(1:8, 13:14),
                                                 sensitivity_level = 0.5,
-                                                showPlot = TRUE)
+                                                showPlot = TRUE,
+                                                calibration = calibrationFlag)
 }
 
 dev.off()
