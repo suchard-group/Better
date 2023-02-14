@@ -152,8 +152,8 @@ frequentistMSE <- function(connection,
 db = 'CCAE'
 me = 'HistoricalComparator'
 #me = 'SCCS'
-eid = 211983
-aid = 2
+eid = 211833
+aid = 1
 #aid = 6
 
 #(
