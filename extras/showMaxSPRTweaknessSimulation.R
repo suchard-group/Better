@@ -292,7 +292,7 @@ RatesB = getBayesRejectionRate(bayesSim,
 pdf('~/Documents/Research/betterResults/plots/maxSPRT-weakness-simulation.pdf',
     height = 4, width = 7.5)
 
-type1colors = wes_palette("GrandBudapest1")[c(1,4,3)]
+type1colors = wes_palette("GrandBudapest1")[c(1,2,4)]
 
 ## (i) everything goes according to plan
 allRates = Rates0$rejectByPeriod %>% mutate(type = 'A')
@@ -345,7 +345,7 @@ ggplot(allRates, aes(x=Period, y=rejectRate, color = type)) +
 
 allRates = allRates %>% bind_rows(RatesB$rejectByPeriod %>% mutate(type = 'D'))
 
-type1colors = c(type1colors, wes_palette("Darjeeling2")[2])
+type1colors = c(type1colors, wes_palette("GrandBudapest1")[3])
 
 ggplot(allRates, aes(x=Period, y=rejectRate, color = type)) +
   geom_hline(yintercept = .05, color = 'gray60', 
@@ -411,8 +411,7 @@ allRates = bind_rows(Rates0$rejectByPeriod %>% mutate(type = 'A'),
                      Rates2$rejectByPeriod %>% mutate(type = 'C'),
                      RatesB$rejectByPeriod %>% mutate(type = 'D'))
 
-type1colors = c(wes_palette("GrandBudapest1")[c(1,4,3)], 
-                wes_palette("Darjeeling2")[2])
+type1colors = c(wes_palette("GrandBudapest1")[c(1,2,4,3)])
 
 ggplot(allRates, aes(x=Period, y=rejectRate, color = type)) +
   geom_hline(yintercept = .05, color = 'gray60', 
@@ -441,7 +440,7 @@ ggplot(allRates, aes(x=Period, y=rejectRate, color = type)) +
 pdf('~/Documents/Research/betterResults/plots/maxSPRT-weakness-simulation-updated.pdf',
     height = 4, width = 7.5)
 
-type1colors = wes_palette("GrandBudapest1")[c(1,4,3)]
+type1colors = wes_palette("GrandBudapest1")[c(1,2,4)]
 
 ## (i) everything goes according to plan (24 data looks)
 allRates = Rates2_valid$rejectByPeriod %>% mutate(type = 'A')
@@ -491,7 +490,7 @@ ggplot(allRates, aes(x=Period, y=rejectRate, color = type)) +
   theme(legend.position = 'none')
 
 ## (iv) Bayesian performance
-type1colors = c(type1colors, wes_palette("Darjeeling2")[2])
+type1colors = c(type1colors, wes_palette("GrandBudapest1")[3])
 allRates = allRates %>% bind_rows(RatesB$rejectByPeriod %>% mutate(type = 'D')) 
 
 allRates = allRates %>%
@@ -545,8 +544,7 @@ allRates_pos = bind_rows(Rates4_valid$rejectByPeriod %>% mutate(type = 'A'),
                      Rates4_longer$rejectByPeriod %>% mutate(type = 'C'),
                      RatesB_pos$rejectByPeriod %>% mutate(type = 'D'))
 
-powerColors = c(wes_palette("GrandBudapest1")[c(1,4,3)], 
-                wes_palette("Darjeeling2")[2])
+powerColors = c(wes_palette("GrandBudapest1")[c(1,2,4,3)])
 
 ggplot(allRates_pos, aes(x=Period, y=rejectRate, color = type)) +
   geom_hline(yintercept = .05, color = 'gray60', 
@@ -610,7 +608,7 @@ source('./extras/frequentistDecisionComparisons.R')
 db = 'CCAE'
 eid = 211983 # Zoster two doses
 me = 'HistoricalComparator'
-aid = 4
+aid = 2
 
 cachepath = './localCache/'
 maxSPRT_filepath = './localCache/EstimateswithImputedPcs_CCAE.rds'
@@ -634,7 +632,8 @@ maxsprt_errors = resLst$errorRate %>%
 
 allRates_maxsprt = allRates_maxsprt %>% bind_rows(maxsprt_errors)
 
-type1colors = c(type1colors[1:3], wes_palette("Darjeeling1")[5])
+type1colors = c(wes_palette("GrandBudapest1")[c(1,2,4)],
+                wes_palette("IsleofDogs2")[3])
 
 ggplot(allRates_maxsprt, aes(x=Period, y=rejectRate, color = type)) +
   geom_hline(yintercept = .05, color = 'gray60', 
@@ -646,7 +645,7 @@ ggplot(allRates_maxsprt, aes(x=Period, y=rejectRate, color = type)) +
        y = 'Type 1 error rate',
        color = 'Type 1 error of:') +
   scale_x_continuous(limits = c(0.5,12), breaks = seq(from=3,to=12,by=3)) +
-  scale_y_continuous(limits = c(0,0.5), breaks = c(0, 0.05, 0.1, 0.25, 0.3, 0.5)) +
+  scale_y_continuous(limits = c(0,0.5), breaks = c(0, 0.05, 0.1, 0.25, 0.5)) +
   scale_color_manual(values = type1colors,
                      labels = c('MaxSPRT (oracle)',
                                 'MaxSPRT (hacky extension)',
