@@ -50,8 +50,10 @@ simulateOnePerson <- function(weeklyRates,
 ## 2. function to simulate a lot of individual trajectories (post-vaccination campaign)----
 ## with a 1-d binary simple covariate X
 
+# Feb 16 2023 update: allow non-uniform exposure week distributions....
 simulateManyPersons <- function(N,
                                 weeklyRates,
+                                exposureRates = NULL,
                                 presentTime = TRUE,
                                 xEffect = 1.5,
                                 totalWeeks = 52,
@@ -64,9 +66,16 @@ simulateManyPersons <- function(N,
   X = rbinom(N, 1, 0.5)
   Xfactors = sapply(X, function(xi) ifelse(xi == 1, xEffect, 1))
   
+  ## engineer exposureRates to match total number of exposure weeks possible
+  if(!is.null(exposureRates)){
+    exposureRates = exposureRates[1:(totalWeeks-atRiskWeeks)]
+  }
+  
   ## randomly assign exposure weeks
   if(presentTime){
-    exposureWeeks = sample(totalWeeks-atRiskWeeks, N, replace = TRUE)
+    exposureWeeks = sample(totalWeeks-atRiskWeeks, N, 
+                           replace = TRUE,
+                           prob = exposureRates)
   }else{
     exposureWeeks = NULL
   }
@@ -284,6 +293,75 @@ seqResHC = sequentialAnalysis(analysisFunc = runHistoricalComparator,
 seqResHC$RRestimates
 
 longDataSCCS = caseOnly(longDataHC)
+seqResSCCS = sequentialAnalysis(analysisFunc = runSCCS,
+                                presentData = longDataSCCS,
+                                filterCases = FALSE)
+seqResSCCS$RRestimates
+
+
+#### CODE TO RUN ####
+#### try everything all at once ----
+
+# annual background rate: ~ 1 in 3 persons
+refRate = 1/(52*3) 
+
+# seasonality rate factors
+seasonFactors = c(1, 0.6, 1.3, 0.8)
+
+# historical differential rate factor
+historyRate = 0.3
+
+# total number of people to simulate
+N.pop = 5000
+
+# rate factor for the binary covariate X
+xeffect = 1.5
+
+# random seed
+theSeed = 42
+
+# construct weekly reference rates with seasonality
+refWeeklyRates = c(rep(refRate * seasonFactors[1], 13),
+                   rep(refRate * seasonFactors[2], 13),
+                   rep(refRate * seasonFactors[3], 13),
+                   rep(refRate * seasonFactors[4], 13))
+
+# Feb 16 2023: build non-uniform weekly exposure rates as well
+exposureRates = c(rep(seasonFactors[1], 13),
+                  rep(seasonFactors[2], 13),
+                  rep(seasonFactors[3], 13),
+                  rep(seasonFactors[4], 13))
+
+# present-time and historical trajectories... ----
+presentTrajs = simulateManyPersons(N = N.pop, 
+                                   xEffect = xeffect,
+                                   weeklyRates = refWeeklyRates,
+                                   exposureRates = exposureRates,
+                                   seed = theSeed)
+historicTrajs = simulateManyPersons(N = N.pop, 
+                                    xEffect = xeffect,
+                                    weeklyRates = refWeeklyRates * historyRate,
+                                    exposureRates = NULL,
+                                    presentTime = FALSE,
+                                    seed = theSeed)
+
+# reformat data to long format
+# also extract cases only for SCCS
+longDataHC = prepDataHC(presentTrajs)
+historyLongDataHC = prepDataHC(historicTrajs)
+
+longDataSCCS = caseOnly(longDataHC)
+
+# run sequential analysis----
+## HC
+seqResHC = sequentialAnalysis(analysisFunc = runHistoricalComparator,
+                              presentData = longDataHC,
+                              historyData = historyLongDataHC,
+                              seasonWeeks = 4,
+                              numBatches = 13)
+seqResHC$RRestimates
+
+## SCCS 
 seqResSCCS = sequentialAnalysis(analysisFunc = runSCCS,
                                 presentData = longDataSCCS,
                                 filterCases = FALSE)
