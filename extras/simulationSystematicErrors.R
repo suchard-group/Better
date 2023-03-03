@@ -3,6 +3,8 @@
 # using Historical Comparator, and SCCS
 
 library(foreach)
+library(tidyverse)
+library(wesanderson)
 
 ## 1. function to simulate an individual trajectory ----
 ## given weekly background rates, and 
@@ -101,22 +103,22 @@ simulateManyPersons <- function(N,
               currentData = presentTime))
 }
 
-## try it-----
-
-refRate = 1/(52*3) # annual background rate ~ 1 in 3 persons
-
-refWeeklyRates = c(rep(refRate, 13),
-                   rep(refRate * 0.6, 13),
-                   rep(refRate * 1.3, 13),
-                   rep(refRate * 0.8, 13))
-
-presentTrajs = simulateManyPersons(N = 1000, 
-                                   xEffect = 1,
-                                   weeklyRates = refWeeklyRates)
-historicTrajs = simulateManyPersons(N = 1000, 
-                                    xEffect = 1,
-                                    weeklyRates = refWeeklyRates * 0.2,
-                                    presentTime = FALSE)
+# ## try it-----
+# 
+# refRate = 1/(52*3) # annual background rate ~ 1 in 3 persons
+# 
+# refWeeklyRates = c(rep(refRate, 13),
+#                    rep(refRate * 0.6, 13),
+#                    rep(refRate * 1.3, 13),
+#                    rep(refRate * 0.8, 13))
+# 
+# presentTrajs = simulateManyPersons(N = 1000, 
+#                                    xEffect = 1,
+#                                    weeklyRates = refWeeklyRates)
+# historicTrajs = simulateManyPersons(N = 1000, 
+#                                     xEffect = 1,
+#                                     weeklyRates = refWeeklyRates * 0.2,
+#                                     presentTime = FALSE)
 
 
 # 3. Data prep functions ----
@@ -159,9 +161,9 @@ caseOnly <- function(longData){
   return(longData %>% filter(indivId %in% caseIds))
 }
 
-## try this...
-longDataHC = prepDataHC(presentTrajs)
-longDataSCCS = caseOnly(longDataHC)
+# ## try this...
+# longDataHC = prepDataHC(presentTrajs)
+# longDataSCCS = caseOnly(longDataHC)
 
 
 # 4. HC estimation, static ----
@@ -191,13 +193,13 @@ runHistoricalComparator <- function(presentData,
               data = allData))
 }
 
-## try this...
-longDataHC = prepDataHC(presentTrajs)
-historyLongDataHC = prepDataHC(historicTrajs)
-
-HCresults = runHistoricalComparator(longDataHC, 
-                              historyLongDataHC)
-summary(HCresults$model)
+# ## try this...
+# longDataHC = prepDataHC(presentTrajs)
+# historyLongDataHC = prepDataHC(historicTrajs)
+# 
+# HCresults = runHistoricalComparator(longDataHC, 
+#                               historyLongDataHC)
+# summary(HCresults$model)
 
 # 5. SCCS estimation, static ----
 runSCCS <- function(presentData, filterCases = TRUE){
@@ -220,9 +222,9 @@ runSCCS <- function(presentData, filterCases = TRUE){
               data = allData))
 }
 
-## try this ----
-SCCSresults = runSCCS(longDataHC, filterCases = TRUE)
-summary(SCCSresults$model)
+# ## try this ----
+# SCCSresults = runSCCS(longDataHC, filterCases = TRUE)
+# summary(SCCSresults$model)
 
 # 6. sequential analysis ----
 # (for now: data accrual order by order of vaccination exposure for the individuals)
@@ -245,8 +247,8 @@ batchData <- function(longData, numBatches = 13){
   return(longData)
 }
 
-## try it... 
-longDataHC_batches = batchData(longDataHC)
+# ## try it... 
+# longDataHC_batches = batchData(longDataHC)
 
 sequentialAnalysis <- function(analysisFunc, 
                                presentData, 
@@ -284,19 +286,19 @@ sequentialAnalysis <- function(analysisFunc,
               presentData = presentData))
 }
 
-## try it 
-seqResHC = sequentialAnalysis(analysisFunc = runHistoricalComparator,
-                              presentData = longDataHC,
-                              historyData = historyLongDataHC,
-                              seasonWeeks = 4,
-                              numBatches = 13)
-seqResHC$RRestimates
-
-longDataSCCS = caseOnly(longDataHC)
-seqResSCCS = sequentialAnalysis(analysisFunc = runSCCS,
-                                presentData = longDataSCCS,
-                                filterCases = FALSE)
-seqResSCCS$RRestimates
+# ## try it 
+# seqResHC = sequentialAnalysis(analysisFunc = runHistoricalComparator,
+#                               presentData = longDataHC,
+#                               historyData = historyLongDataHC,
+#                               seasonWeeks = 4,
+#                               numBatches = 13)
+# seqResHC$RRestimates
+# 
+# longDataSCCS = caseOnly(longDataHC)
+# seqResSCCS = sequentialAnalysis(analysisFunc = runSCCS,
+#                                 presentData = longDataSCCS,
+#                                 filterCases = FALSE)
+# seqResSCCS$RRestimates
 
 
 #### CODE TO RUN ####
@@ -309,7 +311,7 @@ refRate = 1/(52*3)
 seasonFactors = c(1, 0.6, 1.3, 0.8)
 
 # historical differential rate factor
-historyRate = 0.3
+historyRate = 0.5
 
 # total number of people to simulate
 N.pop = 5000
@@ -365,4 +367,44 @@ seqResHC$RRestimates
 seqResSCCS = sequentialAnalysis(analysisFunc = runSCCS,
                                 presentData = longDataSCCS,
                                 filterCases = FALSE)
+# ## (Load from pre-saved results)
+# seqResSCCS = readRDS('./localCache/seqResSCCS-model-estimates.rds')
+
 seqResSCCS$RRestimates
+
+
+## visualize for manuscript presentation----
+# (1) the "seasonality effect"
+
+refPopSize = 1000 # scale weekly rates to per 1k people
+
+weeklyRatesTable = tibble(week = seq(from = 1, to = length(refWeeklyRates)*2, by = 1),
+                          rate = c(refWeeklyRates*historyRate, refWeeklyRates) * refPopSize)
+
+ggplot(data = weeklyRatesTable, aes(x=week, y = rate)) +
+  geom_vline(xintercept = 52, color = 'gray50', linewidth = 1.3, linetype = 2)+
+  geom_line() +
+  labs(x='Week', y='Expected incidence rate\n(per 1k persons)')+
+  theme_bw(base_size = 16)
+
+
+# (2) show estimates and 95% CIs
+estimates = bind_rows(
+  seqResHC$RRestimates %>% mutate(method = 'Historical Comparator'),
+  seqResSCCS$RRestimates %>% mutate(method = 'Self-controlled Case Series')
+)
+
+ggplot(data = estimates, aes(x = batch, y = estimate, color = method)) +
+  geom_hline(yintercept = 2, color = 'gray50', 
+             linewidth = 1, linetype = 2)+
+  geom_pointrange(aes(ymin = LB95, ymax = UB95),
+                  position = position_dodge(width = 0.3),
+                  size = 0.7, linewidth = 1.2)+
+  labs(x= 'Sequential analysis period (in months)', 
+       y = 'Rate ratio estimate (95% CI)',
+       color = '') +
+  scale_x_continuous(breaks = seq(from=2, to=12, by=2))+
+  scale_color_manual(values = wes_palette("Darjeeling2")[2:3])+
+  theme_bw(base_size = 16)+
+  theme(legend.position = c(0.75,0.85), 
+        legend.title = NULL)
