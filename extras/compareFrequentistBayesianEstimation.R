@@ -21,6 +21,8 @@ library(wesanderson)
 # 2. compute estimation error (MSE?)-----
 # 06/28/2022: add 95% CIs
 # 07/12/2022: add option to correct for the shifts for IPCs
+# 03/03/2023: add CI coverage rates
+# 03/03/2023: add an option to include pre-loaded results to save loading time
 frequentistMSE <- function(connection,
                            schema,
                            database_id,
@@ -30,62 +32,43 @@ frequentistMSE <- function(connection,
                            calibration = FALSE,
                            correct_shift = FALSE,
                            localEstimatesPath = NULL,
+                           localEstimates = NULL,
                            cachePath = './localCache/'){
   # pull estimates
-  if(is.null(localEstimatesPath)){
-    # sql <- "SELECT estimate.*
-    # FROM @schema.ESTIMATE estimate
-    # WHERE database_id = '@database_id'
-    #       AND method = '@method'
-    #       AND analysis_id = @analysis_id
-    #       AND exposure_id = @exposure_id"
-    # sql <- SqlRender::render(sql, 
-    #                          schema = schema,
-    #                          database_id = database_id,
-    #                          method = method,
-    #                          analysis_id = analysis_id,
-    #                          exposure_id = exposure_id)
-    # sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
-    # estimatesNC <- DatabaseConnector::querySql(connection, sql)
-    
-    sql <- "SELECT estimate.*
+  if(is.null(localEstimates)){
+    if(is.null(localEstimatesPath)){
+      sql <- "SELECT estimate.*
     FROM @schema.ESTIMATE_IMPUTED_PCS estimate
     WHERE database_id = '@database_id'
           AND method = '@method'
           AND analysis_id = @analysis_id
           AND exposure_id = @exposure_id"
-    sql <- SqlRender::render(sql, 
-                             schema = schema,
-                             database_id = database_id,
-                             method = method,
-                             analysis_id = analysis_id,
-                             exposure_id = exposure_id)
-    sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
-    estimatesPC <- DatabaseConnector::querySql(connection, sql)
-    names(estimatesPC) = tolower(names(estimatesPC))
+      sql <- SqlRender::render(sql, 
+                               schema = schema,
+                               database_id = database_id,
+                               method = method,
+                               analysis_id = analysis_id,
+                               exposure_id = exposure_id)
+      sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+      estimatesPC <- DatabaseConnector::querySql(connection, sql)
+      names(estimatesPC) = tolower(names(estimatesPC))
+    }else{
+      estimatesPC = readRDS(localEstimatesPath)
+      names(estimatesPC) = SqlRender::camelCaseToSnakeCase(names(estimatesPC))
+      
+      estimatesPC = estimatesPC %>%
+        filter(database_id == !!database_id,
+               method == !!method,
+               analysis_id == !!analysis_id,
+               exposure_id == !!exposure_id)
+    }
   }else{
-    estimatesPC = readRDS(localEstimatesPath)
-    names(estimatesPC) = SqlRender::camelCaseToSnakeCase(names(estimatesPC))
-    
-    estimatesPC = estimatesPC %>%
+    estimatesPC = localEstimates %>%
       filter(database_id == !!database_id,
              method == !!method,
              analysis_id == !!analysis_id,
              exposure_id == !!exposure_id)
-      
   }
-  
-  # names(estimatesNC) = tolower(names(estimatesNC))
-  # estimatesNC = estimatesNC %>%
-  #   filter(!is.na(log_rr) & !is.na(se_log_rr) & !is.na(llr) & !is.na(critical_value)) %>%
-  #   filter(period_id == max(period_id)) %>%
-  #   select(database_id, method, analysis_id, 
-  #          exposure_id, outcome_id, period_id, 
-  #          p, log_rr, se_log_rr, llr, critical_value,
-  #          calibrated_p, calibrated_log_rr, calibrated_se_log_rr,
-  #          calibrated_llr,
-  #          calibrated_ci_95_lb, calibrated_ci_95_ub,
-  #          ci_95_lb, ci_95_ub)
   
   estimatesPC = estimatesPC %>%
     filter(!is.na(log_rr) & !is.na(se_log_rr) & !is.na(llr) & !is.na(critical_value)) %>%
@@ -125,6 +108,13 @@ frequentistMSE <- function(connection,
     mutate(effect_size = if_else(is.na(effect_size), 1, effect_size),
            negativeControl = (effect_size == 1))
   
+  # check if estimates are empty
+  if(nrow(estimates) < 1){
+    cat(sprintf('No viable MaxSPRT estimates for %s, %s, exposure %s, analysis %s! Skipped.\n',
+                database_id, method, exposure_id, analysis_id))
+    return(list(estimates = NULL, MSEs = NULL))
+  }
+  
   # do shift corrections here...
   if(correct_shift){
     estimates = correctShift(estimates, log_CI = TRUE, cachePath = cachePath)$shifted
@@ -137,11 +127,16 @@ frequentistMSE <- function(connection,
     group_by(outcome_id) %>%
     filter(period_id == max(period_id)) %>%
     mutate(error = log_rr - truth,
-           calibrated_error = calibrated_log_rr - truth) %>%
+           calibrated_error = calibrated_log_rr - truth,
+           cover = (ci_95_lb <= truth & ci_95_ub >= truth),
+           calibrated_cover = (calibrated_ci_95_lb <= truth & calibrated_ci_95_ub >= truth)) %>%
     ungroup() %>%
     group_by(database_id, method, analysis_id, 
              exposure_id, effect_size) %>%
-    summarise(mse = mean(error^2), calibrated_mse = mean(calibrated_error^2)) %>%
+    summarise(mse = mean(error^2), 
+              calibrated_mse = mean(calibrated_error^2),
+              coverage = mean(cover, na.rm = TRUE),
+              calibrated_coverage = mean(calibrated_cover, na.rm = TRUE)) %>%
     ungroup()
   
   return(list(MSEs = MSEs, estimates = estimates))
@@ -184,25 +179,58 @@ freqMSE2 = frequentistMSE(NULL,
                           method = me,
                           exposure_id = eid,
                           analysis_id = aid,
-                          correct_shift = TRUE,
+                          correct_shift = FALSE,#TRUE,
                           localEstimatesPath = estimatesPath)
+freqMSE2$MSEs
+
+# 03/03/2023: try with loaded local estimates...
+allIpcEstimates = readRDS('./localCache/allIpcEstimates.rds')
+
+freqMSE3 = frequentistMSE(NULL,
+                          'eumaeus',
+                          database_id = db,
+                          method = me,
+                          exposure_id = eid,
+                          analysis_id = aid,
+                          correct_shift = FALSE,#TRUE,
+                          localEstimatesPath = NULL,
+                          localEstimates = allIpcEstimates)
+freqMSE3$MSEs
 
 # 2.b MSEs for Bayesian version as well
 # 06/28/2022: add 95% credible intervals
+# 03/03/2023: subset on outcome_ids (to focus on MaxSPRT estimable outcomes only)
+# 03/03/2023: add CI coverage summary
 BayesMSE <- function(summaryPath, 
                      database,
                      method,
                      exposure_id,
                      analysis_id,
+                     outcomeSubset = NULL,
                      prior = 3,
                      cachePath = './localCache/'){
   
   fname = sprintf('%s_%s_%s_period12_analysis%s_summary.rds',
                   database, method, exposure_id, analysis_id)
   
-  fpath = file.path(summaryPath, fname)
+  if(file.exists(file.path(summaryPath, fname))){
+    # try with period12 first
+    summ = readRDS(file.path(summaryPath, fname))
+  }else{
+    # if doesn't exist, try period9
+    fname = sprintf('%s_%s_%s_period9_analysis%s_summary.rds',
+                    database, method, exposure_id, analysis_id)
+    if(file.exists(file.path(summaryPath, fname))){
+      summ = readRDS(file.path(summaryPath, fname))
+    }else{
+      # if still doesn't exist, output a message and move on
+      cat(sprintf('Results summary doesn\'t exist for %s, %s, exposure %s and analysis %s! Skipped.\n',
+                  database, method, exposure_id, analysis_id))
+      return(list(estimates = NULL, MSEs = NULL))
+    }
+  }
   
-  summ = readRDS(fpath)
+  #summ = readRDS(fpath)
   
   estimates = summ %>% 
     filter(prior_id == prior) %>%
@@ -210,6 +238,19 @@ BayesMSE <- function(summaryPath,
            CI95_lb, CI95_ub,
            adjustedCI95_lb, adjustedCI95_ub,
            outcome_id, prior_id)
+  
+  # subset on outcome_id if...
+  if(!is.null(outcomeSubset)){
+    estimates = estimates %>%
+      filter(outcome_id %in% outcomeSubset)
+  }
+  
+  # check if estimates are empty...
+  if(nrow(estimates) < 1){
+    cat(sprintf('No viable Bayesian estimates for %s, %s, exposure %s, analysis %s! Skipped.\n',
+                database, method, exposure_id, analysis_id))
+    return(list(estimates = NULL, MSEs=NULL))
+  }
   
   # get effect sizes
   IPCs = readRDS(file.path(cachePath, 'allIPCs.rds'))
@@ -229,10 +270,15 @@ BayesMSE <- function(summaryPath,
   MSEs = estimates %>%
     group_by(outcome_id) %>%
     mutate(error = postMedian - truth,
-           adjusted_error = adjustedPostMedian - truth) %>%
+           adjusted_error = adjustedPostMedian - truth,
+           cover = (CI95_lb <= truth & CI95_ub >= truth),
+           adjusted_cover = (adjustedCI95_lb <= truth & adjustedCI95_ub >= truth)) %>%
     ungroup() %>%
     group_by(effect_size) %>%
-    summarise(mse = mean(error^2), adjusted_mse = mean(adjusted_error^2)) %>%
+    summarise(mse = mean(error^2), 
+              adjusted_mse = mean(adjusted_error^2),
+              coverage = mean(cover, na.rm = TRUE),
+              adjusted_covearge = mean(adjusted_cover, na.rm = TRUE)) %>%
     ungroup()
   
   return(list(estimates = estimates, MSEs=MSEs))
@@ -253,7 +299,77 @@ bMSE = BayesMSE(summaryPath = summarypath,
                 exposure_id = eid,
                 analysis_id = aid,
                 prior =3)
-# bMSE$MSEs
+
+## subset on outcomes estimable by MaxSPRT only...
+bMSE = BayesMSE(summaryPath = summarypath,
+                database = db,
+                method = me,
+                exposure_id = eid,
+                analysis_id = aid,
+                #outcomeSubset = unique(freqMSE2$estimates$outcome_id),
+                prior =2)
+bMSE$MSEs
+
+
+# 03/03/2023 UPDATE -------
+# pool all MSEs (and coverage results for MaxSPRT and Bayesian results)
+# and save!
+
+# (1) do it for CCAE first
+database = 'CCAE'
+summarypath = '~/Documents/Research/betterResults/betterResults-CCAE/'
+estimatesPath = './localCache/EstimateswithImputedPcs_CCAE.rds'
+
+exposure_ids = readRDS('./localCache/exposures.rds')$exposure_id
+methods = c(rep('HistoricalComparator', 12), rep('SCCS', 15))
+analysis_ids = c(1:12, 1:15)
+nAnalyses = length(analysis_ids)
+
+allCCAE_MSEs = NULL
+
+for(eid in exposure_ids){
+  for(i in 1:nAnalyses){
+    me = methods[i]; aid = analysis_ids[i]
+    
+    # MaxSPRT
+    freqMSE = frequentistMSE(NULL,
+                              'eumaeus',
+                              database_id = database,
+                              method = me,
+                              exposure_id = eid,
+                              analysis_id = aid,
+                              correct_shift = FALSE,
+                              localEstimatesPath = estimatesPath)
+    
+    # Bayesian
+    bMSE = BayesMSE(summaryPath = summarypath,
+                    database = database,
+                    method = me,
+                    exposure_id = eid,
+                    analysis_id = aid,
+                    outcomeSubset = NULL, #unique(freqMSE$estimates$outcome_id),
+                    prior = 2)
+    
+    # combine column-wise
+    if(!is.null(freqMSE$MSEs) && !is.null(bMSE$MSEs)){
+      this.chunk = cbind(freqMSE$MSEs %>% rename(maxSPRT_mse = mse,
+                                                 maxSPRT_coverage = coverage),
+                         bMSE$MSEs %>% select(-effect_size) %>%
+                           rename(Bayesian_mse = mse,
+                                  Bayesian_coverage = coverage))
+    }else{
+      cat(sprintf('Results not available for database %s, %s, exposure %s, analysis %s...\n',
+                  database, me, eid, aid))
+      this.chunk = NULL
+    }
+    
+    allCCAE_MSEs = rbind(allCCAE_MSEs, this.chunk)
+  }
+}
+# save to local 
+saveRDS(allCCAE_MSEs, './localCache/allCCAE_MSEs.rds')
+
+
 
 ## combine frequentist and Bayesian results and output a table
 # combined_mses = cbind(freqMSEs %>% select(effect_size, mse, calibrated_mse),
@@ -306,6 +422,8 @@ bMSE = BayesMSE(summaryPath = summarypath,
 # 
 # ggarrange(p1, p2, ncol=2, labels = c('raw', 'adj'),
 #           widths = c(3,3.8))
+
+
 
 # 02/07/2023 new plot -----
 # Make forrest-style (?) plots to compare MaxSPRT & Bayesian estimates
