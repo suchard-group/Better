@@ -315,59 +315,75 @@ bMSE$MSEs
 # pool all MSEs (and coverage results for MaxSPRT and Bayesian results)
 # and save!
 
-# (1) do it for CCAE first
-database = 'CCAE'
-summarypath = '~/Documents/Research/betterResults/betterResults-CCAE/'
-estimatesPath = './localCache/EstimateswithImputedPcs_CCAE.rds'
+#summarypath = '~/Documents/Research/betterResults/betterResults-CCAE/'
+#estimatesPath = './localCache/EstimateswithImputedPcs_CCAE.rds'
+
+allIpcEstimates = readRDS('./localCache/allIpcEstimates.rds')
 
 exposure_ids = readRDS('./localCache/exposures.rds')$exposure_id
 methods = c(rep('HistoricalComparator', 12), rep('SCCS', 15))
 analysis_ids = c(1:12, 1:15)
 nAnalyses = length(analysis_ids)
 
-allCCAE_MSEs = NULL
+databases = c('CCAE', 'MDCD', 'MDCR', 'OptumEhr', 'OptumDod')
 
-for(eid in exposure_ids){
-  for(i in 1:nAnalyses){
-    me = methods[i]; aid = analysis_ids[i]
-    
-    # MaxSPRT
-    freqMSE = frequentistMSE(NULL,
-                              'eumaeus',
-                              database_id = database,
-                              method = me,
-                              exposure_id = eid,
-                              analysis_id = aid,
-                              correct_shift = FALSE,
-                              localEstimatesPath = estimatesPath)
-    
-    # Bayesian
-    bMSE = BayesMSE(summaryPath = summarypath,
-                    database = database,
-                    method = me,
-                    exposure_id = eid,
-                    analysis_id = aid,
-                    outcomeSubset = NULL, #unique(freqMSE$estimates$outcome_id),
-                    prior = 2)
-    
-    # combine column-wise
-    if(!is.null(freqMSE$MSEs) && !is.null(bMSE$MSEs)){
-      this.chunk = cbind(freqMSE$MSEs %>% rename(maxSPRT_mse = mse,
-                                                 maxSPRT_coverage = coverage),
-                         bMSE$MSEs %>% select(-effect_size) %>%
-                           rename(Bayesian_mse = mse,
-                                  Bayesian_coverage = coverage))
-    }else{
-      cat(sprintf('Results not available for database %s, %s, exposure %s, analysis %s...\n',
-                  database, me, eid, aid))
-      this.chunk = NULL
+allMSEs = NULL
+
+for(db in databases){
+  if(db %in% c('MDCD', 'MDCR')){
+    maxSPRTdb = paste0('IBM_', db)
+  }else{
+    maxSPRTdb = db
+  }
+  summarypath = sprintf('~/Documents/Research/betterResults/betterResults-%s/',
+                        db)
+  cat(sprintf('\n\nWorking on database: %s...\n\n', db))
+  
+  for(eid in exposure_ids){
+    for(i in 1:nAnalyses){
+      me = methods[i]; aid = analysis_ids[i]
+      
+      # MaxSPRT
+      freqMSE = frequentistMSE(NULL,
+                               'eumaeus',
+                               database_id = maxSPRTdb,
+                               method = me,
+                               exposure_id = eid,
+                               analysis_id = aid,
+                               correct_shift = FALSE,
+                               localEstimates = allIpcEstimates)
+      #localEstimatesPath = estimatesPath)
+      
+      # Bayesian
+      bMSE = BayesMSE(summaryPath = summarypath,
+                      database = maxSPRTdb,
+                      method = me,
+                      exposure_id = eid,
+                      analysis_id = aid,
+                      outcomeSubset = unique(freqMSE$estimates$outcome_id),
+                      prior = 2)
+      
+      # combine column-wise
+      if(!is.null(freqMSE$MSEs) && !is.null(bMSE$MSEs)){
+        this.chunk = cbind(freqMSE$MSEs %>% rename(maxSPRT_mse = mse,
+                                                   maxSPRT_coverage = coverage),
+                           bMSE$MSEs %>% select(-effect_size) %>%
+                             rename(Bayesian_mse = mse,
+                                    Bayesian_coverage = coverage))
+      }else{
+        cat(sprintf('Results not available for database %s, %s, exposure %s, analysis %s...\n',
+                    db, me, eid, aid))
+        this.chunk = NULL
+      }
+      
+      allMSEs = rbind(allMSEs, this.chunk)
     }
-    
-    allCCAE_MSEs = rbind(allCCAE_MSEs, this.chunk)
   }
 }
+
 # save to local 
-saveRDS(allCCAE_MSEs, './localCache/allCCAE_MSEs.rds')
+#saveRDS(allCCAE_MSEs, './localCache/allCCAE_MSEs.rds')
+saveRDS(allMSEs, './localCache/allMSEs.rds')
 
 
 
