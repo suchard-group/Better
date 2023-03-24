@@ -386,6 +386,40 @@ for(db in databases){
 saveRDS(allMSEs, './localCache/allMSEs.rds')
 
 
+# 03/23/2023: plot MSEs and coverage between maxSPRT and Bayesian----
+## filter out some very bad/weird rows
+MSEs = allMSEs %>% 
+  filter(maxSPRT_mse < 100, adjusted_mse < 100)
+
+effect_sizes = sort(unique(MSEs$effect_size))
+effect_labs = paste0('effect size = ', effect_sizes)
+names(effect_labs) = effect_sizes
+
+# (1) compare MSEs 
+ggplot(MSEs, aes(x=maxSPRT_mse, y = adjusted_mse)) +
+  geom_abline(slope = 1, intercept = 0, 
+              linetype = 2, color = 'gray50', size = 0.8) +
+  geom_point(size = 1.2) +
+  scale_y_continuous(limits = c(min(MSEs$maxSPRT_mse), max(MSEs$maxSPRT_mse)))+
+  labs(x = 'MSE by MaxSPRT', y = 'MSE by Bayesian correction') +
+  facet_grid(.~effect_size, labeller = labeller(effect_size = effect_labs)) +
+  theme_bw(base_size = 15)
+
+# (2) compare coverage rates
+ggplot(MSEs, aes(x=maxSPRT_coverage, 
+                 y= adjusted_covearge)) +
+  geom_abline(slope = 1, intercept = 0, 
+              linetype = 2, color = 'gray50', size = 0.8) +
+  geom_hline(yintercept = 0.95, 
+             linetype = 2, color = 'gray50', size = 0.8)+
+  geom_vline(xintercept = 0.95, 
+             linetype = 2, color = 'gray50', size = 0.8)+
+  geom_point(size = 1.2) +
+  scale_y_continuous(limits = c(min(MSEs$maxSPRT_coverage), max(MSEs$maxSPRT_coverage)))+
+  labs(x = 'Coverage rate by MaxSPRT', 
+       y = 'Coverage rate by \nBayesian correction') +
+  facet_grid(.~effect_size, labeller = labeller(effect_size = effect_labs)) +
+  theme_bw(base_size = 15)
 
 ## combine frequentist and Bayesian results and output a table
 # combined_mses = cbind(freqMSEs %>% select(effect_size, mse, calibrated_mse),
