@@ -179,7 +179,7 @@ freqMSE2 = frequentistMSE(NULL,
                           method = me,
                           exposure_id = eid,
                           analysis_id = aid,
-                          correct_shift = FALSE,#TRUE,
+                          correct_shift = TRUE,
                           localEstimatesPath = estimatesPath)
 freqMSE2$MSEs
 
@@ -192,7 +192,7 @@ freqMSE3 = frequentistMSE(NULL,
                           method = me,
                           exposure_id = eid,
                           analysis_id = aid,
-                          correct_shift = FALSE,#TRUE,
+                          correct_shift = TRUE,
                           localEstimatesPath = NULL,
                           localEstimates = allIpcEstimates)
 freqMSE3$MSEs
@@ -350,7 +350,7 @@ for(db in databases){
                                method = me,
                                exposure_id = eid,
                                analysis_id = aid,
-                               correct_shift = FALSE,
+                               correct_shift = TRUE,
                                localEstimates = allIpcEstimates)
       #localEstimatesPath = estimatesPath)
       
@@ -384,6 +384,9 @@ for(db in databases){
 # save to local 
 #saveRDS(allCCAE_MSEs, './localCache/allCCAE_MSEs.rds')
 saveRDS(allMSEs, './localCache/allMSEs.rds')
+
+# 03/23/2023: try to save a possibly (hopefully) de-bugged version
+saveRDS(allMSEs, './localCache/allMSEs-2.rds')
 
 
 # 03/23/2023: plot MSEs and coverage between maxSPRT and Bayesian----
