@@ -424,6 +424,60 @@ ggplot(MSEs, aes(x=maxSPRT_coverage,
   facet_grid(.~effect_size, labeller = labeller(effect_size = effect_labs)) +
   theme_bw(base_size = 15)
 
+# (3) produce summary statistics on results in (1) and (2)----
+MSEs_long = tibble(mse = c(MSEs$maxSPRT_mse, MSEs$adjusted_mse),
+                   method = rep(c('MaxSPRT', 'Bayesian'), 
+                                each = nrow(MSEs)))
+
+## try plotting histograms: still no good!
+ggplot(MSEs_long, aes(x=mse,fill = method)) +
+  geom_histogram(position = position_dodge()) +
+  scale_x_continuous('Mean squared errors (MSEs) for log RR estimation') +
+  theme_bw(base_size = 15)
+
+
+## MSEs:
+
+## utility function to produce summary statistics
+get_summ_stats <- function(v){
+  res = c(mean(v), quantile(v, probs = c(0.1, 0.25, 0.5, 0.75, 0.9)))
+  return(res)
+}
+
+MSEs_summary_table = as.data.frame(rbind(get_summ_stats(MSEs$adjusted_mse),
+                           get_summ_stats(MSEs$maxSPRT_mse)))
+
+names(MSEs_summary_table) = c('Average', 
+                              '10%', '25%', 'median', '75%', '90%')
+MSEs_summary_table = cbind(c('Bayesian','MaxSPRT'),
+                           MSEs_summary_table)
+names(MSEs_summary_table)[1] = ''
+
+print(xtable(MSEs_summary_table, digits = 3), include.rownames=FALSE)
+
+## Coverage rates:
+coverage_long = tibble(coverage = c(MSEs$maxSPRT_coverage, 
+                               MSEs$adjusted_covearge),
+                       effect_size = rep(MSEs$effect_size,2),
+                       method = rep(c('MaxSPRT', 'Bayesian'), 
+                                    each = nrow(MSEs)))
+coverage_summary = coverage_long %>% 
+  group_by(effect_size, method) %>%
+  summarize(average = mean(coverage),
+            Q1 = quantile(coverage, .25),
+            median = median(coverage),
+            Q3 = quantile(coverage, .75)) %>%
+  ungroup()
+
+print(xtable(coverage_summary, digits = 3), include.rownames=FALSE)
+
+# formatted_coverage_summary = NULL
+# for(es in unique(coverage_summary$effect_size)){
+#   
+# }
+
+
+
 ## combine frequentist and Bayesian results and output a table
 # combined_mses = cbind(freqMSEs %>% select(effect_size, mse, calibrated_mse),
 #                       bMSE$MSEs %>% select(mse, adjusted_mse))
