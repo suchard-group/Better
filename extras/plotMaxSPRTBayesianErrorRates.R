@@ -36,11 +36,12 @@ cachepath = './localCache/'
 # analyses results to check
 db = 'CCAE'
 #db = 'OptumEhr'
-eid = 211983 # Zoster two doses
+#eid = 211983 # Zoster two doses
 #eid = 21184 #H1N1
+eid = 211833 # HPV two doses
 me = 'HistoricalComparator'
 #me = 'SCCS'
-aid = 4
+aid = 2
 #pid = 3 # 1: sd=10; 2: sd=1.5; 3: sd=4 
 #tolerance = 0.004
 
@@ -149,13 +150,13 @@ res_raw = plotTempDelta1ByPriors(database_id = db,
                                  analysis_id = aid,
                                  exposure_id = eid,
                                  prior_ids = c(1:3), # include all priors for easier query later
-                                 alpha =0.05, #0.25, #
+                                 alpha = .292,#0.05, #0.25, #
                                  summaryPath = summarypath,
                                  cachePath = cachepath,
                                  useAdjusted = FALSE,
                                  showPlots = TRUE,
                                  stratifyByEffectSize = TRUE,
-                                 calibrate = FALSE, #TRUE, #
+                                 calibrate = TRUE, #
                                  outcomesInEstimates = NULL)
                                    #resLst$estimates)
 
@@ -178,11 +179,11 @@ res_adj = plotTempDelta1ByPriors(database_id = db,
                                  prior_ids = c(1:3),
                                  summaryPath = summarypath,
                                  cachePath = cachepath,
-                                 alpha = 0.04, #0.25
+                                 alpha = .292,#.308,#0.04, #0.25
                                  useAdjusted = TRUE,
                                  showPlots = TRUE,
                                  stratifyByEffectSize = TRUE,
-                                 calibrate = FALSE,  #TRUE, #
+                                 calibrate = TRUE, #
                                  #outcomesInEstimates = resLst$estimates)
                                  outcomesInEstimates = resLst$estimates)
 
@@ -345,8 +346,6 @@ print(p)
 
 ## (2) Type 2 error, with original scale so they don't look weird----
 
-Type2errors = Type2errors %>% filter(stats != 'delta1')
-
 type2cols = c(wes_palette("Zissou1")[3:4],wes_palette("Royal1")[4])
 
 p = ggplot(Type2errors, 
@@ -374,6 +373,7 @@ print(p)
 ## (3) Plot power when calibrating toward a certain alpha level-----
 # the alpha level for raw MaxSPRT set at 0.271
 # focus on MaxSPRT (no calibrated) only
+
 powers = Type2errors %>% 
   filter(approach != "1b: MaxSPRT w/ calibration") %>%
   mutate(power = 1-y) %>%
@@ -396,6 +396,55 @@ p = ggplot(powers,
   scale_alpha_continuous(range = c(0.2, 1), guide = 'none')+
   facet_grid(.~approach)+
   theme_bw(base_size = 13)+
+  theme(legend.position = 'bottom') # change to bottom legend...
+
+print(p)
+
+## (3)b plot power with different coloring for methods----
+## with different effect sizes as panels!
+
+# 03/29/2023: do this, but for HPV both doses----
+# calibrate towards MaxSPRT Type 1 error rate level...
+earlySplit = 4
+alphaLevel = 0.2
+
+errors_combined = bind_rows(maxsprt_errors,
+                            res_Bayes_raw,
+                            res_Bayes) %>%
+  mutate(stage = if_else(period_id <= earlySplit, alphaLevel, 1))
+Type2errors = errors_combined %>% 
+  filter(stringr::str_starts(stats, 'type 2')) %>% 
+  filter(stats != 'delta1')
+
+powers = Type2errors %>% 
+  mutate(power = 1-y) %>%
+  mutate(trueRR = sprintf('RR = %.1f', effect_size))
+
+period_breaks = seq(from = min(errors_combined$period_id),
+                    to = max(errors_combined$period_id),
+                    by = 2)
+period_labels = as.integer(period_breaks)
+
+powerCols = c(wes_palette("Darjeeling1")[5],
+              wes_palette("Darjeeling2")[2],
+              wes_palette("BottleRocket2")[3])
+
+p = ggplot(powers, 
+           aes(x=period_id, y=power, 
+               color = approach, 
+               alpha = stage))+
+  geom_line(size = 1.5) +
+  geom_point(size=2)+
+  scale_y_continuous(limits = c(0,1))+
+  scale_x_continuous(breaks = period_breaks, labels = period_labels)+
+  labs(x='analysis period (months)', 
+       y='power', 
+       caption = '', 
+       color='Statistical power of:')+
+  scale_color_manual(values = powerCols) +
+  scale_alpha_continuous(range = c(0.2, 1), guide = 'none')+
+  facet_grid(.~trueRR)+
+  theme_bw(base_size = 15)+
   theme(legend.position = 'bottom') # change to bottom legend...
 
 print(p)
