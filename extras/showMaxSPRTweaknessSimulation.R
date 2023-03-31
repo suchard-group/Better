@@ -443,7 +443,7 @@ pdf('~/Documents/Research/betterResults/plots/maxSPRT-weakness-simulation-update
 type1colors = wes_palette("GrandBudapest1")[c(1,2,4)]
 
 ## (i) everything goes according to plan (24 data looks)
-allRates = Rates2_valid$rejectByPeriod %>% mutate(type = 'A')
+allRates = Rates2_valid$rejectByPeriod %>% mutate(type = 'A: Oracle')
 
 ggplot(allRates, aes(x=Period, y=rejectRate)) +
   geom_hline(yintercept = .05, color = 'gray60', 
@@ -458,7 +458,8 @@ ggplot(allRates, aes(x=Period, y=rejectRate)) +
   theme_bw(base_size = 16)
 
 ## (ii) if shorter surveillance were planned out (hacky invalid extension)
-allRates = allRates %>% bind_rows(Rates2_shorter$rejectByPeriod %>% mutate(type = 'B'))
+allRates = allRates %>% bind_rows(Rates2_shorter$rejectByPeriod %>% 
+                                    mutate(type = 'B: Hacky extension'))
 
 ggplot(allRates, aes(x=Period, y=rejectRate, color = type)) +
   geom_hline(yintercept = .05, color = 'gray60', 
@@ -474,7 +475,8 @@ ggplot(allRates, aes(x=Period, y=rejectRate, color = type)) +
   theme(legend.position = 'none')
 
 ## (iii) if longer surveillance were planned out (early stopping)
-allRates = allRates %>% bind_rows(Rates3_longer$rejectByPeriod %>% mutate(type = 'C'))
+allRates = allRates %>% bind_rows(Rates3_longer$rejectByPeriod %>% 
+                                    mutate(type = 'C: Early stop'))
 
 ggplot(allRates, aes(x=Period, y=rejectRate, color = type)) +
   geom_hline(yintercept = .05, color = 'gray60', 
@@ -488,6 +490,22 @@ ggplot(allRates, aes(x=Period, y=rejectRate, color = type)) +
   scale_color_manual(values = type1colors) +
   theme_bw(base_size = 16)+
   theme(legend.position = 'none')
+
+## 03/28/2023: remake the all 3-maxSprt plot with legend on the colors...
+ggplot(allRates, aes(x=Period, y=rejectRate, color = type)) +
+  geom_hline(yintercept = .05, color = 'gray30', 
+             linewidth = 1.2, linetype=2)+
+  geom_vline(xintercept = c(12,24), color = 'brown', alpha = 0.6,
+             linewidth = 1.2, linetype=2)+
+  geom_line(linewidth = 1.5) +
+  labs(x='Data looks (10 expected incidents per look)', 
+       y = 'Type 1 error rate',
+       color = '') +
+  scale_x_continuous(limits = c(0.5,24), breaks = seq(from=3,to=24,by=3)) +
+  scale_y_continuous(limits = c(0,0.1), breaks = c(0,0.05, 0.1)) +
+  scale_color_manual(values = type1colors) +
+  theme_bw(base_size = 16)#+
+  # theme(legend.position = 'none')
 
 ## (iv) Bayesian performance
 type1colors = c(type1colors, wes_palette("GrandBudapest1")[3])
