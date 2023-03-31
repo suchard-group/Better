@@ -224,3 +224,18 @@ print(xtable(dataInfo, format = "latex", digits = 2),
       hline.after = NULL,
       only.contents = TRUE,
       sanitize.text.function = identity)
+
+# 03/31/2023: generate table for 1-42 days TaR for supplement
+estimates = readRDS('./localCache/negativeControlEstimatesCharacteristics.rds')
+dataInfo = characterizeDataHC(estimates,
+                              analysis_id = 5,
+                              hasPositiveExposure = TRUE,
+                              makeWideTable = FALSE,
+                              incidence_rate_factor = 1e4)
+
+print(xtable(dataInfo, format = "latex", digits = 2),
+      include.rownames = FALSE,
+      include.colnames = FALSE,
+      hline.after = NULL,
+      only.contents = TRUE,
+      sanitize.text.function = identity)
