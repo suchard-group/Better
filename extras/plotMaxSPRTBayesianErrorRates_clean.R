@@ -573,7 +573,10 @@ for(db in bayes_databases){
 }
 
 # correct Bayesian database_id's to be consistent!!
-## TBD ----
+all_type1s = all_type1s %>% 
+  mutate(database_id = if_else(database_id %in% c('MDCD','MDCR'),
+                               paste0('IBM_',database_id),
+                               database_id))
 
 # save to local cache folder
 saveRDS(all_type1s, './localCache/all_type1s_95threshold.rds')

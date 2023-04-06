@@ -48,3 +48,10 @@ readr::write_csv(allSummary, file.path(outputFolder, 'all_summary.csv'))
 all_mses = readRDS('./localCache/allMSEs-2.rds')
 readr::write_csv(all_mses, file.path(outputFolder, 'all_mses.csv'))
 
+all_type1s = readRDS('./localCache/all_type1s_95threshold.rds')
+readr::write_csv(all_type1s, file.path(outputFolder, 'all_type1s.csv'))
+
+
+
+
+
