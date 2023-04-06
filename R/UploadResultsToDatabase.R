@@ -14,14 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#' Get specifications for the Eumaeus results data model
+#' Get specifications for the Better results data model
 #'
 #' @return
 #' A tibble data frame object with specifications
 #'
 #' @export
 getResultsDataModelSpecifications <- function() {
-  pathToCsv <- system.file("settings", "resultsModelSpecs.csv", package = "Eumaeus")
+  pathToCsv <- system.file("settings", "betterResultsModelSpecs.csv", package = "Better")
   resultsDataModelSpecifications <- readr::read_csv(file = pathToCsv, col_types = readr::cols())
   return(resultsDataModelSpecifications)
 }
@@ -139,7 +139,7 @@ appendNewRows <- function(data, newData, tableName, specifications = getResultsD
 }
 
 
-#' Create the results data model tables on a database server.
+#' Create the results data model tables for the Better study on a database server.
 #'
 #' @details
 #' Only PostgreSQL servers are supported.
@@ -160,7 +160,7 @@ createResultsDataModel <- function(connectionDetails, schema) {
     stop("Schema '", schema, "' not found on database. Only found these schemas: '", paste(schemas, collapse = "', '"), "'")
   }
   DatabaseConnector::executeSql(connection, sprintf("SET search_path TO %s;", schema), progressBar = FALSE, reportOverallTime = FALSE)
-  pathToSql <- system.file("sql", "postgresql", "CreateResultsTables.sql", package = "Eumaeus")
+  pathToSql <- system.file("sql", "postgresql", "CreateResultsTablesBetter.sql", package = "Better")
   # pathToSql <- file.path("inst", "sql", "postgresql", "CreateResultsTables.sql")
   sql <- SqlRender::readSql(pathToSql)
   DatabaseConnector::executeSql(connection, sql)
