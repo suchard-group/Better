@@ -582,6 +582,58 @@ all_type1s = all_type1s %>%
 saveRDS(all_type1s, './localCache/all_type1s_95threshold.rds')
 
 
-# (b) save all powers with empirical Type 1 calibrated to MaxSPRT's level
+# (b) save all powers with empirical Type 1 calibrated to MaxSPRT's level ----
+all_powers = NULL
 
+for(db in bayes_databases){
+  for(me in methods){
+    if(me == 'HistoricalComparator'){
+      aids = 1:8
+    }else{
+      aids = c(1:8, 13,14)
+    }
+    
+    for(eid in exposures){
+      for(aid in aids){
+        cat(sprintf('Computing statistical powers for %s, exposure %s, using %s analysis %s...\n',
+                    db, eid, me, aid))
+        
+        # robustify via error handling...
+        pPowers = tryCatch(
+          expr = {plotMaxSPRTBayesianPower(database_id = db,
+                                           method = me,
+                                           exposure_id = eid,
+                                           analysis_id = aid,
+                                           calibrateToAlpha = TRUE,
+                                           summaryPath = summarypath,
+                                           maxSPRTestimates = localEstimates,
+                                           showPlot = FALSE,
+                                           showCaption = FALSE)
+          },
+          error = function(e){
+            cat('\n\nError occurred while trying to compute statistical powers! Skipped...\n\n\n')
+            'error'
+          }
+        )
+        
+        if(pPowers!='error'){
+          this.powers = attr(pPowers, 'data')
+          cat(sprintf('%s rows of results in total.\n\n\n', nrow(this.powers)))
+          all_powers = bind_rows(all_powers, this.powers)
+        }
+      }
+      
+      
+    }
+  }
+}
+
+# correct Bayesian database_id's to be consistent!!
+all_powers = all_powers %>% 
+  mutate(database_id = if_else(database_id %in% c('MDCD','MDCR'),
+                               paste0('IBM_',database_id),
+                               database_id))
+
+# save to local cache folder
+saveRDS(all_powers, './localCache/all_powers_calibrated.rds')
                                   
