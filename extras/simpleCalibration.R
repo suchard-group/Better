@@ -1,6 +1,7 @@
 # March 25
 # code to do Bayesian "calibration"
 
+options(tidyverse.quiet = TRUE)
 suppressPackageStartupMessages(library(tidyverse))
 
 suppressPackageStartupMessages(library(ggplot2))
