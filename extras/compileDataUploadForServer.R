@@ -51,7 +51,8 @@ readr::write_csv(all_mses, file.path(outputFolder, 'all_mses.csv'))
 all_type1s = readRDS('./localCache/all_type1s_95threshold.rds')
 readr::write_csv(all_type1s, file.path(outputFolder, 'all_type1s.csv'))
 
-
+all_powers = readRDS('./localCache/all_powers_calibrated.rds')
+readr::write_csv(all_powers, file.path(outputFolder, 'all_powers.csv'))
 
 
 
