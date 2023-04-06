@@ -4,7 +4,9 @@
 # add a naive Bonferroni correction sequential test version
 # and also include a list of outcome_ids with available estimates
 
-library(tidyverse)
+options(tidyverse.quiet = TRUE)
+suppressPackageStartupMessages(library(tidyverse))
+
 library(ggpubr)
 library(xtable)
 library(wesanderson)
