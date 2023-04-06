@@ -6,6 +6,10 @@
 # add a plotting power function as well!
 # with each effect size on one panel
 
+library(dplyr, warn.conflicts = FALSE)
+# Suppress summarise info
+options(dplyr.summarise.inform = FALSE)
+
 library(wesanderson)
 
 source('./extras/simpleCalibration.R')
@@ -58,7 +62,7 @@ plotMaxSPRTBayesianType1 <- function(database_id,
                                      maxCores = 8){
   
   if(is.null(maxSPRTestimates)){
-    maxSPRT_estimates = readRDS(maxSPRTestimatePath)
+    maxSPRTestimates = readRDS(maxSPRTestimatePath)
   }
   
   maxSPRT_errorRates = NULL
@@ -73,7 +77,7 @@ plotMaxSPRTBayesianType1 <- function(database_id,
                                   correct_shift = TRUE,
                                   plan_extension_factor = plan_extension_factor,
                                   cachePath = cachePath,
-                                  estimates = maxSPRT_estimates,
+                                  estimates = maxSPRTestimates,
                                   maxCores = maxCores)
     
     this.maxsprt_errors = resLst$errorRate %>%
@@ -83,8 +87,6 @@ plotMaxSPRTBayesianType1 <- function(database_id,
     
     maxSPRT_errorRates = rbind(maxSPRT_errorRates,
                                this.maxsprt_errors)
-    
-    
   }
   
   # massaging `database_id` to make sure it's Bayesian-method-compatible
@@ -254,7 +256,7 @@ plotMaxSPRTBayesianPower <- function(database_id,
                                      maxCores = 8){
   
   if(is.null(maxSPRTestimates)){
-    maxSPRT_estimates = readRDS(maxSPRTestimatePath)
+    maxSPRTestimates = readRDS(maxSPRTestimatePath)
   }
   
   # (a) maxSPRT results
@@ -268,7 +270,7 @@ plotMaxSPRTBayesianPower <- function(database_id,
                                 correct_shift = TRUE,
                                 plan_extension_factor = plan_extension_factor,
                                 cachePath = cachePath,
-                                estimates = maxSPRT_estimates,
+                                estimates = maxSPRTestimates,
                                 maxCores = maxCores)
   maxSPRT_errorRates = resLst$errorRate %>%
     select(database_id, method, exposure_id, analysis_id,
@@ -569,6 +571,9 @@ for(db in bayes_databases){
     }
   }
 }
+
+# correct Bayesian database_id's to be consistent!!
+## TBD ----
 
 # save to local cache folder
 saveRDS(all_type1s, './localCache/all_type1s_95threshold.rds')
