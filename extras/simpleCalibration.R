@@ -1344,6 +1344,13 @@ plotTempDelta1ByPriors <- function(database_id,
                                       useAdjusted = useAdjusted, evalType2 = TRUE,
                                       stratifyByEffectSize = stratifyByEffectSize,
                                       outcomesInEstimates = outcomesInEstimates)
+    
+    # 04/05/2023 debug: return NULL dataframe if caliDelta is NULL
+    if(is.null(caliDelta)){
+      return(NULL)
+    }
+      
+      
     if(calibrate){
       if(stratifyByEffectSize){
         this.res = 
