@@ -49,6 +49,7 @@ plotMaxSPRTBayesianType1 <- function(database_id,
                                      calibrateToAlpha = FALSE,
                                      plan_extension_factor = 1,
                                      cachePath = './localCache/',
+                                     maxSPRTestimates = NULL,
                                      maxSPRTestimatePath = './localCache/EstimateswithImputedPcs_CCAE.rds',
                                      summaryPath = summarypath,
                                      colors = theColors,
@@ -56,8 +57,9 @@ plotMaxSPRTBayesianType1 <- function(database_id,
                                      showCaption = TRUE,
                                      maxCores = 8){
   
-  
-  maxSPRT_estimates = readRDS(maxSPRTestimatePath)
+  if(is.null(maxSPRTestimates)){
+    maxSPRT_estimates = readRDS(maxSPRTestimatePath)
+  }
   
   maxSPRT_errorRates = NULL
   for(aid in analysis_ids){
@@ -85,6 +87,11 @@ plotMaxSPRTBayesianType1 <- function(database_id,
     
   }
   
+  # massaging `database_id` to make sure it's Bayesian-method-compatible
+  if(stringr::str_starts(database_id, 'IBM')){
+    database_id = unlist(stringr::str_split(database_id, '_'))[2]
+  }
+  
   # get raw Bayesian error rates 
   Bayes_raw_errorRates = NULL
   for(aid in analysis_ids){
@@ -102,14 +109,18 @@ plotMaxSPRTBayesianType1 <- function(database_id,
                                      calibrate = calibrateToAlpha,
                                      outcomesInEstimates = NULL)
     
-    this.Bayes_errorRates = res_raw %>% 
-      mutate(database_id = database_id, method = method, 
-             exposure_id = exposure_id, analysis_id = aid) %>%
-      select(-prior_id, -Sd, -priorLabel) %>%
-      mutate(approach = '2: Bayesian w/o correction')
+    if(!is.null(res_raw)){
+      this.Bayes_errorRates = res_raw %>% 
+        mutate(database_id = database_id, method = method, 
+               exposure_id = exposure_id, analysis_id = aid) %>%
+        select(-prior_id, -Sd, -priorLabel) %>%
+        mutate(approach = '2: Bayesian w/o correction')
+      
+      Bayes_raw_errorRates = rbind(Bayes_raw_errorRates,
+                                   this.Bayes_errorRates)
+    }
     
-    Bayes_raw_errorRates = rbind(Bayes_raw_errorRates,
-                                 this.Bayes_errorRates)
+    
   }
   
   # get adjusted Bayesian results
@@ -130,14 +141,16 @@ plotMaxSPRTBayesianType1 <- function(database_id,
                                      calibrate = calibrateToAlpha,
                                      outcomesInEstimates = NULL)
     
-    this.Bayes_errorRates = res_adj %>% 
-      mutate(database_id = database_id, method = method, 
-             exposure_id = exposure_id, analysis_id = aid) %>%
-      select(-prior_id, -Sd, -priorLabel) %>%
-      mutate(approach = '3: Bayesian w/ correction')
-    
-    Bayes_adj_errorRates = rbind(Bayes_adj_errorRates,
-                                 this.Bayes_errorRates)
+    if(!is.null(res_adj)){
+      this.Bayes_errorRates = res_adj %>% 
+        mutate(database_id = database_id, method = method, 
+               exposure_id = exposure_id, analysis_id = aid) %>%
+        select(-prior_id, -Sd, -priorLabel) %>%
+        mutate(approach = '3: Bayesian w/ correction')
+      
+      Bayes_adj_errorRates = rbind(Bayes_adj_errorRates,
+                                   this.Bayes_errorRates)
+    }
   }
   
   # combine and make plot
@@ -232,6 +245,7 @@ plotMaxSPRTBayesianPower <- function(database_id,
                                      calibrateToAlpha = TRUE,
                                      plan_extension_factor = 1,
                                      cachePath = './localCache/',
+                                     maxSPRTestimates = NULL,
                                      maxSPRTestimatePath = './localCache/EstimateswithImputedPcs_CCAE.rds',
                                      summaryPath = summarypath,
                                      colors = theColors,
@@ -239,8 +253,9 @@ plotMaxSPRTBayesianPower <- function(database_id,
                                      showCaption = TRUE,
                                      maxCores = 8){
   
-  
-  maxSPRT_estimates = readRDS(maxSPRTestimatePath)
+  if(is.null(maxSPRTestimates)){
+    maxSPRT_estimates = readRDS(maxSPRTestimatePath)
+  }
   
   # (a) maxSPRT results
   resLst = frequentistDecisions(NULL,
@@ -263,6 +278,11 @@ plotMaxSPRTBayesianPower <- function(database_id,
   maxSPRT_end_alpha = maxSPRT_errorRates %>% 
     filter(period_id == max(period_id), stats == 'type 1') %>%
     select(y) %>% pull()
+  
+  # massaging `database_id` to make sure it's Bayesian-method-compatible
+  if(stringr::str_starts(database_id, 'IBM')){
+    database_id = unlist(stringr::str_split(database_id, '_'))[2]
+  }
   
   # (b) get raw Bayesian error rates 
   #     (calibrate to MaxSPRT's end-of-analysis alpha level!!!)
@@ -491,4 +511,69 @@ for(eid in exposures_SCCS){
 
 
 dev.off()
+
+
+# 04/05/2023 ----
+# compile long tables with type 1 errors and powers pre-calculated
+# to upload to OHDSI public server
+
+# ONLY DO FOR DEFAULT PRIOR SD = 4 FOR NOW!!!!
+
+bayes_databases = c('CCAE','IBM_MDCD', 'IBM_MDCR', 'OptumEhr', 'OptumDod')
+methods = c('HistoricalComparator','SCCS')
+exposures = unique(readRDS('./localCache/exposures.rds')$exposure_id)
+
+localEstimates = readRDS('./localCache/allIpcEstimates.rds')
+
+## (a) save all Type 1 results, using delta_1 = .95 threshold
+all_type1s = NULL
+
+for(db in bayes_databases){
+  for(me in methods){
+    if(me == 'HistoricalComparator'){
+      aids = 1:8
+    }else{
+      aids = c(1:8, 13,14)
+    }
+    
+    for(eid in exposures){
+      cat(sprintf('Computing Type 1 error rates for %s, exposure %s, using %s....\n',
+                  db, eid, me))
+      
+      # robustify via error handling...
+      pType1 = tryCatch(
+        expr = {plotMaxSPRTBayesianType1(database_id = db,
+                                         method = me,
+                                         exposure_id = eid,
+                                         analysis_ids = aids,
+                                         raw_Bayesian_alpha = 0.05,
+                                         adj_Bayesian_alpha = 0.05,
+                                         calibrateToAlpha = FALSE,
+                                         summaryPath = summarypath,
+                                         maxSPRTestimates = localEstimates,
+                                         showPlot = FALSE,
+                                         showCaption = FALSE)
+          },
+        error = function(e){
+          cat('\n\nError occurred while trying to compute Type 1 errors! Skipped...\n\n\n')
+          'error'
+        }
+      )
+      
+      if(pType1!='error'){
+        this.type1 = attr(pType1, 'data')
+        cat(sprintf('%s rows of results in total.\n\n\n', nrow(this.type1)))
+        all_type1s = bind_rows(all_type1s, this.type1)
+      }
+      
+    }
+  }
+}
+
+# save to local cache folder
+saveRDS(all_type1s, './localCache/all_type1s_95threshold.rds')
+
+
+# (b) save all powers with empirical Type 1 calibrated to MaxSPRT's level
+
                                   
