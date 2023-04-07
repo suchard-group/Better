@@ -64,6 +64,7 @@ specs$primaryKey[specs$tableName == 'time_to_signal' & specs$fieldName == "sensi
 ## set `isRequired` for non-primaryKey fields
 specs$isRequired[specs$primaryKey != 'Yes'] <- "No"
 # # 04/06/2023: add `optional` column so can use LegendT2dm upload functionality
+# specs$optional <- "No"
 # specs$optional <- "Yes"
 # specs$optional[specs$primaryKey == "Yes"] <- "No" # primary key is NOT optional
 specs$emptyIsNa <- "Yes"
@@ -74,6 +75,7 @@ readr::write_csv(specs, "inst/settings/betterResultsModelSpecs.csv")
 LegendT2dm::createDataModelSqlFile(specifications = readr::read_csv("inst/settings/betterResultsModelSpecs.csv"),
                                    fileName = "inst/sql/postgresql/CreateResultsTablesBetter.sql")
 
+# OLD Eumaeus code below --------
 # Generate DDL from specs ----------------------------------------------------------------
 library(dplyr)
 specifications <- readr::read_csv("inst/settings/betterResultsModelSpecs.csv")

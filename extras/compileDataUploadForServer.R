@@ -58,6 +58,9 @@ allSummary = allSummary %>%
 
 names(allSummary) = SqlRender::camelCaseToSnakeCase(names(allSummary))
 
+## 04/06/2023 debug: delete "negative_control" column --- it's causing problems when uploading
+allSummary = allSummary %>% select(-negative_control)
+
 readr::write_csv(allSummary, file.path(outputFolder, 'summary.csv'))
 
 
@@ -68,7 +71,9 @@ readr::write_csv(all_mses, file.path(outputFolder, 'mses.csv'))
 all_type1s = readRDS('./localCache/all_type1s_95threshold.rds')
 readr::write_csv(all_type1s, file.path(outputFolder, 'type1s.csv'))
 
+## change column name "trueRR" to "true_rr"
 all_powers = readRDS('./localCache/all_powers_calibrated.rds')
+all_powers = all_powers %>% rename(true_rr = trueRR)
 readr::write_csv(all_powers, file.path(outputFolder, 'powers.csv'))
 
 all_tts = readRDS('./localCache/all_tts_sens50.rds')
