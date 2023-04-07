@@ -20,6 +20,10 @@ sql = 'SELECT * from eumaeus.DATABASE'
 databases = DatabaseConnector::querySql(connection, sql)
 databases$DATABASE_ID
 
+## save a local copy of database info
+names(databases) = tolower(names(databases))
+saveRDS(databases, './localCache/database.rds')
+
 ## 1. get a table of all available negative control analysis results
 sql = "SELECT estimate.*
       FROM eumaeus.ESTIMATE estimate
@@ -66,6 +70,16 @@ exNC = allNegControls %>% filter(method == 'SCCS', period_id == 5,
                                  analysis_id ==1, database_id == 'IBM_MDCD',
                                  exposure_id == 21184)
 
+# 1b: pull imputed positive control outcomes...
+sql = "SELECT estimateipc.*
+      FROM eumaeus.ESTIMATE_IMPUTED_PCS estimateipc
+      WHERE (method = 'SCCS' OR method = 'HistoricalComparator')"
+sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+allIpcEstimates <- DatabaseConnector::querySql(connection, sql)
+
+names(allIpcEstimates) = tolower(names(allIpcEstimates))
+
+saveRDS(allIpcEstimates, './localCache/allIpcEstimates.rds')
 
 # 2. a summary table of all analyses
 sql = "SELECT * from eumaeus.ANALYSIS
