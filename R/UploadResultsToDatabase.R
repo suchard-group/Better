@@ -396,10 +396,16 @@ insertDataIntoDb <- function(connection,
                              connectionDetails,
                              schema,
                              tableName,
-                             data) {
+                             data,
+                             canBulkLoad = FALSE) {
   
   ParallelLogger::logInfo("- Inserting ", nrow(data), " rows into database")
-  bulkLoad <- nrow(data) > 1e4 && !is.null(Sys.getenv("POSTGRES_PATH"))
+  if(canBulkLoad){
+    bulkLoad <- (nrow(data) > 1e4 && !is.null(Sys.getenv("POSTGRES_PATH")))
+  }else{
+    bulkLoad = FALSE
+  }
+  
   if (bulkLoad) {
     DatabaseConnector::executeSql(connection, "COMMIT;", progressBar = FALSE, reportOverallTime = FALSE)
     oldSciPen <- getOption("scipen")
