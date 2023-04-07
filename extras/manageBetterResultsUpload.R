@@ -26,7 +26,7 @@ setwd(exportFolder)
 DatabaseConnector::createZipFile(zipFile = zipName, files = files)
 setwd(oldWd)
 
-# set 
+# No longer needed... (set envvar for using PostgreSQL for bulk load funtionality)
 #Sys.setenv(POSTGRES_PATH = "/Library/PostgreSQL/11/bin")
 
 # Try Using legendT2dm functionality instead!
@@ -46,8 +46,10 @@ uploadResultsToDatabase(connectionDetails = connectionDetails,
                         zipFileName = zipName,
                         purgeSiteDataBeforeUploading = FALSE)
 
+
 ## manual checking ----
 connection = DatabaseConnector::connect(connectionDetails)
 sql <- "SELECT COUNT(*) FROM better_results.summary"
 up_summary = DatabaseConnector::querySql(connection, sql) # summary wrong....
+DatabaseConnector::disconnect(connection)
 
