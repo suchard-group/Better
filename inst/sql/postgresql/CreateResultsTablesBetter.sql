@@ -138,7 +138,7 @@ CREATE TABLE type1s (
      analysis_id INTEGER NOT NULL,
      period_id INTEGER NOT NULL,
      y NUMERIC ,
-     effect_size INTEGER NOT NULL,
+     effect_size NUMERIC NOT NULL,
      stats VARCHAR(255) ,
      approach VARCHAR(255) NOT NULL,
      stage NUMERIC ,

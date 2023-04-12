@@ -85,7 +85,7 @@ type1s,exposure_id,INTEGER,Yes,Yes,Yes
 type1s,analysis_id,INTEGER,Yes,Yes,Yes
 type1s,period_id,INTEGER,Yes,Yes,Yes
 type1s,y,NUMERIC,No,No,Yes
-type1s,effect_size,INTEGER,Yes,Yes,Yes
+type1s,effect_size,NUMERIC,Yes,Yes,Yes
 type1s,stats,VARCHAR(255),No,No,Yes
 type1s,approach,VARCHAR(255),Yes,Yes,Yes
 type1s,stage,NUMERIC,No,No,Yes
