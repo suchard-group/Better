@@ -25,6 +25,12 @@ shinyServer(function(input, output, session) {
       pull(.data$exposureId)
   )
   
+  exposureIdTest <- reactive(
+    exposure %>%
+      filter(.data$exposureName == input$exposureTest) %>%
+      pull(.data$exposureId)
+  )
+  
   baseExposureId <- reactive(
     exposure %>%
       filter(.data$exposureName == input$exposure) %>%
@@ -38,21 +44,102 @@ shinyServer(function(input, output, session) {
   )
   
   # type 1 error ----
+  getType1Errors <- reactive({
+    # Fetching data across methods and periods to compute full grid of controls
+    subset <- getType1s(connection = connectionPoolBetter,
+                        schema = schema,
+                        databaseId = input$databaseTest,
+                        method = input$methodTest,
+                        exposureId = exposureIdTest(),
+                        timeAtRisk = input$timeAtRiskTest) 
+    return(subset)
+  })
+  
   type1Plot <- reactive({
-    
+    data = getType1Errors()
+    pg = plotType1Error(data)
+    return(pg)
   })
   
   output$type1Plot <- renderPlot({
     return(type1Plot())
   })
   
+  # statistical power plot ----
+  ## conditional drop-down menu for design variants under each epi design
+  analysis.choice <- reactive({
+    analysis %>% 
+      filter(method == input$methodTest) %>% 
+      select(description) %>% 
+      pull() %>% unique()
+  })
+  ## use `Observe` to update list of choices 
+  observe({
+    
+    updateSelectizeInput(session, "analysis", choices = analysis.choice())
+    
+  })
+  
+  # analysisId reactive
+  analysisIdTest <- reactive(
+    analysis %>%
+      filter(.data$method %in% input$methodTest, 
+             .data$timeAtRisk %in% input$timeAtRiskTest,
+             .data$description == input$analysis) %>%
+      pull(.data$analysisId)
+  )
+  
+  getPowers <- reactive({
+    # Fetching data across methods and periods to compute full grid of controls
+    subset <- pullPower(connection = connectionPoolBetter,
+                       schema = schema,
+                       databaseId = input$databaseTest,
+                       method = input$methodTest,
+                       exposureId = exposureIdTest(),
+                       analysisId = analysisIdTest()) 
+    return(subset)
+  })
+  
+  powerPlot <- reactive({
+    data = getPowers()
+    pg = plotPower(data)
+    return(pg)
+  })
+  
+  output$powerPlot <- renderPlot({
+    return(powerPlot())
+  })
+  
+  # time-to-signal plot ----
+  getTTS <- reactive({
+    # Fetching data across methods and periods to compute full grid of controls
+    subset <- pullTTS(connection = connectionPoolBetter,
+                      schema = schema,
+                      databaseId = input$databaseTest,
+                      method = input$methodTest,
+                      exposureId = exposureIdTest(),
+                      timeAtRisk = input$timeAtRiskTest,
+                      sensitivity = input$sensitivity)
+    return(subset)
+  })
+  
+  ttsPlot <- reactive({
+    data = getTTS()
+    pg = plotTTS(data)
+    return(pg)
+  })
+  
+  output$ttsPlot <- renderPlot({
+    return(ttsPlot())
+  })
+  
   # estimation metrics ----
   filterMSEs <- reactive({
     subsetMSEs <- mses %>%
       filter(.data$databaseId == input$database,
-             .data$exposureId == exposureId,
+             .data$exposureId == exposureId(),
              .data$method %in% input$method, 
-             .data$analysisId %in% analysisId)
+             .data$analysisId %in% analysisId())
     if (input$trueRr != 'Any'){
       subsetMSEs <- subsetMSEs %>%
         filter(.data$effectSize == as.numeric(input$trueRr))
@@ -60,7 +147,7 @@ shinyServer(function(input, output, session) {
     return(subsetMSEs)
   })
   
-  output$mseCoverageTable <- renderDataTable({
+  mseCoverageTable <- reactive({
     data <- filterMSEs()
     if (nrow(data) == 0) {
       return(data)
@@ -74,7 +161,7 @@ shinyServer(function(input, output, session) {
                    lengthChange = TRUE,
                    ordering = TRUE,
                    digits = 3,
-                   columnDefs = list(list(width = '20%', targets = 1)))
+                   columnDefs = list(list(width = '23%', targets = 1)))
     
     table <- DT::datatable(data, 
                            selection = selection, 
@@ -83,7 +170,8 @@ shinyServer(function(input, output, session) {
                                         "Effect size", "MSE (MaxSPRT)", "MSE (Bayesian)", 
                                         "Coverage (MaxSPRT)", "Coverage (Bayesian)"),
                            rownames = FALSE, 
-                           escape = FALSE) 
+                           escape = FALSE) %>%
+      DT::formatRound(columns = c(5:8), digits = 3)
     
     colors <- c("#b7d3e6", "#b7d3e6", "#f2b4a9", "#f2b4a9")
     mins <- c(0, 0, 0, 0)
@@ -97,6 +185,10 @@ shinyServer(function(input, output, session) {
                                backgroundPosition = 'center')
     }
     return(table)
+  })
+  
+  output$mseCoverageTable <- renderDataTable({
+    mseCoverageTable()
   })
   
   # database information -----

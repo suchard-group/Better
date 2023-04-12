@@ -74,4 +74,9 @@ schema <- "better_results"
 mses = loadEntireTable(connectionPoolBetter, schema, "mses")
 # all_ipcs = loadEntireTable(connectionPoolBetter, schema, "all_ipcs") why is this table not uploaded?
 priors = loadEntireTable(connectionPoolBetter, schema, "priors")
+#type1s = loadEntireTable(connectionPoolBetter, schema, "type1s")
+#tts = loadEntireTable(connectionPoolBetter, schema, "time_to_signal")
+
+## filter analysis to exclude "filtered" Historical Comparator results
+analysis = analysis %>% filter(!(method == 'HistoricalComparator' & analysisId >= 13))
 

@@ -26,6 +26,64 @@ getVaccinations <- function(connection, schema) {
   return(vaccinations)
 }
 
+# 04/12/2023: add functions for BETTER results
+getType1s <- function(connection, schema, databaseId, method, exposureId, timeAtRisk) {
+  sql <- sprintf("SELECT * 
+    FROM %s.type1s
+    WHERE database_id = '%s'
+      AND method = '%s'
+      AND exposure_id = '%s'
+      AND time_at_risk = '%s';",
+                 schema,
+                 databaseId,
+                 method,
+                 exposureId,
+                 timeAtRisk)
+  subset <- DatabaseConnector::dbGetQuery(connection, sql)
+  #colnames(subset) <- SqlRender::snakeCaseToCamelCase(colnames(subset))
+  
+  return(subset)
+}
+#type1s_sub = getType1s(connectionPoolBetter, 'better_results', 'CCAE', 'SCCS', 21214, '1-28')
+
+pullPower <- function(connection, schema, databaseId, method, exposureId, analysisId) {
+  sql <- sprintf("SELECT * 
+    FROM %s.powers
+    WHERE database_id = '%s'
+      AND method = '%s'
+      AND exposure_id = '%s'
+      AND analysis_id = '%s';",
+                 schema,
+                 databaseId,
+                 method,
+                 exposureId,
+                 analysisId)
+  subset <- DatabaseConnector::dbGetQuery(connection, sql)
+  #colnames(subset) <- SqlRender::snakeCaseToCamelCase(colnames(subset))
+  
+  return(subset)
+}
+
+pullTTS <- function(connection, schema, databaseId, method, 
+                    exposureId, timeAtRisk, sensitivity){
+  sql <- sprintf("SELECT * 
+    FROM %s.time_to_signal
+    WHERE database_id = '%s'
+      AND method = '%s'
+      AND exposure_id = '%s'
+      AND time_at_risk = '%s'
+      AND sensitivity = '%s';",
+                 schema,
+                 databaseId,
+                 method,
+                 exposureId,
+                 timeAtRisk,
+                 sensitivity)
+  subset <- DatabaseConnector::dbGetQuery(connection, sql)
+  
+  return(subset)
+}
+
 
 getEstimates <- function(connection, schema, databaseId, exposureId, timeAtRisk) {
   sql <- sprintf("SELECT estimate.* 

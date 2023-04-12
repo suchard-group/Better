@@ -12,6 +12,7 @@ library(shiny)
 titleName <- "BETTER: Bayesian Evaluation of Time-To-Event and Reliability (for vaccine surveillance)"
 methods <- c("HistoricalComparator", "SCCS")
 timeAtRisks <- c("1-28", "1-42")
+sensitivity_levels <- c(.25, .5)
 
 # Define UI for application that draws a histogram
 shinyUI(
@@ -42,6 +43,41 @@ shinyUI(
       id = "mainTabsetPanel",
       tabPanel("About",
                includeMarkdown("md/about.md")
+      ),
+      tabPanel(
+        "Testing metrics",
+        fluidRow(
+          column(
+            2,
+            style = "background-color:#e8e8e8;",
+            selectInput("exposureTest", label = "Vaccine:", choices = exposure$exposureName),
+            selectInput("databaseTest", label = "Database:", choices = database$databaseId),
+            radioButtons("methodTest", label = "Design:", choices = methods, selected = methods[1]),
+            radioButtons("timeAtRiskTest", label = "Time at risk:", choices = timeAtRisks, selected = timeAtRisks[1]),
+          ),
+          column(
+            10,
+            tabsetPanel(type = "pills",
+                        tabPanel("Type 1 error",
+                                 plotOutput("type1Plot"),
+                                 div(strong("Plot:"), 
+                                     "Empirical Type 1 error rate over analysis periods. Type 1 error rates are measured by fraction of H0 rejected over all negative control outcomes.")
+                        ),
+                        tabPanel("Statistical power",
+                                 selectizeInput("analysis", "Design variant:", choices = c("choose" = "", unique(analysis$description[analysis$method == methods[1]]))),
+                                 plotOutput("powerPlot"),
+                                 div(strong("Plot:"), 
+                                     "Statistical power over analysis periods. Power is measured by fraction of positive control outcomes with H0 rejected, stratified by effect sizes.")
+                                 ),
+                        tabPanel("Time-to-signal",
+                                 selectInput("sensitivity", 'Sensitivity:', choices = sensitivity_levels, selected = sensitivity_levels[2]),
+                                 plotOutput("ttsPlot"),
+                                 div(strong("Plot:"), 
+                                     "Timeliness. Measured by number of analyses (in months) needed to reach a desired sensitivity level for detecting true positive signals.")
+                                 )
+                        )
+            )
+          )
       ),
       tabPanel(
         "Estimation metrics",
