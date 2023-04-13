@@ -108,7 +108,7 @@ shinyServer(function(input, output, session) {
   
   output$powerPlot <- renderPlot({
     return(powerPlot())
-  })
+  }, width = 1000)
   
   # time-to-signal plot ----
   getTTS <- reactive({
@@ -131,7 +131,7 @@ shinyServer(function(input, output, session) {
   
   output$ttsPlot <- renderPlot({
     return(ttsPlot())
-  })
+  }, width = 700)
   
   # estimation metrics ----
   filterMSEs <- reactive({

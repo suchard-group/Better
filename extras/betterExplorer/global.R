@@ -25,9 +25,9 @@ database <- loadEntireTable(connectionPool, schema, "database")
 exposure <- loadEntireTable(connectionPool, schema, "exposure")
 negativeControlOutcome <- loadEntireTable(connectionPool, schema, "negative_control_outcome")
 positiveControlOutcome <- loadEntireTable(connectionPool, schema, "positive_control_outcome")
-timePeriod <- loadEntireTable(connectionPool, schema, "time_period")
-databaseCharacterization <- loadEntireTable(connectionPool, schema, "database_characterization")
-vaccinations <- getVaccinations(connectionPool, schema)
+#timePeriod <- loadEntireTable(connectionPool, schema, "time_period")
+#databaseCharacterization <- loadEntireTable(connectionPool, schema, "database_characterization")
+#vaccinations <- getVaccinations(connectionPool, schema)
 
                                               
 

@@ -12,9 +12,11 @@ Until final publication, all results are to be considered preliminary and subjec
 
 <p> Manuscript preprint is available at [LINK PENDING] </p>
 
-**Objectives:**<br>
-1) 
-2) 
+**To view results:**<br>
+- See `Testing metrics` for results on Type 1 error rates, statistical power, and time-to-signal.
+- See `Estimation metrics` for comparisons on estimation accuracy and quality, with mean squared errors (MSEs) and coverage rates of 95% CIs.
+- See `Database information` and `Vaccine information` for details on databases and vaccine exposures.
+
 
 **Resources:**<br>
 - The study protocol is available <a href="https://suchard-group.github.io/Better/Protocol.html" target="_blank">here</a>
