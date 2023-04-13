@@ -1,12 +1,7 @@
 
 -- Drop old tables if exists
-DROP TABLE IF EXISTS all_mses;
-DROP TABLE IF EXISTS all_powers;
-DROP TABLE IF EXISTS all_summary;
-DROP TABLE IF EXISTS all_tts;
-DROP TABLE IF EXISTS all_type1s;
-DROP TABLE IF EXISTS exposures;
 
+DROP TABLE IF EXISTS all_ipcs;
 DROP TABLE IF EXISTS analysis;
 DROP TABLE IF EXISTS database;
 DROP TABLE IF EXISTS exposure;
@@ -18,6 +13,14 @@ DROP TABLE IF EXISTS time_to_signal;
 DROP TABLE IF EXISTS type1s;
 
 -- Create tables
+
+CREATE TABLE all_ipcs (
+     outcome_id INTEGER NOT NULL,
+     exposure_id INTEGER NOT NULL,
+     negative_control_id INTEGER NOT NULL,
+     effect_size NUMERIC NOT NULL,
+     PRIMARY KEY(outcome_id, exposure_id, negative_control_id, effect_size)
+);
 
 CREATE TABLE analysis (
      method VARCHAR(255) NOT NULL,

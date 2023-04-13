@@ -1,4 +1,8 @@
 tableName,fieldName,type,isRequired,primaryKey,emptyIsNa
+all_ipcs,outcome_id,INTEGER,Yes,Yes,Yes
+all_ipcs,exposure_id,INTEGER,Yes,Yes,Yes
+all_ipcs,negative_control_id,INTEGER,Yes,Yes,Yes
+all_ipcs,effect_size,NUMERIC,Yes,Yes,Yes
 analysis,method,VARCHAR(255),Yes,Yes,Yes
 analysis,analysis_id,INTEGER,Yes,Yes,Yes
 analysis,description,VARCHAR(255),No,No,Yes
