@@ -1,4 +1,5 @@
-[1mindexing[0m [34mbetterResultsModelSpecs.csv[0m [========================] [32m2.05GB/s[0m, eta: [36m 0s[0m                                                                                                                     -- Drop old tables if exists
+
+-- Drop old tables if exists
 
 DROP TABLE IF EXISTS all_ipcs;
 DROP TABLE IF EXISTS analysis;
