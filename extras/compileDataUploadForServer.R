@@ -76,6 +76,7 @@ all_powers = readRDS('./localCache/all_powers_calibrated.rds')
 all_powers = all_powers %>% rename(true_rr = trueRR)
 readr::write_csv(all_powers, file.path(outputFolder, 'powers.csv'))
 
-all_tts = readRDS('./localCache/all_tts_sens50.rds')
-#all_tts = readRDS('./localCache/all_tts_sens25.rds')
+all_tts = bind_rows(readRDS('./localCache/all_tts_sens50.rds'),
+                    readRDS('./localCache/all_tts_sens25.rds'))
+
 readr::write_csv(all_tts, file.path(outputFolder, 'time_to_signal.csv'))
