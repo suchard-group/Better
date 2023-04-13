@@ -9,7 +9,7 @@ source('./extras/bayesianWithLikelihoodProfilesMeta.R')
 
 ## on cluster setup------
 cache_dir = '/u/scratch/f/fanbu42/samples'
-output_dir = '/u/home/f/fanbu42/betterResults'
+output_dir = '/u/home/f/fanbu42/betterResults-CUIMC'
 
 ## do Columbia database ----------------
 database_id = 'CUIMC'
