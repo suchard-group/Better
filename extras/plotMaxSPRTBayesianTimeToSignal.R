@@ -119,8 +119,6 @@ ttsComparePlotFromRes <- function(maxSPRT_tts,
 
 # 2.(b) ---
 # big function to do everything: generate TTS results AND make the plots AND add caption
-# ONLY WORKS FOR `CCAE` FOR NOW!!!
-# (but can change local file path to other database results)
 plotMaxSPRTBayesianTimeToSignal <- function(database_id,
                                             exposure_id,
                                             method,
@@ -230,6 +228,11 @@ plotMaxSPRTBayesianTimeToSignal <- function(database_id,
 # alternative function with different calculation of TTS for MaxSPRT 
 # (suspecting previous MaxSPRT calc. is bugged somehow...)
 # 01/31/2023: add in hypothetical experiment of longer/shorter analysis plan
+# 04/06/2023 udpate:
+# try to accommodate multiple databases
+# add option to directly load in local MaxSPRT estimates
+# 04/06/2023 debug: transform `database_id` for Bayesian method: 
+# "IBM_*" --> "*"
 plotMaxSPRTBayesianTimeToSignal2 <- function(database_id,
                                             exposure_id,
                                             method,
@@ -242,6 +245,7 @@ plotMaxSPRTBayesianTimeToSignal2 <- function(database_id,
                                             calibration = FALSE, # use calibrated MaxSPRT?
                                             plan_extension_factor = 1, # shorter/longer analysis plan for MaxSPRT?
                                             summaryPath = summarypath, # summary results for Bayesian 
+                                            localEstimates = NULL, # data object with MaxSPRT estimates
                                             localEstimatesPath = maxSPRT_filepath, # local estimate for MaxSPRT
                                             cachePath = './localCache/', # cache for caption info etc.
                                             colors = theColors, # fill colors for time bars
@@ -250,7 +254,9 @@ plotMaxSPRTBayesianTimeToSignal2 <- function(database_id,
                                             maxCores = 8){
   # (1) compile all needed maxSPRT TTS results
   maxSPRT_tts = NULL
-  localEstimates = readRDS(localEstimatesPath)
+  if(is.null(localEstimates)){
+    localEstimates = readRDS(localEstimatesPath)
+  }
   
   for(aid in analysis_ids){
     # get everything from Type 1 and Type 2 error instead!!
@@ -279,6 +285,11 @@ plotMaxSPRTBayesianTimeToSignal2 <- function(database_id,
   
   
   # (2) Bayesian TTS
+  ## transform database_id...
+  if(stringr::str_starts(database_id, 'IBM')){
+    database_id = unlist(stringr::str_split(database_id, '_'))[2]
+  }
+  
   ## only focus on needed prior to save time...
   priors = readRDS(file.path(cachePath, 'priorTable.rds'))
   this.prior_id = priors %>% filter(Sd == prior_SD) %>% select(prior_id) %>% pull()
@@ -431,6 +442,86 @@ for(eid in exposures_SCCS){
 }
 
 dev.off()
+
+
+# 04/06/2023 save TTS results -----
+
+# NOTE: (1) `analysis` (`description` column from `analysis` table) will be removed from the plot dataframe
+#       (2) add `sensitivity` column for sensitivity_level = 0.25 or 0.5 results
+#       (3) ONLY for default prior_sd = 4 for now!!
+
+# 04/07/2023 run everything and save to local files
+
+bayes_databases = c('CCAE','IBM_MDCD', 'IBM_MDCR', 'OptumEhr', 'OptumDod')
+methods = c('HistoricalComparator','SCCS')
+exposures = unique(readRDS('./localCache/exposures.rds')$exposure_id)
+
+localEstimates = readRDS('./localCache/allIpcEstimates.rds')
+summarypath = "~/Documents/Research/betterResults/summary"
+
+# set sensitivity level here
+#sens = 0.5
+sens = .25
+calibrationFlag = TRUE
+
+all_tts = NULL
+
+for(db in bayes_databases){
+  for(me in methods){
+    if(me == 'HistoricalComparator'){
+      aids = 1:8
+    }else{
+      aids = c(1:8, 13,14)
+    }
+    
+    for(eid in exposures){
+      cat(sprintf('Computing time-to-signal for %s, exposure %s, using %s....\n',
+                  db, eid, me))
+      
+      # robustify via error handling...
+      pTTS = tryCatch(
+        expr = {plotMaxSPRTBayesianTimeToSignal2(database_id = db,
+                                                 method = me,
+                                                 exposure_id = eid,
+                                                 analysis_ids = aids,
+                                                 sensitivity_level = sens,
+                                                 showPlot = FALSE,
+                                                 calibrateToAlpha = calibrationFlag,
+                                                 summaryPath = summarypath,
+                                                 localEstimates = localEstimates)
+        },
+        error = function(e){
+          cat('\n\nError occurred while trying to obtain time-to-signal! Skipped...\n\n\n')
+          'error'
+        }
+      )
+      
+      if(typeof(pTTS) == 'list' && pTTS!='error'){
+        this.tts = attr(pTTS, 'data')
+        cat(sprintf('%s rows of results in total.\n\n\n', nrow(this.tts)))
+        all_tts = bind_rows(all_tts, this.tts)
+      }
+      
+    }
+  }
+}
+
+# correct Bayesian database_id's to be consistent!!
+# AND remove `analysis` column
+# AND add `sensitivity` column
+all_tts = all_tts %>% 
+  mutate(database_id = if_else(database_id %in% c('MDCD','MDCR'),
+                               paste0('IBM_',database_id),
+                               database_id)) %>%
+  select(-analysis) %>%
+  mutate(sensitivity = sens)
+
+# save to local cache folder
+this.fileName = file.path('./localCache/', 
+                          sprintf('all_tts_sens%.0f.rds', sens * 100))
+
+saveRDS(all_tts, this.fileName)
+
 
 
 # # TEST CODE BELOW ------

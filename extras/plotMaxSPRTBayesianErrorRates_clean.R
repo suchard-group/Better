@@ -304,7 +304,7 @@ plotMaxSPRTBayesianPower <- function(database_id,
                                    outcomesInEstimates = NULL)
   Bayes_raw_errorRates = res_raw %>% 
     mutate(database_id = database_id, method = method, 
-           exposure_id = exposure_id, analysis_id = aid) %>%
+           exposure_id = exposure_id, analysis_id = analysis_id) %>%
     select(-prior_id, -Sd, -priorLabel) %>%
     mutate(approach = '2: Bayesian w/o correction')
   
@@ -312,7 +312,7 @@ plotMaxSPRTBayesianPower <- function(database_id,
   #     (calibrate to MaxSPRT's end-of-analysis alpha level!!!)
   res_adj = plotTempDelta1ByPriors(database_id = database_id,
                                    method = method, 
-                                   analysis_id = aid,
+                                   analysis_id = analysis_id,
                                    exposure_id = exposure_id,
                                    prior_ids = prior_id, # include all priors for easier query later
                                    alpha = maxSPRT_end_alpha,
@@ -325,7 +325,7 @@ plotMaxSPRTBayesianPower <- function(database_id,
                                    outcomesInEstimates = NULL)
   Bayes_adj_errorRates = res_adj %>% 
     mutate(database_id = database_id, method = method, 
-           exposure_id = exposure_id, analysis_id = aid) %>%
+           exposure_id = exposure_id, analysis_id = analysis_id) %>%
     select(-prior_id, -Sd, -priorLabel) %>%
     mutate(approach = '3: Bayesian w/ correction')
   
@@ -392,7 +392,7 @@ plotMaxSPRTBayesianPower <- function(database_id,
          y='power', 
          caption = capt, 
          color='Statistical power of:')+
-    scale_color_manual(values = powerCols) +
+    scale_color_manual(values = colors) +
     scale_alpha_continuous(range = c(0.2, 1), guide = 'none')+
     facet_grid(.~trueRR)+
     theme_bw(base_size = 15)+
@@ -583,6 +583,13 @@ saveRDS(all_type1s, './localCache/all_type1s_95threshold.rds')
 
 
 # (b) save all powers with empirical Type 1 calibrated to MaxSPRT's level ----
+# 05/07/2023: generate all plots for power; because why not?
+
+plotPath = '~/Documents/Research/betterResults/plots'
+
+pdf(file.path(plotPath, 'Powers-calibrated-all.pdf'),
+    width = 10.3, height = 5)
+
 all_powers = NULL
 
 for(db in bayes_databases){
@@ -607,8 +614,8 @@ for(db in bayes_databases){
                                            calibrateToAlpha = TRUE,
                                            summaryPath = summarypath,
                                            maxSPRTestimates = localEstimates,
-                                           showPlot = FALSE,
-                                           showCaption = FALSE)
+                                           showPlot = TRUE,
+                                           showCaption = TRUE)
           },
           error = function(e){
             cat('\n\nError occurred while trying to compute statistical powers! Skipped...\n\n\n')
@@ -627,6 +634,8 @@ for(db in bayes_databases){
     }
   }
 }
+
+dev.off()
 
 # correct Bayesian database_id's to be consistent!!
 all_powers = all_powers %>% 

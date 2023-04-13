@@ -117,6 +117,7 @@ timeToSensitivityFreq <- function(decisions, sens = 0.5){
 # tts = timeToSensitivityFreq(decisions, 0.25)
 
 # 3. plotting function
+
 plotTimeToSignalMaxSPRTOneExposure <- function(localFile,
                                                method,
                                                sensitivity_level, 
