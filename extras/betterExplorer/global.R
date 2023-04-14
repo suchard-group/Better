@@ -4,62 +4,52 @@ source("dataPulls.R")
 
 connectionPool <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
                                dbms = "postgresql",
-                               server = paste(keyring::key_get("eumaeusServer"),
-                                              keyring::key_get("eumaeusDatabase"),
+                               server = paste(Sys.getenv("shinydbServer"),
+                                              Sys.getenv("shinydbDatabase"),
                                               sep = "/"),
-                               user = keyring::key_get("eumaeusUser"),
-                               password = keyring::key_get("eumaeusPassword"))
+                               port = Sys.getenv("shinydbPort"),
+                               user = Sys.getenv("eumaeusdbUser"),
+                               password = Sys.getenv("eumaeusdbPw"))
 
-onStop(function() {
-  if (DBI::dbIsValid(connectionPool)) {
-    writeLines("Closing connection pool")
-    pool::poolClose(connectionPool)
-  }
-})
+# OLD: credentials used for local testing...
+# connectionPool <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
+#                                dbms = "postgresql",
+#                                server = paste(keyring::key_get("eumaeusServer"),
+#                                               keyring::key_get("eumaeusDatabase"),
+#                                               sep = "/"),
+#                                user = keyring::key_get("eumaeusUser"),
+#                                password = keyring::key_get("eumaeusPassword"))
+
+
+# onStop(function() {
+#   if (DBI::dbIsValid(connectionPool)) {
+#     writeLines("Closing connection pool")
+#     pool::poolClose(connectionPool)
+#   }
+# })
 
 schema <- "eumaeus"
-#Sys.getenv("eumaeusdbSchema")
 
 analysis <- loadEntireTable(connectionPool, schema, "analysis")
 database <- loadEntireTable(connectionPool, schema, "database")
 exposure <- loadEntireTable(connectionPool, schema, "exposure")
 negativeControlOutcome <- loadEntireTable(connectionPool, schema, "negative_control_outcome")
 positiveControlOutcome <- loadEntireTable(connectionPool, schema, "positive_control_outcome")
-#timePeriod <- loadEntireTable(connectionPool, schema, "time_period")
-#databaseCharacterization <- loadEntireTable(connectionPool, schema, "database_characterization")
-#vaccinations <- getVaccinations(connectionPool, schema)
-
-                                              
-
-# subset <- getEstimates(connection = connectionPool,
-#                        schema = schema,
-#                        databaseId = "IBM_MDCR",
-#                        exposureId = 21184,
-#                        timeAtRisk = "1-28")
 
 trueRrs <- c("Any", 1, unique(positiveControlOutcome$effectSize))
-#timeAtRisks <- unique(analysis$timeAtRisk)
-
-# calibrationInfoHtml <- readChar("calibration.html", file.info("calibration.html")$size)
-# vaccineInfoHtml <- readChar("vaccine.html", file.info("vaccine.html")$size)
-# databaseInfoHtml <- readChar("databases.html", file.info("databases.html")$size)
-# timeAtRiskInfoHtml <- readChar("timeAtRisk.html", file.info("timeAtRisk.html")$size)
-# trueRrInfoHtml <- readChar("trueRr.html", file.info("trueRr.html")$size)
-# methodsInfoHtml <- readChar("methods.html", file.info("methods.html")$size)
-# periodInfoHtml <- readChar("period.html", file.info("period.html")$size)
-# minimumOutcomesInfoHtml <- readChar("minimumOutcomes.html", file.info("minimumOutcomes.html")$size)
-# metricInfoHtml <- readChar("metrics.html", file.info("metrics.html")$size)
-
 
 
 # BETTER connections..... 
-connectionPoolBetter <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
-                                     dbms = "postgresql",
-                               server = paste(keyring::key_get("betterServer"),
-                                              keyring::key_get("betterDatabase"),
-                                              sep = "/"),
-                               user = keyring::key_get("betterUser"),
-                               password = keyring::key_get("betterPassword"))
+# connectionPoolBetter <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
+#                                      dbms = "postgresql",
+#                                server = paste(keyring::key_get("betterServer"),
+#                                               keyring::key_get("betterDatabase"),
+#                                               sep = "/"),
+#                                user = keyring::key_get("betterUser"),
+#                                password = keyring::key_get("betterPassword"))
+
+## try to use Eumaeus credentials instead......
+connectionPoolBetter = connectionPool
 
 
 onStop(function() {
@@ -72,13 +62,11 @@ onStop(function() {
 schema <- "better_results"
 
 mses = loadEntireTable(connectionPoolBetter, schema, "mses")
-# all_ipcs = loadEntireTable(connectionPoolBetter, schema, "all_ipcs") why is this table not uploaded?
 priors = loadEntireTable(connectionPoolBetter, schema, "priors")
 #type1s = loadEntireTable(connectionPoolBetter, schema, "type1s")
 #tts = loadEntireTable(connectionPoolBetter, schema, "time_to_signal")
 
 ## filter analysis to exclude "filtered" Historical Comparator results
 analysis = analysis %>% filter(!(method == 'HistoricalComparator' & analysisId >= 13))
-
 sensitivity_levels = c(.25, 0.5)
 
