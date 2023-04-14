@@ -140,6 +140,7 @@ LegendT2dm::createDataModelSqlFile(specifications = readr::read_csv("inst/settin
 grantPermissionOnServer <- function(connectionDetails,
                                     schema,
                                     user = "legend") {
+  sql <- paste0("grant usage on schema ", schema, " to ", user, ";")
   sql <- paste0("grant select on all tables in schema ", schema, " to ", user, ";")
   connection <- DatabaseConnector::connect(connectionDetails)
   DatabaseConnector::executeSql(connection, sql)

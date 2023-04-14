@@ -65,7 +65,7 @@ uploadResultsToDatabase(connectionDetails = connectionDetails,
 ## manual checking ----
 connection = DatabaseConnector::connect(connectionDetails)
 sql <- "SELECT COUNT(*) FROM better_results.summary"
-up_summary = DatabaseConnector::querySql(connection, sql) # summary wrong....
+up_summary = DatabaseConnector::querySql(connection, sql) 
 
 sql <- "SELECT COUNT(*) FROM better_results.powers"
 up_powers = DatabaseConnector::querySql(connection, sql)
@@ -78,8 +78,8 @@ ConnectionDetails <- DatabaseConnector::createConnectionDetails(
   server = paste(keyring::key_get("betterServer"),
                  keyring::key_get("betterDatabase"),
                  sep = "/"),
-  user = keyring::key_get("betterUser"),
-  password = keyring::key_get("betterPassword"))
+  user = keyring::key_get("eumaeusUser"),
+  password = keyring::key_get("eumaeusPassword"))
 
 # set up the DB connection
 connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
@@ -87,4 +87,11 @@ connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
 sql = 'SELECT * from better_results.DATABASE'
 databases = DatabaseConnector::querySql(connection, sql)
 databases$DATABASE_ID
+
+sql <- "SELECT COUNT(*) FROM better_results.powers"
+powers = DatabaseConnector::querySql(connection, sql)
+print(powers)
+DatabaseConnector::disconnect(connection)
+
+
 
