@@ -106,12 +106,21 @@ shinyServer(function(input, output, session) {
   getPowers <- reactive({
     # Fetching data across methods and periods to compute full grid of controls
     
-    analysisIdTest <- 
-      analysis %>%
+    if(is.null(input$analysis) || length(input$analysis) == 0){
+      # guard against input$analysis NULL value 
+      analysisIdTest <- analysis %>%
+        filter(.data$method %in% input$methodTest, 
+               .data$timeAtRisk %in% input$timeAtRiskTest,
+               .data$description == analysis.choice()[1]) %>%
+        pull(.data$analysisId)
+    }else{
+      analysisIdTest <- 
+        analysis %>%
         filter(.data$method %in% input$methodTest, 
                .data$timeAtRisk %in% input$timeAtRiskTest,
                .data$description == input$analysis) %>%
         pull(.data$analysisId)
+    }
     
     subset <- pullPower(connection = connectionPoolBetter,
                        schema = schema,
