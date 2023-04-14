@@ -2,6 +2,8 @@
 # generate database "characterization" table as data overview
 # "Table 1" in results section
 
+# Re-do to include CUIMC
+
 library(dplyr)
 library(xtable)
 
@@ -35,7 +37,7 @@ allNegControls = allNegControls %>%
          exposure_outcomes, counterfactual_outcomes,
          rr) # add RR estimate here as well
 
-saveRDS(allNegControls, './localCache/negativeControlEstimatesCharacteristics.rds')
+saveRDS(allNegControls, './localCache/negativeControlEstimatesCharacteristics-2.rds')
 
 
 # 1b pull database basic characteristics info----
@@ -125,6 +127,7 @@ characterizeDataHC <- function(estimates,
       database_id == 'IBM_MDCR' ~ 'MDCR',
       database_id == 'OptumEhr' ~ 'Optum EHR',
       database_id == 'OptumDod' ~ 'Optum',
+      database_id == 'CUIMC' ~ 'CUIMC',
       TRUE ~ 'CCAE')) %>%
     select(exposure_id, 
            database,
@@ -211,7 +214,7 @@ characterizeDataHC <- function(estimates,
 ## CONTENT only; 
 ## still need latex headers etc.
 
-estimates = readRDS('./localCache/negativeControlEstimatesCharacteristics.rds')
+estimates = readRDS('./localCache/negativeControlEstimatesCharacteristics-2.rds') # add CUIMC results too
 dataInfo = characterizeDataHC(estimates,
                               analysis_id = 1,
                               hasPositiveExposure = TRUE,
@@ -226,7 +229,8 @@ print(xtable(dataInfo, format = "latex", digits = 2),
       sanitize.text.function = identity)
 
 # 03/31/2023: generate table for 1-42 days TaR for supplement
-estimates = readRDS('./localCache/negativeControlEstimatesCharacteristics.rds')
+# 04/13/2023: add CUIMC records too
+estimates = readRDS('./localCache/negativeControlEstimatesCharacteristics-2.rds')
 dataInfo = characterizeDataHC(estimates,
                               analysis_id = 5,
                               hasPositiveExposure = TRUE,
