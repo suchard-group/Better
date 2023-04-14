@@ -74,29 +74,51 @@ shinyServer(function(input, output, session) {
       pull() %>% unique()
   })
   ## use `Observe` to update list of choices 
-  observe({
-    
-    updateSelectizeInput(session, "analysis", choices = analysis.choice())
-    
+  # observe({
+  #   
+  #   updateRadioButtons(session, "analysis", choices = analysis.choice())
+  #   
+  # })
+  
+  variantChoice <- reactive({
+    if(input$testTab == "Statistical power"){
+      radioButtons("analysis", "Design variant:",
+                   choices = analysis.choice(),
+                   selected = analysis.choice()[1])
+    }else if(input$testTab == "Time-to-signal"){
+      # selectInput("sensitivity", 'Sensitivity:', 
+      #             choices = sensitivity_levels, selected = sensitivity_levels[2])
+      sliderTextInput("sensitivity", 'Sensitivity:', 
+                      choices = sensitivity_levels,
+                      selected =  sensitivity_levels[2])
+    }else{
+      NULL
+    }
   })
   
-  # analysisId reactive
-  analysisIdTest <- reactive(
-    analysis %>%
-      filter(.data$method %in% input$methodTest, 
-             .data$timeAtRisk %in% input$timeAtRiskTest,
-             .data$description == input$analysis) %>%
-      pull(.data$analysisId)
-  )
+  output$variantChoice <- renderUI({
+    # radioButtons("analysis", "Design variant:",
+    #              choices = analysis.choice())
+    variantChoice()
+  })
+  
   
   getPowers <- reactive({
     # Fetching data across methods and periods to compute full grid of controls
+    
+    analysisIdTest <- 
+      analysis %>%
+        filter(.data$method %in% input$methodTest, 
+               .data$timeAtRisk %in% input$timeAtRiskTest,
+               .data$description == input$analysis) %>%
+        pull(.data$analysisId)
+    
     subset <- pullPower(connection = connectionPoolBetter,
                        schema = schema,
                        databaseId = input$databaseTest,
                        method = input$methodTest,
                        exposureId = exposureIdTest(),
-                       analysisId = analysisIdTest()) 
+                       analysisId = analysisIdTest)
     return(subset)
   })
   
@@ -131,7 +153,7 @@ shinyServer(function(input, output, session) {
   
   output$ttsPlot <- renderPlot({
     return(ttsPlot())
-  }, width = 700)
+  }, width = 700, height = 800)
   
   # estimation metrics ----
   filterMSEs <- reactive({

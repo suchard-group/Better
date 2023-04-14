@@ -8,6 +8,7 @@
 #
 
 library(shiny)
+library(shinyWidgets)
 
 titleName <- "BETTER: Bayesian Evaluation of Time-To-Event and Reliability (for vaccine surveillance)"
 methods <- c("HistoricalComparator", "SCCS")
@@ -49,32 +50,37 @@ shinyUI(
         fluidRow(
           column(
             2,
-            style = "background-color:#e8e8e8;",
+            #style = "background-color:#e8e8e8;",
             selectInput("exposureTest", label = "Vaccine:", choices = exposure$exposureName),
             selectInput("databaseTest", label = "Database:", choices = database$databaseId),
+            radioButtons("timeAtRiskTest", label = "Time at risk \n(days post vaccination):", choices = timeAtRisks, selected = timeAtRisks[1]),
             radioButtons("methodTest", label = "Design:", choices = methods, selected = methods[1]),
-            radioButtons("timeAtRiskTest", label = "Time at risk:", choices = timeAtRisks, selected = timeAtRisks[1]),
+            uiOutput("variantChoice")
           ),
           column(
             10,
-            tabsetPanel(type = "pills",
+            tabsetPanel(id = 'testTab', 
+                        type = "pills",
                         tabPanel("Type 1 error",
-                                 plotOutput("type1Plot"),
                                  div(strong("Plot:"), 
-                                     "Empirical Type 1 error rate over analysis periods. Type 1 error rates are measured by fraction of H0 rejected over all negative control outcomes.")
+                                     "Empirical Type 1 error rate over analysis periods. Type 1 error rates are measured by fraction of H0 rejected over all negative control outcomes."),
+                                 plotOutput("type1Plot")
                         ),
                         tabPanel("Statistical power",
-                                 selectizeInput("analysis", "Design variant:", choices = c("choose" = "", unique(analysis$description[analysis$method == methods[1]]))),
-                                 plotOutput("powerPlot"),
+                                 # radioButtons("analysis", "Design variant:", 
+                                 #              choices = c(unique(analysis$description[analysis$method == methods[1]]))),
                                  div(strong("Plot:"), 
-                                     "Statistical power over analysis periods. Power is measured by fraction of positive control outcomes with H0 rejected, stratified by effect sizes.")
+                                     "Statistical power over analysis periods. Power is measured by fraction of positive control outcomes with H0 rejected, stratified by effect sizes."),
+                                 plotOutput("powerPlot")
                                  ),
                         tabPanel("Time-to-signal",
-                                 selectInput("sensitivity", 'Sensitivity:', choices = sensitivity_levels, selected = sensitivity_levels[2]),
-                                 plotOutput("ttsPlot"),
+                                 # selectInput("sensitivity", 'Sensitivity:', choices = sensitivity_levels, selected = sensitivity_levels[2]),
                                  div(strong("Plot:"), 
-                                     "Timeliness. Measured by number of analyses (in months) needed to reach a desired sensitivity level for detecting true positive signals.")
+                                     "Timeliness. Measured by number of analyses (in months) needed to reach a desired sensitivity level for detecting true positive signals."),
+                                 plotOutput("ttsPlot")
                                  )
+                                
+                                 
                         )
             )
           )
@@ -84,7 +90,7 @@ shinyUI(
         fluidRow(
           column(
             2,
-            style = "background-color:#e8e8e8;",
+            #style = "background-color:#e8e8e8;",
             selectInput("exposure", label = "Vaccine:", choices = exposure$exposureName),
             selectInput("database", label = "Database:", choices = database$databaseId),
             selectInput("trueRr", label = "True effect size:", choices = trueRrs),

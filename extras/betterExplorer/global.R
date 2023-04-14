@@ -80,3 +80,5 @@ priors = loadEntireTable(connectionPoolBetter, schema, "priors")
 ## filter analysis to exclude "filtered" Historical Comparator results
 analysis = analysis %>% filter(!(method == 'HistoricalComparator' & analysisId >= 13))
 
+sensitivity_levels = c(.25, 0.5)
+
