@@ -90,6 +90,7 @@ getLikelihoodProfile <- function(connection,
 ##          (FALSE: return the raw queried table w/o splitting the strings)
 ## Feb 2022 update: can allow (1 period, multi analyses) OR (1 analysis, multi periods)
 
+# April 2023 update: add a cleanUp functionality to filter out NAs in `POINT` column
 getMultiLikelihoodProfiles <- function(connection, 
                                        schema,
                                        database_id,
@@ -98,7 +99,8 @@ getMultiLikelihoodProfiles <- function(connection,
                                        period_id = NULL,
                                        outcome_ids = NULL,
                                        method = "SCCS",
-                                       process = FALSE){
+                                       process = FALSE,
+                                       cleanUp = TRUE){
   # query all likelihood profiles needed
     ## if multiple analyses...
   if(is.null(analysis_id)){
@@ -149,16 +151,28 @@ getMultiLikelihoodProfiles <- function(connection,
   # }
   
   # clean it up and organize to a list
-  if(process){
-    # don't do anything for now
-    res = LPs
-  }else{
-    res = LPs
+  # if(process){
+  #   # don't do anything for now
+  #   res = LPs
+  # }else{
+  #   res = LPs
+  # }
+  
+  # clean it up; filter out "NA" entries in the POINT column
+  if(cleanUp){
+    if(nrow(LPs) == 0){
+      return(LPs)
+    }
+    
+    bad_indices = grep("*NA*", LPs$POINT)
+    if(length(bad_indices) > 0){
+      LPs = LPs[-bad_indices,]
+    }
   }
   
   # lower case the col names
   #names(res) = tolower(names(res))
-  res
+  LPs
   
 }
 
