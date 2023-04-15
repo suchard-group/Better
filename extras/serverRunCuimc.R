@@ -120,7 +120,7 @@ for(expo in exposures){
   multiBayesianAnalysesMeta(connection,
                             'eumaeus',
                             database_id = database_id,
-                            method = me,
+                            method = method,
                             exposure_id = expo,
                             analysis_ids = analysis_ids,
                             period_ids = period_id,
