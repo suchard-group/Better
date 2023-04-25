@@ -1,6 +1,9 @@
 # 04/05/2023
 # compile results into csv files to upload to OHDSI server
 
+# 04/19/2023
+# add in CUIMC results
+
 library(dplyr)
 
 outputFolder = '~/Documents/Research/betterOutput/export/'
@@ -36,7 +39,9 @@ allSummary = NULL
 for(db in databases){
   for(me in methods){
     fileName = sprintf("AllSummary-%s-%s.rds", db, me)
-    this.summary = readRDS(file.path(summaryPath, fileName))
+    if(file.exists(file.path(summaryPath, fileName))){
+      this.summary = readRDS(file.path(summaryPath, fileName))
+    }
     allSummary = bind_rows(allSummary, this.summary)
   }
 }
@@ -65,18 +70,23 @@ readr::write_csv(allSummary, file.path(outputFolder, 'summary.csv'))
 
 
 # (3) save useful intermediate results for faster plotting and summarization on ShinyApp
-all_mses = readRDS('./localCache/allMSEs-2.rds')
+all_mses = bind_rows(readRDS('./localCache/allMSEs-2.rds'),
+                     readRDS('./localCache/allMSEs-cuimc.rds'))
 readr::write_csv(all_mses, file.path(outputFolder, 'mses.csv'))
 
-all_type1s = readRDS('./localCache/all_type1s_95threshold.rds')
+all_type1s = bind_rows(readRDS('./localCache/all_type1s_95threshold.rds'),
+                       readRDS('./localCache/all_type1s_95threshold_cuimc.rds'))
 readr::write_csv(all_type1s, file.path(outputFolder, 'type1s.csv'))
 
 ## change column name "trueRR" to "true_rr"
-all_powers = readRDS('./localCache/all_powers_calibrated.rds')
+all_powers = bind_rows(readRDS('./localCache/all_powers_calibrated.rds'),
+                       readRDS('./localCache/all_powers_calibrated_cuimc.rds'))
 all_powers = all_powers %>% rename(true_rr = trueRR)
 readr::write_csv(all_powers, file.path(outputFolder, 'powers.csv'))
 
 all_tts = bind_rows(readRDS('./localCache/all_tts_sens50.rds'),
-                    readRDS('./localCache/all_tts_sens25.rds'))
+                    readRDS('./localCache/all_tts_sens25.rds'),
+                    readRDS('./localCache/all_tts_sens25_cuimc.rds'),
+                    readRDS('./localCache/all_tts_sens50_cuimc.rds'))
 
 readr::write_csv(all_tts, file.path(outputFolder, 'time_to_signal.csv'))
