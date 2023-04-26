@@ -2,23 +2,23 @@
 
 source("dataPulls.R")
 
-connectionPool <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
-                               dbms = "postgresql",
-                               server = paste(Sys.getenv("shinydbServer"),
-                                              Sys.getenv("shinydbDatabase"),
-                                              sep = "/"),
-                               port = Sys.getenv("shinydbPort"),
-                               user = Sys.getenv("eumaeusdbUser"),
-                               password = Sys.getenv("eumaeusdbPw"))
-
-# OLD: credentials used for local testing...
 # connectionPool <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
 #                                dbms = "postgresql",
-#                                server = paste(keyring::key_get("eumaeusServer"),
-#                                               keyring::key_get("eumaeusDatabase"),
+#                                server = paste(Sys.getenv("shinydbServer"),
+#                                               Sys.getenv("shinydbDatabase"),
 #                                               sep = "/"),
-#                                user = keyring::key_get("eumaeusUser"),
-#                                password = keyring::key_get("eumaeusPassword"))
+#                                port = Sys.getenv("shinydbPort"),
+#                                user = Sys.getenv("eumaeusdbUser"),
+#                                password = Sys.getenv("eumaeusdbPw"))
+
+# OLD: credentials used for local testing...
+connectionPool <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
+                               dbms = "postgresql",
+                               server = paste(keyring::key_get("eumaeusServer"),
+                                              keyring::key_get("eumaeusDatabase"),
+                                              sep = "/"),
+                               user = keyring::key_get("eumaeusUser"),
+                               password = keyring::key_get("eumaeusPassword"))
 
 
 # onStop(function() {
