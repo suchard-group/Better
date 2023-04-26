@@ -1,4 +1,4 @@
-source('extras/betterResultsDataModel.R')
+# source('extras/betterResultsDataModel.R')
 
 # Upload BETTER results to the OHDSI PostgreSQL public server
 exportFolder = '~/Documents/Research/betterOutput/export/'
@@ -17,7 +17,7 @@ schema <- "better_results"
 
 # create results data models in the better_results schema
 # ONLY DO THIS ONCE!!!
-# createResultsDataModel(connectionDetails, schema)
+createResultsDataModel(connectionDetails, schema)
 
 # grant user read-only access to the results schema
 # (for pulling results and R ShinyApp)
@@ -30,6 +30,16 @@ grantPermissionOnServer(connectionDetails,
 grantPermissionOnServer(connectionDetails, 
                         'better_results',
                         user = "eumaeus_readonly")
+grantPermissionOnServer(connectionDetails, 
+                        'better_results',
+                        user = "eumaeus_app_readonly")
+
+
+# try granting access to Marc too...
+# grantPermissionOnServer(connectionDetails,
+#                         'better_results',
+#                         user = keyring::key_get("ohdsiPostgresUser"))
+
 
 # package up loose local csv's into a zip file for uploading
 zipName <- normalizePath(file.path(exportFolder, 'results_better.zip'), mustWork = FALSE)
@@ -81,6 +91,23 @@ ConnectionDetails <- DatabaseConnector::createConnectionDetails(
   user = keyring::key_get("eumaeusUser"),
   password = keyring::key_get("eumaeusPassword"))
 
+ConnectionDetails <- DatabaseConnector::createConnectionDetails(
+  dbms = "postgresql",
+  server = paste(keyring::key_get("betterServer"),
+                 keyring::key_get("betterDatabase"),
+                 sep = "/"),
+  user = keyring::key_get("legendt2dmUser"),
+  password = keyring::key_get("legendt2dmPassword"))
+
+# testing with Marc's username
+ConnectionDetails <- DatabaseConnector::createConnectionDetails(
+  dbms = "postgresql",
+  server = paste(keyring::key_get("betterServer"),
+                 keyring::key_get("betterDatabase"),
+                 sep = "/"),
+  user = keyring::key_get("ohdsiPostgresUser"),
+  password = keyring::key_get("ohdsiPostgresPassword"))
+
 # set up the DB connection
 connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
 
@@ -88,9 +115,13 @@ sql = 'SELECT * from better_results.DATABASE'
 databases = DatabaseConnector::querySql(connection, sql)
 databases$DATABASE_ID
 
+sql = 'SELECT * from better_results.mses'
+up_mses = DatabaseConnector::querySql(connection, sql)
+
 sql <- "SELECT COUNT(*) FROM better_results.powers"
 powers = DatabaseConnector::querySql(connection, sql)
 print(powers)
+
 DatabaseConnector::disconnect(connection)
 
 
