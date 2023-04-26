@@ -3,6 +3,7 @@
 # "Table 1" in results section
 
 # Re-do to include CUIMC
+# change "Optum" to "Clinformatics"
 
 library(dplyr)
 library(xtable)
@@ -20,35 +21,38 @@ connection = DatabaseConnector::connect(connectionDetails = ConnectionDetails)
 # 1a. pull negative control estimates with info on----
 # exposed subjects, exposed days, exposed outcomes
 # comparing different designs, exposures, databases
-sql = "SELECT estimate.*
-      FROM eumaeus.ESTIMATE_IMPUTED_PCS estimate
-      INNER JOIN eumaeus.NEGATIVE_CONTROL_OUTCOME
-      ON estimate.outcome_id = NEGATIVE_CONTROL_OUTCOME.outcome_id
-      WHERE (method = 'SCCS' OR method = 'HistoricalComparator')"
-sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
-allNegControls <- DatabaseConnector::querySql(connection, sql)
-names(allNegControls) = tolower(names(allNegControls))
+# sql = "SELECT estimate.*
+#       FROM eumaeus.ESTIMATE_IMPUTED_PCS estimate
+#       INNER JOIN eumaeus.NEGATIVE_CONTROL_OUTCOME
+#       ON estimate.outcome_id = NEGATIVE_CONTROL_OUTCOME.outcome_id
+#       WHERE (method = 'SCCS' OR method = 'HistoricalComparator')"
+# sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+# allNegControls <- DatabaseConnector::querySql(connection, sql)
+# names(allNegControls) = tolower(names(allNegControls))
+# 
+# allNegControls = allNegControls %>% 
+#   select(database_id, method, analysis_id, 
+#          exposure_id, outcome_id, period_id, 
+#          exposure_subjects, counterfactual_subjects,
+#          exposure_days, counterfactual_days,
+#          exposure_outcomes, counterfactual_outcomes,
+#          rr) # add RR estimate here as well
+# 
+# saveRDS(allNegControls, './localCache/negativeControlEstimatesCharacteristics-2.rds')
 
-allNegControls = allNegControls %>% 
-  select(database_id, method, analysis_id, 
-         exposure_id, outcome_id, period_id, 
-         exposure_subjects, counterfactual_subjects,
-         exposure_days, counterfactual_days,
-         exposure_outcomes, counterfactual_outcomes,
-         rr) # add RR estimate here as well
-
-saveRDS(allNegControls, './localCache/negativeControlEstimatesCharacteristics-2.rds')
+## load from local cache for repeated use...
+# allNegControls = readRDS('./localCache/negativeControlEstimatesCharacteristics-2.rds')
 
 
 # 1b pull database basic characteristics info----
 # for possible later use
-sql = 'SELECT * from eumaeus.DATABASE_CHARACTERIZATION'
-databaseInfo = DatabaseConnector::querySql(connection, sql)
-glimpse(databaseInfo)
-
-names(databaseInfo) = tolower(names(databaseInfo))
-
-saveRDS(databaseInfo, './localCache/database_characterization.rds')
+# sql = 'SELECT * from eumaeus.DATABASE_CHARACTERIZATION'
+# databaseInfo = DatabaseConnector::querySql(connection, sql)
+# glimpse(databaseInfo)
+# 
+# names(databaseInfo) = tolower(names(databaseInfo))
+# 
+# saveRDS(databaseInfo, './localCache/database_characterization.rds')
 
 
 DatabaseConnector::disconnect(connection)
