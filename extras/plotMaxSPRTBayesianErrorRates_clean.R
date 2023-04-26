@@ -524,8 +524,15 @@ dev.off()
 bayes_databases = c('CCAE','IBM_MDCD', 'IBM_MDCR', 'OptumEhr', 'OptumDod')
 methods = c('HistoricalComparator','SCCS')
 exposures = unique(readRDS('./localCache/exposures.rds')$exposure_id)
-
 localEstimates = readRDS('./localCache/allIpcEstimates.rds')
+
+# 04/19/2023 -----
+# update and add CUIMC results...
+bayes_databases = c('CUIMC')
+methods = c('HistoricalComparator')
+exposures = unique(readRDS('./localCache/exposures.rds')$exposure_id)
+localEstimates = readRDS('./localCache/allIpcEstimates-CUIMC.rds')
+
 
 ## (a) save all Type 1 results, using delta_1 = .95 threshold
 all_type1s = NULL
@@ -579,16 +586,16 @@ all_type1s = all_type1s %>%
                                database_id))
 
 # save to local cache folder
-saveRDS(all_type1s, './localCache/all_type1s_95threshold.rds')
+saveRDS(all_type1s, './localCache/all_type1s_95threshold_cuimc.rds')
 
 
 # (b) save all powers with empirical Type 1 calibrated to MaxSPRT's level ----
-# 05/07/2023: generate all plots for power; because why not?
+# 04/07/2023: generate all plots for power; because why not?
 
-plotPath = '~/Documents/Research/betterResults/plots'
+#plotPath = '~/Documents/Research/betterResults/plots'
 
-pdf(file.path(plotPath, 'Powers-calibrated-all.pdf'),
-    width = 10.3, height = 5)
+# pdf(file.path(plotPath, 'Powers-calibrated-all.pdf'),
+#     width = 10.3, height = 5)
 
 all_powers = NULL
 
@@ -635,7 +642,7 @@ for(db in bayes_databases){
   }
 }
 
-dev.off()
+#dev.off()
 
 # correct Bayesian database_id's to be consistent!!
 all_powers = all_powers %>% 
@@ -644,5 +651,6 @@ all_powers = all_powers %>%
                                database_id))
 
 # save to local cache folder
-saveRDS(all_powers, './localCache/all_powers_calibrated.rds')
+#saveRDS(all_powers, './localCache/all_powers_calibrated.rds')
+saveRDS(all_powers, './localCache/all_powers_calibrated_cuimc.rds')
                                   

@@ -389,8 +389,84 @@ saveRDS(allMSEs, './localCache/allMSEs.rds')
 saveRDS(allMSEs, './localCache/allMSEs-2.rds')
 
 
+# 04/18/2023 update -----
+# add MSEs for CUIMC and HistoricalComparator
+allIpcEstimatesCuimc = readRDS('./localCache/allIpcEstimates-CUIMC.rds')
+
+exposure_ids = readRDS('./localCache/exposures.rds')$exposure_id
+methods = c(rep('HistoricalComparator', 12))
+analysis_ids = c(1:12)
+nAnalyses = length(analysis_ids)
+
+databases = c('CUIMC')
+
+allMSEs = NULL
+
+for(db in databases){
+  if(db %in% c('MDCD', 'MDCR')){
+    maxSPRTdb = paste0('IBM_', db)
+  }else{
+    maxSPRTdb = db
+  }
+  summarypath = sprintf('~/Documents/Research/betterResults/betterResults-%s/',
+                        db)
+  cat(sprintf('\n\nWorking on database: %s...\n\n', db))
+  
+  for(eid in exposure_ids){
+    for(i in 1:nAnalyses){
+      me = methods[i]; aid = analysis_ids[i]
+      
+      # MaxSPRT
+      freqMSE = frequentistMSE(NULL,
+                               'eumaeus',
+                               database_id = maxSPRTdb,
+                               method = me,
+                               exposure_id = eid,
+                               analysis_id = aid,
+                               correct_shift = TRUE,
+                               localEstimates = allIpcEstimatesCuimc)
+      #localEstimatesPath = estimatesPath)
+      
+      # Bayesian
+      bMSE = BayesMSE(summaryPath = summarypath,
+                      database = maxSPRTdb,
+                      method = me,
+                      exposure_id = eid,
+                      analysis_id = aid,
+                      outcomeSubset = unique(freqMSE$estimates$outcome_id),
+                      prior = 2)
+      
+      # combine column-wise
+      if(!is.null(freqMSE$MSEs) && !is.null(bMSE$MSEs)){
+        this.chunk = cbind(freqMSE$MSEs %>% rename(maxSPRT_mse = mse,
+                                                   maxSPRT_coverage = coverage),
+                           bMSE$MSEs %>% select(-effect_size) %>%
+                             rename(Bayesian_mse = mse,
+                                    Bayesian_coverage = coverage))
+      }else{
+        cat(sprintf('Results not available for database %s, %s, exposure %s, analysis %s...\n',
+                    db, me, eid, aid))
+        this.chunk = NULL
+      }
+      
+      allMSEs = rbind(allMSEs, this.chunk)
+    }
+  }
+}
+
+# save to local 
+#saveRDS(allCCAE_MSEs, './localCache/allCCAE_MSEs.rds')
+saveRDS(allMSEs, './localCache/allMSEs-cuimc.rds')
+
+
+
 # 03/23/2023: plot MSEs and coverage between maxSPRT and Bayesian----
 ## filter out some very bad/weird rows
+
+# 04/19/2023: update MSE and coverage plots with CUIMC results
+allMSEs = bind_rows(readRDS('./localCache/allMSEs-2.rds'),
+                    readRDS('./localCache/allMSEs-cuimc.rds'))
+
 MSEs = allMSEs %>% 
   filter(maxSPRT_mse < 100, adjusted_mse < 100)
 
@@ -461,13 +537,17 @@ coverage_long = tibble(coverage = c(MSEs$maxSPRT_coverage,
                        effect_size = rep(MSEs$effect_size,2),
                        method = rep(c('MaxSPRT', 'Bayesian'), 
                                     each = nrow(MSEs)))
+
+# 04/19/2023: update formatting of the coverage rates table
 coverage_summary = coverage_long %>% 
   group_by(effect_size, method) %>%
   summarize(average = mean(coverage),
             Q1 = quantile(coverage, .25),
             median = median(coverage),
             Q3 = quantile(coverage, .75)) %>%
-  ungroup()
+  ungroup() %>% 
+  mutate(method = if_else(method == 'Bayesian', 'BBC', 'MLE')) %>%
+  select(method, average, Q1, median, Q3)
 
 print(xtable(coverage_summary, digits = 3), include.rownames=FALSE)
 

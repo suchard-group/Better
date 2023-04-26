@@ -190,6 +190,11 @@ for(db in all_databases){
     dbname = db
   }
   
+  # 04/24/2023: change "Optum" name to "Clinformatics" instead
+  if (dbname == 'OptumDod'){
+    dbname = "Clinformatics"
+  }
+  
   this.p = ggplot(this.exposed, aes(x = period_id, 
                                 y = exposure_count, 
                                 color = exposure)) +
@@ -216,8 +221,12 @@ for(db in all_databases){
 p_main = grid.arrange(grobs = plist,
                       ncol = 2)
 
-grid.arrange(p_main, overall_legend, 
+p_all = grid.arrange(p_main, overall_legend, 
              nrow = 2,
              heights = c(8,1))
+
+ggsave("~/Documents/Research/betterResults/plots/exposureCounts.pdf",
+       p_all,
+       height = 10, width = 10)
 
   

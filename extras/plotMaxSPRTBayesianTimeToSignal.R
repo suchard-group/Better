@@ -459,6 +459,14 @@ exposures = unique(readRDS('./localCache/exposures.rds')$exposure_id)
 localEstimates = readRDS('./localCache/allIpcEstimates.rds')
 summarypath = "~/Documents/Research/betterResults/summary"
 
+# 04/19/2023: add CUIMC results----
+bayes_databases = c('CUIMC')
+methods = c('HistoricalComparator')
+exposures = unique(readRDS('./localCache/exposures.rds')$exposure_id)
+
+localEstimates = readRDS('./localCache/allIpcEstimates-CUIMC.rds')
+summarypath = "~/Documents/Research/betterResults/summary"
+
 # set sensitivity level here
 #sens = 0.5
 sens = .25
@@ -519,6 +527,10 @@ all_tts = all_tts %>%
 # save to local cache folder
 this.fileName = file.path('./localCache/', 
                           sprintf('all_tts_sens%.0f.rds', sens * 100))
+
+# 04/19/2023: update CUIMC results filename
+this.fileName = file.path('./localCache/', 
+                          sprintf('all_tts_sens%.0f_cuimc.rds', sens * 100))
 
 saveRDS(all_tts, this.fileName)
 

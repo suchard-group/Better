@@ -81,6 +81,18 @@ names(allIpcEstimates) = tolower(names(allIpcEstimates))
 
 saveRDS(allIpcEstimates, './localCache/allIpcEstimates.rds')
 
+# 1c: pull pull imputed positive control outcomes for CUIMC database only
+sql = "SELECT estimateipc.*
+      FROM eumaeus.ESTIMATE_IMPUTED_PCS estimateipc
+      WHERE (method = 'SCCS' OR method = 'HistoricalComparator')
+          AND database_id = 'CUIMC';"
+sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+allIpcEstimatesCuimc <- DatabaseConnector::querySql(connection, sql)
+
+names(allIpcEstimatesCuimc) = tolower(names(allIpcEstimatesCuimc))
+
+saveRDS(allIpcEstimatesCuimc, './localCache/allIpcEstimates-CUIMC.rds')
+
 # 2. a summary table of all analyses
 sql = "SELECT * from eumaeus.ANALYSIS
        WHERE method = 'HistoricalComparator'
@@ -152,6 +164,21 @@ LP_ids = unique(max_periods_LP$OUTCOME_ID)
 sum(sapply(PC_ids, function(x) x %in% LP_ids))
 ### !!!! NONE of the imputed positive control outcomes have likelihood profiles!!!!
 
+## 3.5: extract some example likelihood profiles for vignette
+sql <- "SELECT * FROM eumaeus.likelihood_profile
+        WHERE method = 'HistoricalComparator'
+              AND database_id = 'CCAE'
+              AND analysis_id = 1
+              AND exposure_id = 211983;"
+sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
+exampleLPs <- DatabaseConnector::querySql(connection, sql)
+names(exampleLPs) = tolower(names(exampleLPs))
+
+NCids = readRDS("./localCache/allIPCs.rds")$NEGATIVE_CONTROL_ID %>% unique()
+exampleLPs = exampleLPs %>% filter(outcome_id %in% NCids)
+
+exampleLPs %>% count(period_id)
+
 
 # 4. experiment with likelihood profile pull
 ## single period, multiple analyses --> ~10sec on Mac, okay
@@ -177,11 +204,20 @@ sql <- "SELECT *
           AND method = 'SCCS'
           AND exposure_id = 21184"
 
+## April 2023: try CUIMC database
+sql <- "SELECT * 
+          FROM eumaeus.LIKELIHOOD_PROFILE
+          WHERE database_id = 'CUIMC'
+          AND (method = 'SCCS' OR method = 'HistoricalComparator');"
+
 ## time it
 t1 = Sys.time()
 sql <- SqlRender::translate(sql, targetDialect = connection@dbms)
 LPs <- DatabaseConnector::querySql(connection, sql)
 Sys.time() - t1
+
+## April 2023: save CUIMC likelihood profiles
+saveRDS(LPs, 'localCache/likelihood_profiles_CUIMC.rds')
 
 # 5. look at imputed positive control outcomes
 sql <- "SELECT outcome_id, exposure_id, negative_control_id, effect_size

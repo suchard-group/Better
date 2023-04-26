@@ -134,6 +134,8 @@ fitNegativeControlDistribution <- function(connection,
 # use likelihood profiles to fit null distribution
 # Aug 2022 update:
 # add "robust" option to allow a t-model
+# April 2023 update:
+# also fix bias predictive sampling bug (use t-sampling instead of normal)
 fitNegativeControlDistributionLikelihood <- function(connection,
                                                      schema,
                                                      database_id,
@@ -210,7 +212,16 @@ fitNegativeControlDistributionLikelihood <- function(connection,
   means = traces[,1]
   sds = traces[,2]
   
-  biases = rnorm(numsamps, means, sds)
+  # generate predictive samples of the new bias
+  # robust --> t distribution
+  # not robust ---> normal
+  if(robust){
+    biases = ggdist::rstudent_t(numsamps, df = 4, mu = means, sigma = sds)
+    # default df = 4; flexible choice of df TBD
+  }else{
+    biases = rnorm(numsamps, means, sds)
+  }
+  
   
   res = list(mean = means, sd = sds, bias = biases)
 
